@@ -82,11 +82,12 @@ function refreshSession(): Promise<boolean> {
 
 async function request<T>(path: string, opts: RequestOptions = {}) {
   const { method = 'GET', body, query, headers: extra, anonymous } = opts;
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== '') qs.set(key, String(value));
-  }
-  const url = `${API_BASE}${path}${qs.size ? `?${qs}` : ''}`;
+  // Built by hand: React Native's URLSearchParams is only partly implemented.
+  const qs = Object.entries(query ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  const url = `${API_BASE}${path}${qs ? `?${qs}` : ''}`;
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const send = () => {

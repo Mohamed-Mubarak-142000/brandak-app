@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { BrandOverview } from '@/api/types';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, formatShortDate } from '@/lib/format';
 import { useTheme } from '@/theme';
 import { Tap, Text } from '@/ui';
 
@@ -23,7 +23,7 @@ export function SalesChart({ daily }: { daily: BrandOverview['daily'] }) {
     <View style={styles.wrap}>
       <View style={styles.readout}>
         <Text variant="meta" color="ink3">
-          {cur ? new Date(cur.date).toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'short' }) : ''}
+          {cur ? formatShortDate(cur.date) : ''}
         </Text>
         <Text variant="bodyStrong">
           {cur ? formatMoney(cur.sales) : '—'}{' '}

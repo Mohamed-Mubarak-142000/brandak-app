@@ -7,11 +7,11 @@ import {
 import { ReemKufi_500Medium, ReemKufi_700Bold } from '@expo-google-fonts/reem-kufi';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { I18nManager, StyleSheet, View } from 'react-native';
+import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -24,6 +24,28 @@ import { ThemeProvider, useTheme } from '@/theme';
 import { ToastHost } from '@/ui';
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Last-resort screen for a render error anywhere in the app: shows what went wrong with a retry
+ * instead of the process dying. Plain styles on purpose — the theme provider may be what failed.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => undefined);
+  }, []);
+  return (
+    <View style={styles.crash}>
+      <Text style={styles.crashTitle}>حصلت مشكلة غير متوقعة</Text>
+      <Text style={styles.crashBody}>جرّب تاني، ولو المشكلة فضلت ابعتلنا الرسالة دي:</Text>
+      <Text style={styles.crashCode} selectable>
+        {error.message}
+      </Text>
+      <Pressable onPress={retry} style={styles.crashBtn} accessibilityRole="button">
+        <Text style={styles.crashBtnText}>إعادة المحاولة</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 // Arabic-only app. The expo-localization plugin forces RTL in native builds; this covers Expo Go
 // and the very first launch.
@@ -95,4 +117,12 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({ flex: { flex: 1 } });
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  crash: { flex: 1, backgroundColor: '#FEFCF7', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+  crashTitle: { fontSize: 20, fontWeight: '700', color: '#2A1D14', textAlign: 'center' },
+  crashBody: { fontSize: 15, color: '#5B4839', textAlign: 'center' },
+  crashCode: { fontSize: 12, color: '#B42318', textAlign: 'center', writingDirection: 'ltr' },
+  crashBtn: { marginTop: 8, backgroundColor: '#C2500F', paddingHorizontal: 24, height: 48, borderRadius: 10, justifyContent: 'center' },
+  crashBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+});
