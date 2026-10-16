@@ -14,7 +14,11 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "براندك محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو البراند وإيصال التحويل.",
         "NSCameraUsageDescription": "براندك محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
-        "CFBundleDevelopmentRegion": "ar"
+        "CFBundleDevelopmentRegion": "ar",
+        "ExpoLocalization_forcesRTL": true,
+        "CFBundleLocalizations": [
+          "ar"
+        ]
       }
     },
     "android": {
@@ -25,7 +29,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "single",
@@ -39,10 +46,21 @@
           "backgroundColor": "#FEFCF7",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120,
-          "dark": { "backgroundColor": "#17110D", "image": "./assets/images/splash-icon.png" }
+          "dark": {
+            "backgroundColor": "#17110D",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
-      ["expo-localization", { "supportedLocales": ["ar"], "forcesRTL": true }],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": [
+            "ar"
+          ],
+          "forcesRTL": true
+        }
+      ],
       "expo-secure-store",
       "expo-sqlite",
       [
@@ -69,6 +87,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "forcesRTL": true,
+      "eas": {
+        "projectId": "20853a30-b30d-4049-b829-a108e3f5a788"
+      }
+    },
+    "owner": "mmubarakdev"
   }
 }
