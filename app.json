@@ -1,18 +1,26 @@
 {
   "expo": {
-    "name": "brandak-app-tmp",
-    "slug": "brandak-app-tmp",
+    "name": "براندك",
+    "slug": "brandak",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "brandakapptmp",
+    "scheme": "brandak",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#FEFCF7",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "app.brandak",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "براندك محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو البراند وإيصال التحويل.",
+        "NSCameraUsageDescription": "براندك محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
+        "CFBundleDevelopmentRegion": "ar"
+      }
     },
     "android": {
+      "package": "app.brandak",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FEFCF7",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -20,7 +28,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "server",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -28,9 +36,33 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FEFCF7",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120,
+          "dark": { "backgroundColor": "#17110D", "image": "./assets/images/splash-icon.png" }
+        }
+      ],
+      ["expo-localization", { "supportedLocales": ["ar"], "forcesRTL": true }],
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "براندك محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو البراند وإيصال التحويل.",
+          "cameraPermission": "براندك محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo-google-fonts/reem-kufi/500Medium/ReemKufi_500Medium.ttf",
+            "node_modules/@expo-google-fonts/reem-kufi/700Bold/ReemKufi_700Bold.ttf",
+            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/400Regular/IBMPlexSansArabic_400Regular.ttf",
+            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/500Medium/IBMPlexSansArabic_500Medium.ttf",
+            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold/IBMPlexSansArabic_600SemiBold.ttf",
+            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/700Bold/IBMPlexSansArabic_700Bold.ttf"
+          ]
         }
       ]
     ],

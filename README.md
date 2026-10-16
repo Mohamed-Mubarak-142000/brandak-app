@@ -1,56 +1,55 @@
-# Welcome to your Expo app 👋
+# براندك — تطبيق الموبايل
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Brandak mobile app (Expo SDK 58, React Native 0.88, Expo Router, TypeScript), Arabic-only and RTL. One app for two kinds of user:
 
-## Get started
+- **Customers:** browse brands and products, a separate cart per brand, cash on delivery, order tracking, wishlist and reviews.
+- **Brand owners:** apply for a brand, subscribe and pay by InstaPay, then manage products, orders, customers, analytics and store settings from the "brand desk".
 
-1. Install dependencies
+It talks directly to the API in `../brandak backend` (`/api/v1`) with a bearer token stored in SecureStore.
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running it
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env          # EXPO_PUBLIC_API_BASE_URL
+npx expo start                # Expo Go for quick checks
+npx expo run:android          # development build (correct RTL + embedded fonts)
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+- Expo Go resets the RTL setting. The app forces RTL at runtime, but the first launch may need a reload.
+- A development build (`expo run:*` or `eas build --profile development`) is the accurate way to test RTL.
+- On a physical device, `localhost` points at the device itself. Use the deployed API or your PC's LAN IP.
 
-### Other setup steps
+## Commands
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+| | |
+|---|---|
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | `expo lint` |
+| `npm run gen:api` | regenerates `src/api/schema.d.ts` from `../brandak backend/openapi.json` |
+| `npx eas-cli@latest build -p android --profile preview` | APK for testing |
 
-## Learn more
+## Structure
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+src/app/            screens (Expo Router)
+  onboarding/       4 slides + interests picker (first launch only)
+  (auth)/           login · register · verify (OTP) · forgot · reset
+  (tabs)/           home · explore · cart · orders · account
+  product/ brand/ category/ search checkout/ order/ review/ addresses/ ...
+  seller/           apply · plans · pay/[id] · products/edit · orders/[id] · customers
+  seller/(desk)/    brand desk: overview · orders · products · store
+src/api/            client.ts (envelope + single-flight refresh) · queries.ts · types.ts · errors.ts (Arabic copy)
+src/auth/           session (SecureStore + zustand) · useMe · guest gate
+src/ui/             design system: Text, Button, TextField, Sheet, Toast, Skeleton, EmptyState, Illustration, ...
+src/theme/          tokens (same as the dashboard: #F16B21 / #C2500F, Reem Kufi + IBM Plex Sans Arabic)
+src/features/       feature components (catalog, checkout, orders, seller, onboarding)
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Key decisions
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Token refresh is single-flight.** The API rotates the refresh token and treats a reused one as theft. If several requests got a 401 at once and each refreshed, the session would be revoked. See `src/api/client.ts`.
+- **Error messages are Arabic.** The API returns English messages, so the app maps them by `error.code` in `src/api/errors.ts`.
+- **Guests can browse.** Adding to cart, the wishlist, ordering and opening a store show a "sign in to continue" sheet instead of throwing the user onto the login screen.
+- **Checkout is idempotent.** An `Idempotency-Key` stays fixed for each attempt. On `PRICE_CHANGED` the app shows the new total and asks again.
+- **No backend changes.** Push notifications will need an endpoint that registers the Expo push token; it doesn't exist yet.

@@ -1,0 +1,245 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { AtSign, CircleAlert, CreditCard, Eye, Globe, Mail, MessageCircle, Phone, Plus, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+
+import { api, errorMessage } from '@/api/client';
+import { qk, useCategories, useGovernorates, useMyBrand } from '@/api/queries';
+import type { OwnerBrand, ShippingZone } from '@/api/types';
+import { DeskHeader } from '@/features/seller/desk-header';
+import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
+import { displaySocial, normalizeSocial } from '@/features/seller/links';
+import { haptic } from '@/lib/haptics';
+import { latinDigits } from '@/lib/validation';
+import { useTheme } from '@/theme';
+import { Banner, Button, Card, Chip, IconButton, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
+
+const num = (s: string) => {
+  const n = Number(latinDigits(s).trim());
+  return s.trim() !== '' && Number.isFinite(n) ? n : null;
+};
+
+/** Store profile + shipping settings (PATCH /brands/me). Also reachable while under review. */
+export default function StoreSettings() {
+  const t = useTheme();
+  const brand = useMyBrand();
+  if (!brand.data)
+    return (
+      <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
+        <DeskHeader title='المتجر' />
+        <View style={styles.content}>
+          <Skeleton height={180} />
+          <Skeleton height={300} />
+        </View>
+      </View>
+    );
+  return <StoreForm key={brand.data.id} b={brand.data} />;
+}
+
+function StoreForm({ b }: { b: OwnerBrand }) {
+  const t = useTheme();
+  const router = useRouter();
+  const qc = useQueryClient();
+  const categories = useCategories();
+  const govs = useGovernorates();
+  const s0 = b.settings;
+
+  const [name, setName] = useState(b.name);
+  const [description, setDescription] = useState(b.description ?? '');
+  const [cats, setCats] = useState<string[]>(b.categoryIds);
+  const [logo, setLogo] = useState<UploadedImage | null>(b.logoUrl ? { fileId: '', url: b.logoUrl } : null);
+  const [cover, setCover] = useState<UploadedImage | null>(b.coverUrl ? { fileId: '', url: b.coverUrl } : null);
+  const [phone, setPhone] = useState(b.contact.phone?.replace(/^\+20/, '0') ?? '');
+  const [whatsapp, setWhatsapp] = useState(b.contact.whatsapp?.replace(/^\+20/, '0') ?? '');
+  const [email, setEmail] = useState(b.contact.email ?? '');
+  const [instagram, setInstagram] = useState(displaySocial(b.socialLinks.instagram));
+  const [facebook, setFacebook] = useState(displaySocial(b.socialLinks.facebook));
+  const [website, setWebsite] = useState(displaySocial(b.socialLinks.website));
+  const [zones, setZones] = useState<ShippingZone[]>(s0.shippingZones);
+  const [defaultFee, setDefaultFee] = useState(s0.defaultShippingFee != null ? String(s0.defaultShippingFee) : '');
+  const [freeOver, setFreeOver] = useState(s0.freeShippingThreshold != null ? String(s0.freeShippingThreshold) : '');
+  const [minOrder, setMinOrder] = useState(s0.minOrderAmount ? String(s0.minOrderAmount) : '');
+  const [days, setDays] = useState(String(s0.processingDays ?? 2));
+  const [shippingPolicy, setShippingPolicy] = useState(s0.shippingPolicy ?? '');
+  const [returnPolicy, setReturnPolicy] = useState(s0.returnPolicy ?? '');
+  const [accepts, setAccepts] = useState(s0.acceptsOrders);
+  const [zoneOpen, setZoneOpen] = useState(false);
+  const [zoneGov, setZoneGov] = useState('');
+  const [zoneFee, setZoneFee] = useState('');
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch<OwnerBrand>('/brands/me', {
+        name: name.trim(),
+        description: description.trim(),
+        categoryIds: cats,
+        ...(logo?.fileId ? { logoFileId: logo.fileId } : {}),
+        ...(cover?.fileId ? { coverFileId: cover.fileId } : {}),
+        contact: {
+          phone: latinDigits(phone).replace(/\s/g, ''),
+          whatsapp: latinDigits(whatsapp).replace(/\s/g, '') || undefined,
+          email: email.trim() || undefined,
+        },
+        socialLinks: {
+          instagram: normalizeSocial('instagram', instagram),
+          facebook: normalizeSocial('facebook', facebook),
+          website: normalizeSocial('website', website),
+        },
+        settings: {
+          shippingZones: zones,
+          defaultShippingFee: num(defaultFee),
+          freeShippingThreshold: num(freeOver),
+          minOrderAmount: num(minOrder) ?? 0,
+          processingDays: Math.round(num(days) ?? 2),
+          shippingPolicy: shippingPolicy.trim(),
+          returnPolicy: returnPolicy.trim(),
+          acceptsOrders: accepts,
+        },
+      }),
+    onSuccess: (nb) => {
+      haptic.success();
+      qc.setQueryData(qk.myBrand, nb);
+      qc.invalidateQueries({ queryKey: qk.brand(nb.slug) });
+      toast.success('اتحفظت إعدادات المتجر');
+    },
+    onError: () => haptic.error(),
+  });
+
+  const govName = (code: string) => govs.data?.find((g) => g.code === code)?.ar ?? code;
+
+  return (
+    <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
+      <DeskHeader
+        title="المتجر"
+        subtitle={b.isVisible ? 'ظاهر للعملاء' : 'مش ظاهر للعملاء دلوقتي'}
+        end={<IconButton icon={Eye} label="معاينة المتجر" background="surface" onPress={() => router.push({ pathname: '/brand/[slug]', params: { slug: b.slug } })} />}
+      />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {save.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(save.error)} />}
+
+        <Section title="الهوية">
+          <ImageSlot label="الغلاف" purpose="BRAND_COVER" value={cover} onChange={setCover} aspect={[16, 9]} width="100%" height={150} />
+          <View style={styles.logoRow}>
+            <ImageSlot label="اللوجو" purpose="BRAND_LOGO" value={logo} onChange={setLogo} width={92} round />
+            <View style={styles.flex}>
+              <TextField label="اسم البراند" value={name} onChangeText={setName} maxLength={60} />
+            </View>
+          </View>
+          <TextField label="الوصف" multiline value={description} onChangeText={setDescription} maxLength={1000} />
+          <Text variant="ui" color="ink2">
+            الأقسام ({cats.length}/5)
+          </Text>
+          <View style={styles.wrap}>
+            {(categories.data ?? [])
+              .filter((c) => c.isActive)
+              .map((c) => {
+                const on = cats.includes(c._id);
+                return (
+                  <Chip key={c._id} label={c.nameAr} selected={on} disabled={!on && cats.length >= 5} onPress={() => setCats((x) => (on ? (x.length > 1 ? x.filter((i) => i !== c._id) : x) : [...x, c._id]))} />
+                );
+              })}
+          </View>
+        </Section>
+
+        <Section title="التواصل">
+          <TextField label="موبايل البراند" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr />
+          <TextField label="واتساب" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr />
+          <TextField label="البريد" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr />
+          <TextField label="إنستجرام" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr />
+          <TextField label="فيسبوك" icon={Globe} optional value={facebook} onChangeText={setFacebook} autoCapitalize="none" ltr />
+          <TextField label="الموقع" icon={Globe} optional value={website} onChangeText={setWebsite} autoCapitalize="none" ltr />
+        </Section>
+
+        <Section title="الشحن والطلبات">
+          <View style={styles.switchRow}>
+            <View style={styles.flex}>
+              <Text variant="bodyStrong">استقبال طلبات</Text>
+              <Text variant="meta" color="ink3">
+                اقفلها مؤقتاً لو في أجازة أو المخزون خلص
+              </Text>
+            </View>
+            <Switch value={accepts} onValueChange={setAccepts} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="استقبال طلبات" />
+          </View>
+          <Text variant="ui" color="ink2">
+            مصاريف الشحن حسب المحافظة
+          </Text>
+          {zones.map((z) => (
+            <View key={z.governorate} style={[styles.zone, { borderColor: t.c.line }]}>
+              <Text variant="ui" style={styles.flex}>
+                {govName(z.governorate)}
+              </Text>
+              <Text variant="ui" weight="bold">
+                {z.fee} ج
+              </Text>
+              <IconButton icon={Trash2} label={`حذف ${govName(z.governorate)}`} size={36} color="danger" onPress={() => setZones((x) => x.filter((y) => y.governorate !== z.governorate))} />
+            </View>
+          ))}
+          <Button label="إضافة محافظة" icon={Plus} variant="soft" size="md" onPress={() => setZoneOpen(true)} />
+          <TextField label="الشحن لباقي المحافظات" optional value={defaultFee} onChangeText={setDefaultFee} keyboardType="decimal-pad" ltr hint="سيبه فاضي لو مش بتوصّل لغير المحافظات اللي فوق" />
+          <View style={styles.row}>
+            <View style={styles.flex}>
+              <TextField label="شحن مجاني فوق" optional value={freeOver} onChangeText={setFreeOver} keyboardType="decimal-pad" ltr />
+            </View>
+            <View style={styles.flex}>
+              <TextField label="أقل قيمة طلب" optional value={minOrder} onChangeText={setMinOrder} keyboardType="decimal-pad" ltr />
+            </View>
+          </View>
+          <TextField label="أيام التجهيز" value={days} onChangeText={setDays} keyboardType="number-pad" ltr />
+          <TextField label="سياسة الشحن" optional multiline value={shippingPolicy} onChangeText={setShippingPolicy} maxLength={2000} />
+          <TextField label="سياسة الاسترجاع" optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
+        </Section>
+
+        <Button label="الاشتراك والدفع" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/plans')} />
+        <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => save.mutate()} />
+      </ScrollView>
+
+      <Sheet
+        open={zoneOpen}
+        onClose={() => setZoneOpen(false)}
+        title="إضافة محافظة"
+        footer={
+          <Button
+            label="إضافة"
+            disabled={!zoneGov || num(zoneFee) == null}
+            onPress={() => {
+              setZones((x) => [...x.filter((z) => z.governorate !== zoneGov), { governorate: zoneGov, fee: num(zoneFee)! }]);
+              setZoneGov('');
+              setZoneFee('');
+              setZoneOpen(false);
+            }}
+          />
+        }
+      >
+        <TextField label="مصاريف الشحن (ج.م)" value={zoneFee} onChangeText={setZoneFee} keyboardType="decimal-pad" ltr />
+        <View style={styles.wrap}>
+          {(govs.data ?? [])
+            .filter((g) => !zones.some((z) => z.governorate === g.code))
+            .map((g) => (
+              <Chip key={g.code} label={g.ar} selected={zoneGov === g.code} onPress={() => setZoneGov(g.code)} />
+            ))}
+        </View>
+      </Sheet>
+    </View>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.gap}>
+      <Text variant="section">{title}</Text>
+      <Card style={styles.gap}>{children}</Card>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  content: { padding: 16, gap: 20, paddingBottom: 40 },
+  gap: { gap: 12 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  row: { flexDirection: 'row', gap: 10 },
+  logoRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  zone: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth },
+});
