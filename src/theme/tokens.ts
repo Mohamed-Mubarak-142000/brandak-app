@@ -81,14 +81,14 @@ export const fonts = {
 
 /** Type scale: 12 meta · 14 ui · 16 body · 18 lead · 20 section · 26 page · 34 display. */
 export const type = {
-  meta: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18 },
-  ui: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 },
-  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 26 },
-  bodyStrong: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 25 },
-  lead: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 29 },
-  section: { fontFamily: fonts.display, fontSize: 20, lineHeight: 30 },
-  page: { fontFamily: fonts.display, fontSize: 26, lineHeight: 38 },
-  display: { fontFamily: fonts.display, fontSize: 34, lineHeight: 48 },
+  meta: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 20 },
+  ui: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 23 },
+  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 27 },
+  bodyStrong: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 27 },
+  lead: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 30 },
+  section: { fontFamily: fonts.display, fontSize: 20, lineHeight: 34 },
+  page: { fontFamily: fonts.display, fontSize: 26, lineHeight: 42 },
+  display: { fontFamily: fonts.display, fontSize: 34, lineHeight: 54 },
 } as const;
 
 export type TypeVariant = keyof typeof type;

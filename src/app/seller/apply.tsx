@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, AtSign, Check, CircleAlert, Globe, Mail, MessageCircle, Phone, Store } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -25,11 +25,13 @@ export default function Apply() {
   const router = useRouter();
   const qc = useQueryClient();
   const me = useMe();
-  const categories = useCategories();
+  // Prefilled when sign-up created the account but the store request failed.
+  const params = useLocalSearchParams<{ storeType?: StoreType; name?: string }>();
   const [step, setStep] = useState(-1); // -1 = intro
-  const [storeType, setStoreType] = useState<StoreType | null>(null);
+  const [storeType, setStoreType] = useState<StoreType | null>(params.storeType ?? null);
   const info = storeTypeInfo(storeType);
-  const [name, setName] = useState('');
+  const categories = useCategories(storeType);
+  const [name, setName] = useState(params.name ?? '');
   const [description, setDescription] = useState('');
   const [cats, setCats] = useState<string[]>([]);
   const [phone, setPhone] = useState(me.data?.phone?.replace(/^\+20/, '0') ?? '');
@@ -156,13 +158,20 @@ export default function Apply() {
             <Text variant="ui" color="ink2">
               بيساعد العملاء يلاقوك في المكان الصح. تقدر تغيّره بعدين من إعدادات المتجر.
             </Text>
-            <StoreTypePicker value={storeType} onChange={setStoreType} error={errors.storeType} />
+            <StoreTypePicker
+              value={storeType}
+              onChange={(type) => {
+                if (type !== storeType) setCats([]);
+                setStoreType(type);
+              }}
+              error={errors.storeType}
+            />
           </>
         )}
         {step === 1 && (
           <>
             <Text variant="section">عرّفنا على ال{info.label}</Text>
-            <TextField label={info.nameLabel} icon={Store} value={name} onChangeText={setName} maxLength={60} error={errors.name} autoFocus />
+            <TextField label={info.nameLabel} placeholder="مثال: معرض النور للأجهزة" icon={Store} value={name} onChangeText={setName} maxLength={60} error={errors.name} autoFocus />
             <TextField
               label="وصف قصير"
               optional
@@ -203,9 +212,9 @@ export default function Apply() {
         {step === 3 && (
           <>
             <Text variant="section">إزاي العملاء يوصلولكم؟</Text>
-            <TextField label="موبايل المتجر" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr error={errors.phone} />
-            <TextField label="واتساب" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr error={errors.whatsapp} />
-            <TextField label="البريد الإلكتروني" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr error={errors.email} />
+            <TextField label="موبايل المتجر" placeholder="01012345678" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr error={errors.phone} />
+            <TextField label="واتساب" placeholder="01012345678" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr error={errors.whatsapp} />
+            <TextField label="البريد الإلكتروني" placeholder="store@mail.com" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr error={errors.email} />
             <TextField label="إنستجرام" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr placeholder="@brand" />
             <TextField label="فيسبوك" icon={Globe} optional value={facebook} onChangeText={setFacebook} autoCapitalize="none" ltr placeholder="facebook.com/brand" />
             <TextField label="الموقع" icon={Globe} optional value={website} onChangeText={setWebsite} autoCapitalize="none" keyboardType="url" ltr placeholder="brand.com" />

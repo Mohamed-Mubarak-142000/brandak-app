@@ -7,15 +7,14 @@ import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories, useGovernorates, useMyBrand } from '@/api/queries';
 import type { OwnerBrand, ShippingZone, StoreType } from '@/api/types';
-import { StoreTypePicker } from '@/features/catalog/store-type-ui';
-import { storeTypeInfo } from '@/features/catalog/store-types';
+import { STORE_TYPES, storeTypeInfo } from '@/features/catalog/store-types';
 import { DeskHeader } from '@/features/seller/desk-header';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
 import { displaySocial, normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { Banner, Button, Card, Chip, IconButton, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
+import { Banner, Button, Card, Chip, IconButton, Select, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
 
 const num = (s: string) => {
   const n = Number(latinDigits(s).trim());
@@ -43,11 +42,11 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const t = useTheme();
   const router = useRouter();
   const qc = useQueryClient();
-  const categories = useCategories();
   const govs = useGovernorates();
   const s0 = b.settings;
 
   const [storeType, setStoreType] = useState<StoreType>(b.storeType ?? 'BRAND');
+  const categories = useCategories(storeType);
   const [name, setName] = useState(b.name);
   const [description, setDescription] = useState(b.description ?? '');
   const [cats, setCats] = useState<string[]>(b.categoryIds);
@@ -123,18 +122,24 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         {save.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(save.error)} />}
 
         <Section title="الهوية">
-          <Text variant="ui" color="ink2">
-            نوع النشاط
-          </Text>
-          <StoreTypePicker value={storeType} onChange={setStoreType} />
+          <Select
+            label="نوع النشاط"
+            value={storeType}
+            onChange={(type) => {
+              // Categories differ per type; pick again for the new one.
+              if (type !== storeType) setCats([]);
+              setStoreType(type);
+            }}
+            options={STORE_TYPES.map((x) => ({ value: x.type, label: x.label, description: x.description, icon: x.icon }))}
+          />
           <ImageSlot label="الغلاف" purpose="BRAND_COVER" value={cover} onChange={setCover} aspect={[16, 9]} width="100%" height={150} />
           <View style={styles.logoRow}>
             <ImageSlot label="اللوجو" purpose="BRAND_LOGO" value={logo} onChange={setLogo} width={92} round />
             <View style={styles.flex}>
-              <TextField label={storeTypeInfo(storeType).nameLabel} value={name} onChangeText={setName} maxLength={60} />
+              <TextField label={storeTypeInfo(storeType).nameLabel} placeholder="مثال: معرض النور للأجهزة" value={name} onChangeText={setName} maxLength={60} />
             </View>
           </View>
-          <TextField label="الوصف" multiline value={description} onChangeText={setDescription} maxLength={1000} />
+          <TextField label="الوصف" placeholder="بتبيعوا إيه؟ وإيه اللي يميزكم؟" multiline value={description} onChangeText={setDescription} maxLength={1000} />
           <Text variant="ui" color="ink2">
             الأقسام ({cats.length}/5)
           </Text>
@@ -151,12 +156,12 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         </Section>
 
         <Section title="التواصل">
-          <TextField label="موبايل المتجر" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr />
-          <TextField label="واتساب" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr />
-          <TextField label="البريد" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr />
-          <TextField label="إنستجرام" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr />
-          <TextField label="فيسبوك" icon={Globe} optional value={facebook} onChangeText={setFacebook} autoCapitalize="none" ltr />
-          <TextField label="الموقع" icon={Globe} optional value={website} onChangeText={setWebsite} autoCapitalize="none" ltr />
+          <TextField label="موبايل المتجر" placeholder="01012345678" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr />
+          <TextField label="واتساب" placeholder="01012345678" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr />
+          <TextField label="البريد" placeholder="store@mail.com" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr />
+          <TextField label="إنستجرام" placeholder="@store" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr />
+          <TextField label="فيسبوك" placeholder="facebook.com/store" icon={Globe} optional value={facebook} onChangeText={setFacebook} autoCapitalize="none" ltr />
+          <TextField label="الموقع" placeholder="store.com" icon={Globe} optional value={website} onChangeText={setWebsite} autoCapitalize="none" ltr />
         </Section>
 
         <Section title="الشحن والطلبات">
@@ -184,22 +189,22 @@ function StoreForm({ b }: { b: OwnerBrand }) {
             </View>
           ))}
           <Button label="إضافة محافظة" icon={Plus} variant="soft" size="md" onPress={() => setZoneOpen(true)} />
-          <TextField label="الشحن لباقي المحافظات" optional value={defaultFee} onChangeText={setDefaultFee} keyboardType="decimal-pad" ltr hint="سيبه فاضي لو مش بتوصّل لغير المحافظات اللي فوق" />
+          <TextField label="الشحن لباقي المحافظات" placeholder="مثال: 80" optional value={defaultFee} onChangeText={setDefaultFee} keyboardType="decimal-pad" ltr hint="سيبه فاضي لو مش بتوصّل لغير المحافظات اللي فوق" />
           <View style={styles.row}>
             <View style={styles.flex}>
-              <TextField label="شحن مجاني فوق" optional value={freeOver} onChangeText={setFreeOver} keyboardType="decimal-pad" ltr />
+              <TextField label="شحن مجاني فوق" placeholder="مثال: 1000" optional value={freeOver} onChangeText={setFreeOver} keyboardType="decimal-pad" ltr />
             </View>
             <View style={styles.flex}>
-              <TextField label="أقل قيمة طلب" optional value={minOrder} onChangeText={setMinOrder} keyboardType="decimal-pad" ltr />
+              <TextField label="أقل قيمة طلب" placeholder="مثال: 200" optional value={minOrder} onChangeText={setMinOrder} keyboardType="decimal-pad" ltr />
             </View>
           </View>
-          <TextField label="أيام التجهيز" value={days} onChangeText={setDays} keyboardType="number-pad" ltr />
-          <TextField label="سياسة الشحن" optional multiline value={shippingPolicy} onChangeText={setShippingPolicy} maxLength={2000} />
-          <TextField label="سياسة الاسترجاع" optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
+          <TextField label="أيام التجهيز" placeholder="مثال: 2" value={days} onChangeText={setDays} keyboardType="number-pad" ltr />
+          <TextField label="سياسة الشحن" placeholder="مثال: بنشحن خلال يومين، والتوصيل من 2 لـ 5 أيام حسب المحافظة." optional multiline value={shippingPolicy} onChangeText={setShippingPolicy} maxLength={2000} />
+          <TextField label="سياسة الاسترجاع" placeholder="مثال: الاسترجاع خلال 14 يوم والمنتج بحالته الأصلية." optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
         </Section>
 
         <Button label="الاشتراك والدفع" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/plans')} />
-        <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => save.mutate()} />
+        <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (cats.length ? save.mutate() : toast.error('اختار قسم واحد على الأقل للمتجر'))} />
       </ScrollView>
 
       <Sheet
@@ -219,7 +224,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           />
         }
       >
-        <TextField label="مصاريف الشحن (ج.م)" value={zoneFee} onChangeText={setZoneFee} keyboardType="decimal-pad" ltr />
+        <TextField label="مصاريف الشحن (ج.م)" placeholder="مثال: 50" value={zoneFee} onChangeText={setZoneFee} keyboardType="decimal-pad" ltr />
         <View style={styles.wrap}>
           {(govs.data ?? [])
             .filter((g) => !zones.some((z) => z.governorate === g.code))

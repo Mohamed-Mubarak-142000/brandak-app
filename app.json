@@ -68,19 +68,6 @@
           "photosPermission": "دكاكين محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
           "cameraPermission": "دكاكين محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
         }
-      ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "node_modules/@expo-google-fonts/reem-kufi/500Medium/ReemKufi_500Medium.ttf",
-            "node_modules/@expo-google-fonts/reem-kufi/700Bold/ReemKufi_700Bold.ttf",
-            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/400Regular/IBMPlexSansArabic_400Regular.ttf",
-            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/500Medium/IBMPlexSansArabic_500Medium.ttf",
-            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold/IBMPlexSansArabic_600SemiBold.ttf",
-            "node_modules/@expo-google-fonts/ibm-plex-sans-arabic/700Bold/IBMPlexSansArabic_700Bold.ttf"
-          ]
-        }
       ]
     ],
     "experiments": {

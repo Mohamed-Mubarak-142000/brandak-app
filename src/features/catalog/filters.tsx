@@ -49,7 +49,7 @@ export function FilterBar({
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.barScroll} contentContainerStyle={styles.bar}>
         <Tap
           onPress={() => {
             setSession((n) => n + 1);
@@ -179,6 +179,7 @@ function FilterSheet({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  barScroll: { flexGrow: 0 },
   bar: { paddingHorizontal: 16, gap: 8, paddingVertical: 4 },
   filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -43,7 +43,7 @@ export default function Reset() {
       <View style={styles.otp}>
         <OtpInput value={code} onChange={setCode} error={reset.isError} />
       </View>
-      <TextField label="كلمة السر الجديدة" icon={Lock} password value={password} onChangeText={setPassword} autoComplete="new-password" ltr error={error} />
+      <TextField label="كلمة السر الجديدة" placeholder="8 أحرف على الأقل، فيها حرف ورقم" icon={Lock} password value={password} onChangeText={setPassword} autoComplete="new-password" ltr error={error} />
       <PasswordMeter value={password} />
       <Text variant="meta" color="ink3">
         هنسجّل خروجك من كل الأجهزة التانية للأمان.

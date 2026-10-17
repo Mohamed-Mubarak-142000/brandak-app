@@ -103,7 +103,7 @@ function BrandsTab({ initialType }: { initialType?: StoreType }) {
   const w = Math.min(width, 640) - 32;
   return (
     <View style={styles.flex}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.noGrow} contentContainerStyle={styles.chips}>
         <Chip label="كل المتاجر" selected={!storeType} onPress={() => setStoreType(undefined)} />
         {STORE_TYPES.map((s) => (
           <Chip key={s.type} label={s.plural} icon={s.icon} selected={storeType === s.type} onPress={() => setStoreType(s.type)} />
@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 14, borderWidth: 1 },
   segment: { flexDirection: 'row', padding: 4 },
   segItem: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
+  noGrow: { flexGrow: 0 },
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
   brandItem: { marginBottom: 14 },
 });

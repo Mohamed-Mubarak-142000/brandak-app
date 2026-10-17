@@ -134,7 +134,7 @@ export default function SellerOrder() {
             <Chip key={r} label={r} selected={note === r} onPress={() => setNote(r)} />
           ))}
         </View>
-        <TextField label="سبب الإلغاء" value={note} onChangeText={setNote} maxLength={300} />
+        <TextField label="سبب الإلغاء" placeholder="اكتب السبب اللي هيظهر للعميل" value={note} onChangeText={setNote} maxLength={300} />
       </Sheet>
     </Screen>
   );

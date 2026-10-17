@@ -47,7 +47,8 @@ export default function Verify() {
   });
 
   function done() {
-    if (intent === 'seller') router.replace('/seller/apply');
+    // The desk shows the review status, or sends to the wizard if the store wasn't sent yet.
+    if (intent === 'seller') router.replace('/seller');
     else if (welcome) router.replace('/(tabs)');
     else if (router.canGoBack()) router.back();
     else router.replace('/(tabs)');
@@ -104,7 +105,7 @@ export default function Verify() {
         )}
       </View>
       {welcome && (
-        <Tap pressScale={1} style={styles.later} onPress={() => router.replace(intent === 'seller' ? '/seller/apply' : '/(tabs)')}>
+        <Tap pressScale={1} style={styles.later} onPress={() => router.replace(intent === 'seller' ? '/seller' : '/(tabs)')}>
           <Text variant="ui" color="ink2">
             هأكّد بعدين
           </Text>

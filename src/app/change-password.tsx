@@ -36,8 +36,8 @@ export default function ChangePassword() {
   return (
     <Screen keyboard header={<AppBar title="تغيير كلمة السر" />}>
       {change.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(change.error)} />}
-      <TextField label="كلمة السر الحالية" icon={Lock} password value={current} onChangeText={setCurrent} autoComplete="current-password" ltr />
-      <TextField label="كلمة السر الجديدة" icon={Lock} password value={next} onChangeText={setNext} autoComplete="new-password" ltr error={error} />
+      <TextField label="كلمة السر الحالية" placeholder="اكتب كلمة السر الحالية" icon={Lock} password value={current} onChangeText={setCurrent} autoComplete="current-password" ltr />
+      <TextField label="كلمة السر الجديدة" placeholder="8 أحرف على الأقل، فيها حرف ورقم" icon={Lock} password value={next} onChangeText={setNext} autoComplete="new-password" ltr error={error} />
       <PasswordMeter value={next} />
       <Text variant="meta" color="ink3">
         هنسجّل خروجك من الأجهزة التانية، والجهاز ده هيفضل مسجّل.

@@ -113,7 +113,7 @@ export default function OrderScreen() {
             <Chip key={r} label={r} selected={reason === r} onPress={() => setReason(r)} />
           ))}
         </View>
-        <TextField label="سبب تاني" optional value={CANCEL_REASONS.includes(reason) ? '' : reason} onChangeText={setReason} maxLength={200} />
+        <TextField label="سبب تاني" placeholder="اكتب السبب باختصار" optional value={CANCEL_REASONS.includes(reason) ? '' : reason} onChangeText={setReason} maxLength={200} />
       </Sheet>
     </Screen>
   );

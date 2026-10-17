@@ -69,7 +69,7 @@ export default function Login() {
         name="password"
         render={({ field }) => (
           <TextField
-            label="كلمة السر"
+            label="كلمة السر" placeholder="اكتب كلمة السر"
             icon={Lock}
             password
             value={field.value}

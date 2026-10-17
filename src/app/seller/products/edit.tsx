@@ -227,7 +227,7 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
         </ScrollView>
       </View>
 
-      <TextField label="اسم المنتج" value={title} onChangeText={setTitle} maxLength={120} error={errors.title} />
+      <TextField label="اسم المنتج" placeholder="مثال: تيشيرت قطن أوفرسايز" value={title} onChangeText={setTitle} maxLength={120} error={errors.title} />
       <TextField label="الوصف" optional multiline value={description} onChangeText={setDescription} maxLength={5000} placeholder="الخامة، المقاسات، طريقة الغسيل..." />
 
       <View style={styles.gap}>
@@ -245,10 +245,10 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
 
       <View style={styles.row}>
         <View style={styles.flex}>
-          <TextField label="السعر (ج.م)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" ltr error={errors.price} />
+          <TextField label="السعر (ج.م)" placeholder="مثال: 350" value={price} onChangeText={setPrice} keyboardType="decimal-pad" ltr error={errors.price} />
         </View>
         <View style={styles.flex}>
-          <TextField label="السعر قبل الخصم" optional value={compareAt} onChangeText={setCompareAt} keyboardType="decimal-pad" ltr error={errors.compareAt} />
+          <TextField label="السعر قبل الخصم" placeholder="مثال: 450" optional value={compareAt} onChangeText={setCompareAt} keyboardType="decimal-pad" ltr error={errors.compareAt} />
         </View>
       </View>
 
@@ -276,13 +276,13 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
             </View>
             <View style={styles.row}>
               <View style={styles.flex}>
-                <TextField label="المخزون" value={v.stock} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, stock: s } : x)))} keyboardType="number-pad" ltr />
+                <TextField label="المخزون" placeholder="مثال: 10" value={v.stock} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, stock: s } : x)))} keyboardType="number-pad" ltr />
               </View>
               <View style={styles.flex}>
-                <TextField label="سعر مختلف" optional value={v.price} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, price: s } : x)))} keyboardType="decimal-pad" ltr />
+                <TextField label="سعر مختلف" placeholder="نفس سعر المنتج" optional value={v.price} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, price: s } : x)))} keyboardType="decimal-pad" ltr />
               </View>
             </View>
-            <TextField label="SKU" optional value={v.sku} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, sku: s } : x)))} autoCapitalize="characters" ltr maxLength={60} />
+            <TextField label="SKU" placeholder="مثال: TS-BLK-M" optional value={v.sku} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, sku: s } : x)))} autoCapitalize="characters" ltr maxLength={60} />
           </Card>
         ))}
         {variants.length < 100 && <Button label="إضافة اختيار" icon={Plus} variant="soft" onPress={() => setVariants((xs) => [...xs, newVariant()])} />}

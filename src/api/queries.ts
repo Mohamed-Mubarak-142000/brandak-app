@@ -23,6 +23,7 @@ import type {
   ProductCard,
   ProductDetail,
   PublicBrand,
+  StoreType,
   Review,
   WishlistItem,
 } from './types';
@@ -73,8 +74,13 @@ function usePaged<T>(key: readonly unknown[], path: string, query: Query = {}, e
 export const flatPages = <T,>(data?: { pages: Page<T>[] }) => data?.pages.flatMap((p) => p.items) ?? [];
 
 // ---------- Catalog ----------
-export const useCategories = () =>
-  useQuery({ queryKey: qk.categories, queryFn: () => api.get<Category[]>('/categories'), staleTime: 60 * 60_000 });
+/** Active categories; pass a store type to get only the ones offered to it (for store forms). */
+export const useCategories = (storeType?: StoreType | null) =>
+  useQuery({
+    queryKey: storeType ? [...qk.categories, storeType] : qk.categories,
+    queryFn: () => api.get<Category[]>('/categories', storeType ? { storeType } : undefined),
+    staleTime: 60 * 60_000,
+  });
 export const useGovernorates = () =>
   useQuery({ queryKey: qk.governorates, queryFn: () => api.get<Governorate[]>('/governorates'), staleTime: Infinity });
 

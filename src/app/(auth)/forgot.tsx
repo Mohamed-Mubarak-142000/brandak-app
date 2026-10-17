@@ -30,7 +30,7 @@ export default function Forgot() {
     <Screen keyboard header={<AuthHeader title="نسيت كلمة السر؟" subtitle="اكتب بريدك أو رقمك وهنبعتلك كود تعيد بيه كلمة السر." />}>
       {send.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(send.error)} />}
       <TextField
-        label="البريد الإلكتروني أو الموبايل"
+        label="البريد الإلكتروني أو الموبايل" placeholder="name@mail.com أو 01012345678"
         icon={User}
         value={identifier}
         onChangeText={setIdentifier}

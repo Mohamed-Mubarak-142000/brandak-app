@@ -140,8 +140,8 @@ export default function Pay() {
             {errors.proof}
           </Text>
         )}
-        <TextField label="رقم العملية (Reference)" icon={Receipt} value={ref} onChangeText={setRef} autoCapitalize="characters" ltr error={errors.ref} hint="موجود في رسالة تأكيد InstaPay" />
-        <TextField label="اسم صاحب الحساب المحوِّل" optional value={sender} onChangeText={setSender} />
+        <TextField label="رقم العملية (Reference)" placeholder="مثال: 123456789012" icon={Receipt} value={ref} onChangeText={setRef} autoCapitalize="characters" ltr error={errors.ref} hint="موجود في رسالة تأكيد InstaPay" />
+        <TextField label="اسم صاحب الحساب المحوِّل" placeholder="مثال: محمد أحمد" optional value={sender} onChangeText={setSender} />
       </View>
       {submit.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(submit.error)} />}
     </Screen>

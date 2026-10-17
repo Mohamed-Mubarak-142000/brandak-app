@@ -99,5 +99,5 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
   body: { maxWidth: 320 },
-  cta: { marginTop: 12, minWidth: 180 },
+  cta: { marginTop: 12, minWidth: 180, alignSelf: 'center' },
 });

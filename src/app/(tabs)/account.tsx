@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Bell,
+  Briefcase,
   ChevronLeft,
   CircleHelp,
   Heart,
@@ -13,13 +14,14 @@ import {
   Moon,
   Phone,
   Settings,
+  ShoppingBag,
   Store,
 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { useUnreadCount } from '@/api/queries';
 import { useSession } from '@/auth/session';
-import { signOut, useAuthPrompt, useMe } from '@/auth/use-auth';
+import { signOut, useMe } from '@/auth/use-auth';
 import { MenuGroup, MenuRow } from '@/features/account/menu-row';
 import { formatPhone } from '@/lib/format';
 import { useTheme, useThemeMode } from '@/theme';
@@ -32,7 +34,6 @@ export default function Account() {
   const t = useTheme();
   const router = useRouter();
   const authed = useSession((s) => s.status === 'authed');
-  const showAuth = useAuthPrompt((s) => s.show);
   const me = useMe();
   const unread = useUnreadCount();
   const mode = useThemeMode((s) => s.mode);
@@ -57,10 +58,16 @@ export default function Account() {
             أهلاً بيك في دكاكين
           </Text>
           <Text variant="ui" color="ink2" align="center">
-            سجّل عشان تحفظ المفضلة وتطلب وتتابع طلباتك.
+            اعمل حساب مشتري عشان تطلب وتتابع طلباتك، أو حساب بيزنس لو عندك معرض أو مخزن أو محل أو براند.
           </Text>
-          <Button label="تسجيل الدخول" onPress={() => router.push('/(auth)/login')} />
-          <Button label="إنشاء حساب جديد" variant="secondary" onPress={() => router.push('/(auth)/register')} />
+          <Button label="إنشاء حساب مشتري" icon={ShoppingBag} onPress={() => router.push('/(auth)/register')} />
+          <Button
+            label="إنشاء حساب بيزنس"
+            icon={Briefcase}
+            variant="soft"
+            onPress={() => router.push({ pathname: '/(auth)/register', params: { intent: 'seller' } })}
+          />
+          <Button label="عندي حساب، تسجيل الدخول" variant="secondary" onPress={() => router.push('/(auth)/login')} />
         </View>
       ) : me.isLoading || !u ? (
         <Skeleton height={96} radius={16} />
@@ -94,7 +101,11 @@ export default function Account() {
 
       {/* Seller entry */}
       <Tap
-        onPress={() => (authed ? router.push(u?.brand ? '/seller' : '/seller/apply') : showAuth('سجّل عشان تفتح متجرك على دكاكين.'))}
+        onPress={() =>
+          authed
+            ? router.push(u?.brand ? '/seller' : '/seller/apply')
+            : router.push({ pathname: '/(auth)/register', params: { intent: 'seller' } })
+        }
         pressScale={0.99}
         accessibilityLabel={u?.brand ? 'لوحة المتجر' : 'افتح متجرك على دكاكين'}
       >

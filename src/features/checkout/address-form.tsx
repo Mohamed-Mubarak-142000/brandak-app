@@ -99,7 +99,7 @@ export function AddressForm({ address, onSaved, forceDefault }: { address?: Addr
           ))}
         </View>
       </View>
-      {field('recipientName', 'اسم المستلم', { autoComplete: 'name' })}
+      {field('recipientName', 'اسم المستلم', { autoComplete: 'name', placeholder: 'مثال: محمد أحمد' })}
       {field('phone', 'موبايل المستلم', { keyboardType: 'phone-pad', ltr: true, placeholder: '01012345678', hint: 'المندوب هيتصل بالرقم ده' })}
 
       <View style={styles.gapSm}>
@@ -125,14 +125,14 @@ export function AddressForm({ address, onSaved, forceDefault }: { address?: Addr
         )}
       </View>
       <View style={styles.row}>
-        <View style={styles.flex}>{field('city', 'المدينة / المركز')}</View>
-        <View style={styles.flex}>{field('area', 'المنطقة', { optional: true })}</View>
+        <View style={styles.flex}>{field('city', 'المدينة / المركز', { placeholder: 'مثال: مدينة نصر' })}</View>
+        <View style={styles.flex}>{field('area', 'المنطقة', { optional: true, placeholder: 'مثال: الحي السابع' })}</View>
       </View>
-      {field('street', 'الشارع')}
+      {field('street', 'الشارع', { placeholder: 'مثال: 12 شارع التحرير' })}
       <View style={styles.row}>
-        <View style={styles.flex}>{field('building', 'العمارة', { optional: true })}</View>
-        <View style={styles.flex}>{field('floor', 'الدور', { optional: true, keyboardType: 'number-pad' })}</View>
-        <View style={styles.flex}>{field('apartment', 'الشقة', { optional: true })}</View>
+        <View style={styles.flex}>{field('building', 'العمارة', { optional: true, placeholder: '12' })}</View>
+        <View style={styles.flex}>{field('floor', 'الدور', { optional: true, keyboardType: 'number-pad', placeholder: '3' })}</View>
+        <View style={styles.flex}>{field('apartment', 'الشقة', { optional: true, placeholder: '5' })}</View>
       </View>
       {field('landmark', 'علامة مميزة', { optional: true, placeholder: 'جنب صيدلية...' })}
 

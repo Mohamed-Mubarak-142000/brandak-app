@@ -15,6 +15,7 @@ export function Text({ variant = 'body', color = 'ink', align, weight, style, ..
   const base = t.type[variant];
   return (
     <RNText
+      textBreakStrategy="simple"
       {...rest}
       maxFontSizeMultiplier={1.6}
       style={[
