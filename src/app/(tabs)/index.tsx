@@ -10,6 +10,7 @@ import { flatPages, useBrands, useCategories, useProducts, useUnreadCount } from
 import { useMe } from '@/auth/use-auth';
 import { BrandBubble, BrandCard } from '@/features/catalog/brand-card';
 import { ProductCard } from '@/features/catalog/product-card';
+import { STORE_TYPES } from '@/features/catalog/store-types';
 import { ProductSkeleton, useCardWidth } from '@/features/catalog/product-grid';
 import { PREF, prefs } from '@/lib/storage';
 import { useTheme } from '@/theme';
@@ -68,7 +69,7 @@ export default function Home() {
                 {firstName ? `، ${firstName}` : ''}
               </Text>
               <Text variant="section" color="brand" style={styles.logoText}>
-                براندك
+                Dakakeen
               </Text>
             </View>
           </View>
@@ -79,11 +80,11 @@ export default function Home() {
           pressScale={0.99}
           style={[styles.search, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.md }]}
           accessibilityRole="search"
-          accessibilityLabel="ابحث عن منتج أو براند"
+          accessibilityLabel="ابحث عن منتج أو متجر"
         >
           <Icon as={Search} size={20} color="ink3" />
           <Text variant="body" color="ink3">
-            ابحث عن منتج أو براند...
+            ابحث عن منتج أو متجر...
           </Text>
         </Tap>
       </View>
@@ -121,7 +122,7 @@ export default function Home() {
             {[
               { icon: Wallet, label: 'الدفع عند الاستلام' },
               { icon: Truck, label: 'توصيل لكل المحافظات' },
-              { icon: ShieldCheck, label: 'براندات معتمدة' },
+              { icon: ShieldCheck, label: 'متاجر معتمدة' },
             ].map((x) => (
               <View key={x.label} style={styles.trustItem}>
                 <Icon as={x.icon} size={20} color="accent" />
@@ -131,6 +132,30 @@ export default function Home() {
               </View>
             ))}
           </Animated.View>
+
+          {/* Store types: brands, showrooms, warehouses, shops */}
+          <View style={styles.gap}>
+            <View style={styles.mx}>
+              <SectionHeader title="تسوّق حسب نوع المتجر" />
+            </View>
+            <View style={[styles.types, styles.mx]}>
+              {STORE_TYPES.map((st) => (
+                <Tap
+                  key={st.type}
+                  onPress={() => router.push({ pathname: '/explore', params: { storeType: st.type } })}
+                  style={[styles.typeCard, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.lg }]}
+                  accessibilityLabel={`تصفح ${st.plural}`}
+                >
+                  <View style={[styles.typeIcon, { backgroundColor: t.c.accentSoft }]}>
+                    <Icon as={st.icon} size={22} color="accent" />
+                  </View>
+                  <Text variant="ui" weight="semibold" align="center">
+                    {st.plural}
+                  </Text>
+                </Tap>
+              ))}
+            </View>
+          </View>
 
           {/* Categories */}
           <View style={styles.gap}>
@@ -160,7 +185,7 @@ export default function Home() {
           {/* New brands */}
           <View style={styles.gap}>
             <View style={styles.mx}>
-              <SectionHeader title="براندات جديدة" action="عرض الكل" onAction={() => router.push({ pathname: '/explore', params: { tab: 'brands' } })} />
+              <SectionHeader title="متاجر جديدة" action="عرض الكل" onAction={() => router.push({ pathname: '/explore', params: { tab: 'brands' } })} />
             </View>
             <FlatList
               horizontal
@@ -228,6 +253,9 @@ const styles = StyleSheet.create({
   chips: { paddingHorizontal: 16, gap: 8 },
   gap: { gap: 12 },
   row: { flexDirection: 'row', gap: 12 },
+  types: { flexDirection: 'row', gap: 8 },
+  typeCard: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, borderWidth: 1 },
+  typeIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   trust: { flexDirection: 'row', paddingVertical: 14, paddingHorizontal: 8 },
   trustItem: { flex: 1, alignItems: 'center', gap: 6 },
 });

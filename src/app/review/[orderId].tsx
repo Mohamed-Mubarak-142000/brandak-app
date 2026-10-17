@@ -24,7 +24,7 @@ export default function ReviewOrder() {
   return (
     <Screen header={<AppBar title="قيّم طلبك" />} keyboard>
       <Text variant="body" color="ink2">
-        رأيك بيساعد ناس تانية تختار صح، وبيساعد البراند يتحسن.
+        رأيك بيساعد ناس تانية تختار صح، وبيساعد المتجر يتحسن.
       </Text>
       {q.isLoading ? <Skeleton height={240} /> : q.error ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : products.map((item) => <ReviewCard key={item.productId} item={item} orderId={orderId} />)}
       <Button label="خلصت" variant="secondary" onPress={() => router.back()} />

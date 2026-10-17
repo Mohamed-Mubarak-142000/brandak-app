@@ -54,7 +54,7 @@ export default function Account() {
         <View style={[styles.guest, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.lg }]}>
           <BrandMark size={44} />
           <Text variant="section" align="center">
-            أهلاً بيك في براندك
+            أهلاً بيك في دكاكين
           </Text>
           <Text variant="ui" color="ink2" align="center">
             سجّل عشان تحفظ المفضلة وتطلب وتتابع طلباتك.
@@ -84,7 +84,7 @@ export default function Account() {
               icon={Phone}
               tone="warning"
               title="رقم موبايلك لسه مش متأكد"
-              body="أكّده عشان البراندات تقدر تتواصل معاك بخصوص الطلب."
+              body="أكّده عشان المتاجر تقدر تتواصل معاك بخصوص الطلب."
               action="أكّد"
               onAction={() => router.push({ pathname: '/(auth)/verify', params: { channel: 'phone' } })}
             />
@@ -94,9 +94,9 @@ export default function Account() {
 
       {/* Seller entry */}
       <Tap
-        onPress={() => (authed ? router.push(u?.brand ? '/seller' : '/seller/apply') : showAuth('سجّل عشان تفتح متجرك على براندك.'))}
+        onPress={() => (authed ? router.push(u?.brand ? '/seller' : '/seller/apply') : showAuth('سجّل عشان تفتح متجرك على دكاكين.'))}
         pressScale={0.99}
-        accessibilityLabel={u?.brand ? 'لوحة البراند' : 'افتح متجرك على براندك'}
+        accessibilityLabel={u?.brand ? 'لوحة المتجر' : 'افتح متجرك على دكاكين'}
       >
         <LinearGradient colors={[t.c.brand, t.c.accent]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={[styles.seller, { borderRadius: t.radius.lg }]}>
           <View style={styles.sellerIcon}>
@@ -104,7 +104,7 @@ export default function Account() {
           </View>
           <View style={styles.flex}>
             <Text variant="bodyStrong" style={styles.white}>
-              {u?.brand ? 'لوحة البراند' : 'عندك براند؟ افتح متجرك'}
+              {u?.brand ? 'لوحة المتجر' : 'عندك متجر؟ افتحه على دكاكين'}
             </Text>
             <Text variant="meta" style={styles.whiteSoft}>
               {u?.brand ? 'منتجاتك، طلباتك، وإحصائياتك' : 'وصّل لعملاء في كل مصر بخطوات بسيطة'}
@@ -127,7 +127,7 @@ export default function Account() {
         <MenuRow icon={Moon} label="المظهر" value={THEME_LABEL[mode]} onPress={() => router.push('/settings')} />
         {authed && <MenuRow icon={KeyRound} label="تغيير كلمة السر" onPress={() => router.push('/change-password')} />}
         <MenuRow icon={Settings} label="الإعدادات" onPress={() => router.push('/settings')} />
-        <MenuRow icon={CircleHelp} label="عن براندك" onPress={() => router.push('/settings')} last />
+        <MenuRow icon={CircleHelp} label="عن دكاكين" onPress={() => router.push('/settings')} last />
       </MenuGroup>
 
       {authed && (
@@ -136,7 +136,7 @@ export default function Account() {
         </MenuGroup>
       )}
       <Text variant="meta" color="ink3" align="center">
-        براندك · الإصدار 1.0.0
+        دكاكين · الإصدار 1.0.0
       </Text>
     </Screen>
   );

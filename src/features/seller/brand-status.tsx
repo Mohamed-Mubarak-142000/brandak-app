@@ -27,17 +27,17 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
     PENDING_REVIEW: {
       art: 'pending' as const,
       title: 'طلبك تحت المراجعة',
-      body: `فريق براندك بيراجع "${brand.name}" دلوقتي. عادةً بنرد خلال يوم عمل، وهيوصلك إشعار أول ما نخلص.`,
+      body: `فريق دكاكين بيراجع "${brand.name}" دلوقتي. عادةً بنرد خلال يوم عمل، وهيوصلك إشعار أول ما نخلص.`,
     },
     REJECTED: {
       art: 'error' as const,
       title: 'محتاجين شوية تعديلات',
-      body: 'عدّل بيانات البراند حسب الملاحظة دي، وابعت الطلب تاني.',
+      body: 'عدّل بيانات المتجر حسب الملاحظة دي، وابعت الطلب تاني.',
     },
     SUSPENDED: {
       art: 'error' as const,
-      title: 'البراند موقوف مؤقتاً',
-      body: 'البراند مش ظاهر للعملاء حالياً. تواصل مع فريق براندك لمعرفة التفاصيل.',
+      title: 'المتجر موقوف مؤقتاً',
+      body: 'المتجر مش ظاهر للعملاء حالياً. تواصل مع فريق دكاكين لمعرفة التفاصيل.',
     },
     ACTIVE: { art: 'success' as const, title: '', body: '' },
   }[brand.status];
@@ -49,7 +49,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
         brand.status === 'REJECTED' ? (
           <View style={styles.gap}>
             <Button label="ابعت للمراجعة تاني" loading={resubmit.isPending} onPress={() => resubmit.mutate()} />
-            <Button label="تعديل بيانات البراند" icon={Pencil} variant="secondary" onPress={() => router.push('/seller/store')} />
+            <Button label="تعديل بيانات المتجر" icon={Pencil} variant="secondary" onPress={() => router.push('/seller/store')} />
           </View>
         ) : (
           <Button label="رجوع للتسوق" variant="secondary" onPress={() => router.replace('/(tabs)')} />
@@ -67,7 +67,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
       </View>
       {brand.statusReason && brand.status !== 'PENDING_REVIEW' && <Banner icon={CircleAlert} tone="warning" title="ملاحظة فريق المراجعة" body={brand.statusReason} />}
       {brand.status === 'PENDING_REVIEW' && (
-        <Banner icon={Pencil} title="ممكن تجهّز وقتك" body="أثناء المراجعة تقدر تعدّل بيانات البراند وإعدادات الشحن." action="تعديل" onAction={() => router.push('/seller/store')} />
+        <Banner icon={Pencil} title="ممكن تجهّز وقتك" body="أثناء المراجعة تقدر تعدّل بيانات المتجر وإعدادات الشحن." action="تعديل" onAction={() => router.push('/seller/store')} />
       )}
     </Screen>
   );

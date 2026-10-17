@@ -6,7 +6,9 @@ import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories, useGovernorates, useMyBrand } from '@/api/queries';
-import type { OwnerBrand, ShippingZone } from '@/api/types';
+import type { OwnerBrand, ShippingZone, StoreType } from '@/api/types';
+import { StoreTypePicker } from '@/features/catalog/store-type-ui';
+import { storeTypeInfo } from '@/features/catalog/store-types';
 import { DeskHeader } from '@/features/seller/desk-header';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
 import { displaySocial, normalizeSocial } from '@/features/seller/links';
@@ -45,6 +47,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const govs = useGovernorates();
   const s0 = b.settings;
 
+  const [storeType, setStoreType] = useState<StoreType>(b.storeType ?? 'BRAND');
   const [name, setName] = useState(b.name);
   const [description, setDescription] = useState(b.description ?? '');
   const [cats, setCats] = useState<string[]>(b.categoryIds);
@@ -71,6 +74,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const save = useMutation({
     mutationFn: () =>
       api.patch<OwnerBrand>('/brands/me', {
+        storeType,
         name: name.trim(),
         description: description.trim(),
         categoryIds: cats,
@@ -119,11 +123,15 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         {save.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(save.error)} />}
 
         <Section title="الهوية">
+          <Text variant="ui" color="ink2">
+            نوع النشاط
+          </Text>
+          <StoreTypePicker value={storeType} onChange={setStoreType} />
           <ImageSlot label="الغلاف" purpose="BRAND_COVER" value={cover} onChange={setCover} aspect={[16, 9]} width="100%" height={150} />
           <View style={styles.logoRow}>
             <ImageSlot label="اللوجو" purpose="BRAND_LOGO" value={logo} onChange={setLogo} width={92} round />
             <View style={styles.flex}>
-              <TextField label="اسم البراند" value={name} onChangeText={setName} maxLength={60} />
+              <TextField label={storeTypeInfo(storeType).nameLabel} value={name} onChangeText={setName} maxLength={60} />
             </View>
           </View>
           <TextField label="الوصف" multiline value={description} onChangeText={setDescription} maxLength={1000} />
@@ -143,7 +151,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         </Section>
 
         <Section title="التواصل">
-          <TextField label="موبايل البراند" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr />
+          <TextField label="موبايل المتجر" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr />
           <TextField label="واتساب" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr />
           <TextField label="البريد" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr />
           <TextField label="إنستجرام" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr />

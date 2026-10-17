@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -15,6 +15,8 @@ import { Button, Chip, Skeleton, Tap, Text } from '@/ui';
 export default function Interests() {
   const t = useTheme();
   const router = useRouter();
+  // then=register: the buyer chose to make an account on the welcome screen.
+  const { then } = useLocalSearchParams<{ then?: 'register' }>();
   const insets = useSafeAreaInsets();
   const categories = useCategories();
   const [picked, setPicked] = useState<string[]>(() => prefs.get<string[]>(PREF.interests, []));
@@ -28,6 +30,7 @@ export default function Interests() {
     prefs.set(PREF.onboardingDone, true);
     if (save) prefs.set(PREF.interests, picked);
     router.replace('/(tabs)');
+    if (then === 'register') router.push('/(auth)/register');
   };
 
   const roots = (categories.data ?? []).filter((c) => c.isActive && !c.parentId);

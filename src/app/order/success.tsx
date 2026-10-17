@@ -32,7 +32,7 @@ export default function OrderSuccess() {
             طلبك اتبعت بنجاح!
           </Text>
           <Text variant="body" color="ink2" align="center">
-            {brand ? `${brand} هيأكد الطلب قريب` : 'البراند هيأكد الطلب قريب'}، وهنبعتلك إشعار مع كل خطوة.
+            {brand ? `${brand} هيأكد الطلب قريب` : 'المتجر هيأكد الطلب قريب'}، وهنبعتلك إشعار مع كل خطوة.
           </Text>
         </Animated.View>
         <Animated.View entering={FadeInDown.delay(400).duration(300)} style={styles.full}>

@@ -186,7 +186,7 @@ export default function Checkout() {
       </Step>
 
       {/* 4. Notes */}
-      <Step n={4} title="ملاحظات للبراند">
+      <Step n={4} title="ملاحظات للمتجر">
         <TextField label="ملاحظات" optional multiline value={notes} onChangeText={setNotes} maxLength={300} placeholder="مثلاً: اتصل قبل ما توصل" />
       </Step>
 
@@ -194,7 +194,7 @@ export default function Checkout() {
       <View style={styles.trust}>
         <Icon as={ShieldCheck} size={16} color="success" />
         <Text variant="meta" color="ink2">
-          طلبك محمي — تقدر تلغيه مجاناً لحد ما البراند يأكده
+          طلبك محمي — تقدر تلغيه مجاناً لحد ما المتجر يأكده
         </Text>
       </View>
 
@@ -232,7 +232,7 @@ export default function Checkout() {
       </Sheet>
       <Sheet open={priceChanged !== null} onClose={() => setPriceChanged(null)} title="الأسعار اتغيرت">
         <Text variant="body" color="ink2">
-          البراند غيّر سعر منتج أو الشحن. الإجمالي الجديد:
+          المتجر غيّر سعر منتج أو الشحن. الإجمالي الجديد:
         </Text>
         <Text variant="page" color="accent">
           {formatMoney(priceChanged ?? 0)}

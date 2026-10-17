@@ -31,7 +31,7 @@ export default function Addresses() {
       ) : q.error ? (
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : !q.data?.length ? (
-        <EmptyState art="box" title="مفيش عناوين لسه" body="ضيف عنوانك مرة واحدة واستخدمه في كل طلباتك." action="إضافة عنوان" onAction={() => router.push('/addresses/edit')} />
+        <EmptyState art="address" title="مفيش عناوين لسه" body="ضيف عنوانك مرة واحدة واستخدمه في كل طلباتك." action="إضافة عنوان" onAction={() => router.push('/addresses/edit')} />
       ) : (
         q.data.map((a) => (
           <AddressCard

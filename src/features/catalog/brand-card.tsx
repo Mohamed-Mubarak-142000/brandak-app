@@ -8,6 +8,7 @@ import type { PublicBrand } from '@/api/types';
 import { useTheme } from '@/theme';
 import { Rating, Tap, Text } from '@/ui';
 import { BrandMark } from '@/ui/brand-mark';
+import { StoreTypeBadge } from './store-type-ui';
 
 export function BrandLogo({ uri, size = 48, name }: { uri: string | null | undefined; size?: number; name?: string }) {
   const t = useTheme();
@@ -40,7 +41,7 @@ export const BrandCard = memo(function BrandCard({ brand, width }: { brand: Publ
       onPress={() => router.push({ pathname: '/brand/[slug]', params: { slug: brand.slug } })}
       style={[styles.card, { width, backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.lg }]}
       pressScale={0.98}
-      accessibilityLabel={`براند ${brand.name}`}
+      accessibilityLabel={`متجر ${brand.name}`}
     >
       <View style={[styles.cover, { height: width * 0.42, backgroundColor: t.c.accentSoft }]}>
         {brand.coverUrl && <Image source={brand.coverUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />}
@@ -55,8 +56,9 @@ export const BrandCard = memo(function BrandCard({ brand, width }: { brand: Publ
           </Text>
           <BadgeCheck size={16} color={t.c.brand} />
         </View>
+        <StoreTypeBadge type={brand.storeType} />
         <Text variant="meta" color="ink2" numberOfLines={2} style={styles.desc}>
-          {brand.description || 'براند مصري على براندك'}
+          {brand.description || 'متجر مصري على دكاكين'}
         </Text>
         <View style={styles.row}>
           <Rating value={brand.ratingAvg} count={brand.ratingCount} size={12} />
@@ -75,7 +77,7 @@ export const BrandCard = memo(function BrandCard({ brand, width }: { brand: Publ
 export const BrandBubble = memo(function BrandBubble({ brand }: { brand: PublicBrand }) {
   const router = useRouter();
   return (
-    <Tap onPress={() => router.push({ pathname: '/brand/[slug]', params: { slug: brand.slug } })} style={styles.bubble} accessibilityLabel={`براند ${brand.name}`}>
+    <Tap onPress={() => router.push({ pathname: '/brand/[slug]', params: { slug: brand.slug } })} style={styles.bubble} accessibilityLabel={`متجر ${brand.name}`}>
       <BrandLogo uri={brand.logoUrl} size={68} name={brand.name} />
       <Text variant="meta" numberOfLines={1} align="center">
         {brand.name}

@@ -8,6 +8,8 @@ type ISODate = string;
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 export type BrandStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
+/** Kind of business behind a store. Labels and icons live in features/catalog/store-types.ts. */
+export type StoreType = 'BRAND' | 'SHOWROOM' | 'WAREHOUSE' | 'SHOP';
 export type BillingPeriod = 'MONTHLY' | 'YEARLY';
 export type PaymentStatus = 'AWAITING_PROOF' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -60,6 +62,7 @@ export interface PublicBrand {
   id: string;
   name: string;
   slug: string;
+  storeType: StoreType;
   description: string;
   logoUrl: string | null;
   coverUrl: string | null;
@@ -335,6 +338,7 @@ export interface OwnerBrand {
   id: string;
   name: string;
   slug: string;
+  storeType: StoreType;
   description: string;
   logoUrl: string | null;
   coverUrl: string | null;

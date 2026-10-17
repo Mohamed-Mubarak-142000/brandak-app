@@ -77,7 +77,7 @@ export default function OrderScreen() {
             </Card>
           </View>
 
-          {o.status === 'PENDING' && <Banner icon={Info} title="تقدر تلغي الطلب مجاناً" body="الإلغاء متاح لحد ما البراند يأكد الطلب." />}
+          {o.status === 'PENDING' && <Banner icon={Info} title="تقدر تلغي الطلب مجاناً" body="الإلغاء متاح لحد ما المتجر يأكد الطلب." />}
 
           <View style={styles.gap}>
             <Text variant="section">المنتجات</Text>
@@ -89,7 +89,7 @@ export default function OrderScreen() {
           </View>
           <View style={styles.gap}>
             <Text variant="section">محتاج مساعدة؟</Text>
-            <ContactButtons phone={o.brand.phone} label="البراند" />
+            <ContactButtons phone={o.brand.phone} label="المتجر" />
           </View>
         </>
       )}

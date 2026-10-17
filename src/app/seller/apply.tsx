@@ -7,8 +7,10 @@ import Animated, { FadeInLeft, FadeOutRight, useAnimatedStyle, withTiming } from
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories } from '@/api/queries';
-import type { OwnerBrand } from '@/api/types';
+import type { OwnerBrand, StoreType } from '@/api/types';
 import { meKey, useMe } from '@/auth/use-auth';
+import { StoreTypePicker } from '@/features/catalog/store-type-ui';
+import { storeTypeInfo } from '@/features/catalog/store-types';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
 import { normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
@@ -16,7 +18,7 @@ import { EG_MOBILE, latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
 import { AppBar, Banner, Button, Chip, Illustration, Screen, Text, TextField } from '@/ui';
 
-const STEPS = ['البراند', 'الأقسام', 'التواصل', 'الصور'];
+const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور'];
 
 export default function Apply() {
   const t = useTheme();
@@ -25,6 +27,8 @@ export default function Apply() {
   const me = useMe();
   const categories = useCategories();
   const [step, setStep] = useState(-1); // -1 = intro
+  const [storeType, setStoreType] = useState<StoreType | null>(null);
+  const info = storeTypeInfo(storeType);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [cats, setCats] = useState<string[]>([]);
@@ -41,6 +45,7 @@ export default function Apply() {
   const submit = useMutation({
     mutationFn: () =>
       api.post<OwnerBrand>('/brand-applications', {
+        storeType,
         name: name.trim(),
         description: description.trim() || undefined,
         categoryIds: cats,
@@ -68,9 +73,10 @@ export default function Apply() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (step === 0 && name.trim().length < 2) e.name = 'اسم البراند حرفين على الأقل';
-    if (step === 1 && !cats.length) e.cats = 'اختار قسم واحد على الأقل';
-    if (step === 2) {
+    if (step === 0 && !storeType) e.storeType = 'اختار نوع نشاطك';
+    if (step === 1 && name.trim().length < 2) e.name = `${info.nameLabel} حرفين على الأقل`;
+    if (step === 2 && !cats.length) e.cats = 'اختار قسم واحد على الأقل';
+    if (step === 3) {
       if (!EG_MOBILE.test(latinDigits(phone).replace(/\s/g, ''))) e.phone = 'رقم موبايل مصري غير صحيح';
       if (whatsapp && !EG_MOBILE.test(latinDigits(whatsapp).replace(/\s/g, ''))) e.whatsapp = 'رقم واتساب غير صحيح';
       if (email && !/^\S+@\S+\.\S+$/.test(email.trim())) e.email = 'بريد إلكتروني غير صحيح';
@@ -92,14 +98,14 @@ export default function Apply() {
         <View style={styles.intro}>
           <Illustration name="store" size={200} />
           <Text variant="page" align="center">
-            براندك على براندك
+            متجرك على دكاكين
           </Text>
           <Text variant="body" color="ink2" align="center">
-            وصّل منتجاتك لعملاء في كل محافظات مصر، والدفع كاش عند الاستلام.
+            عندك معرض أو مخزن أو محل أو براند؟ وصّل منتجاتك لعملاء في كل محافظات مصر، والدفع كاش عند الاستلام.
           </Text>
         </View>
         {[
-          ['قدّم بيانات البراند', 'دقيقتين بالظبط — الاسم والأقسام وطرق التواصل'],
+          ['قدّم بيانات نشاطك', 'دقيقتين بالظبط — الاسم والأقسام وطرق التواصل'],
           ['فريقنا يراجع الطلب', 'عادةً خلال يوم عمل، وهيوصلك إشعار'],
           ['اختار باقتك وادفع بـ InstaPay', 'ارفع صورة التحويل ونفعّل الاشتراك'],
           ['ابدأ تبيع', 'ضيف منتجاتك واستقبل الطلبات من موبايلك'],
@@ -146,8 +152,17 @@ export default function Apply() {
       <Animated.View key={step} entering={FadeInLeft.duration(240)} exiting={FadeOutRight.duration(120)} style={styles.gap}>
         {step === 0 && (
           <>
-            <Text variant="section">عرّفنا على البراند</Text>
-            <TextField label="اسم البراند" icon={Store} value={name} onChangeText={setName} maxLength={60} error={errors.name} autoFocus />
+            <Text variant="section">نوع نشاطك إيه؟</Text>
+            <Text variant="ui" color="ink2">
+              بيساعد العملاء يلاقوك في المكان الصح. تقدر تغيّره بعدين من إعدادات المتجر.
+            </Text>
+            <StoreTypePicker value={storeType} onChange={setStoreType} error={errors.storeType} />
+          </>
+        )}
+        {step === 1 && (
+          <>
+            <Text variant="section">عرّفنا على ال{info.label}</Text>
+            <TextField label={info.nameLabel} icon={Store} value={name} onChangeText={setName} maxLength={60} error={errors.name} autoFocus />
             <TextField
               label="وصف قصير"
               optional
@@ -160,9 +175,9 @@ export default function Apply() {
             />
           </>
         )}
-        {step === 1 && (
+        {step === 2 && (
           <>
-            <Text variant="section">البراند بيبيع في أنهي أقسام؟</Text>
+            <Text variant="section">ال{info.label} بيبيع في أنهي أقسام؟</Text>
             <Text variant="ui" color={errors.cats ? 'danger' : 'ink2'}>
               {errors.cats ?? `اختار من 1 لـ 5 أقسام (${cats.length}/5)`}
             </Text>
@@ -185,10 +200,10 @@ export default function Apply() {
             </View>
           </>
         )}
-        {step === 2 && (
+        {step === 3 && (
           <>
             <Text variant="section">إزاي العملاء يوصلولكم؟</Text>
-            <TextField label="موبايل البراند" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr error={errors.phone} />
+            <TextField label="موبايل المتجر" icon={Phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" ltr error={errors.phone} />
             <TextField label="واتساب" icon={MessageCircle} optional value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" ltr error={errors.whatsapp} />
             <TextField label="البريد الإلكتروني" icon={Mail} optional value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" ltr error={errors.email} />
             <TextField label="إنستجرام" icon={AtSign} optional value={instagram} onChangeText={setInstagram} autoCapitalize="none" ltr placeholder="@brand" />
@@ -196,11 +211,11 @@ export default function Apply() {
             <TextField label="الموقع" icon={Globe} optional value={website} onChangeText={setWebsite} autoCapitalize="none" keyboardType="url" ltr placeholder="brand.com" />
           </>
         )}
-        {step === 3 && (
+        {step === 4 && (
           <>
             <Text variant="section">اللوجو والغلاف</Text>
             <Text variant="ui" color="ink2">
-              صور واضحة بتخلي العملاء يثقوا في البراند أكتر. تقدر تضيفها بعدين كمان.
+              صور واضحة بتخلي العملاء يثقوا في متجرك أكتر. تقدر تضيفها بعدين كمان.
             </Text>
             <ImageSlot label="الغلاف (عرضي)" purpose="BRAND_COVER" value={cover} onChange={setCover} aspect={[16, 9]} width="100%" height={170} />
             <View style={styles.logoRow}>

@@ -18,7 +18,7 @@ const COOLDOWN = 60;
 /** Confirms the phone (or email) with the 6-digit code. Reachable after sign-up and from the account banner. */
 export default function Verify() {
   const router = useRouter();
-  const { channel = 'phone', welcome } = useLocalSearchParams<{ channel?: 'phone' | 'email'; welcome?: string }>();
+  const { channel = 'phone', welcome, intent } = useLocalSearchParams<{ channel?: 'phone' | 'email'; welcome?: string; intent?: 'seller' }>();
   const me = useMe();
   const [code, setCode] = useState('');
   const [left, setLeft] = useState(0);
@@ -47,7 +47,8 @@ export default function Verify() {
   });
 
   function done() {
-    if (welcome) router.replace('/(tabs)');
+    if (intent === 'seller') router.replace('/seller/apply');
+    else if (welcome) router.replace('/(tabs)');
     else if (router.canGoBack()) router.back();
     else router.replace('/(tabs)');
   }
@@ -103,7 +104,7 @@ export default function Verify() {
         )}
       </View>
       {welcome && (
-        <Tap pressScale={1} style={styles.later} onPress={() => router.replace('/(tabs)')}>
+        <Tap pressScale={1} style={styles.later} onPress={() => router.replace(intent === 'seller' ? '/seller/apply' : '/(tabs)')}>
           <Text variant="ui" color="ink2">
             هأكّد بعدين
           </Text>

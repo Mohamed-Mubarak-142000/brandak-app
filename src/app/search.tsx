@@ -59,7 +59,7 @@ export default function SearchScreen() {
             autoFocus
             value={text}
             onChangeText={setText}
-            placeholder="ابحث عن منتج أو براند..."
+            placeholder="ابحث عن منتج أو متجر..."
             placeholderTextColor={t.c.ink3}
             returnKeyType="search"
             style={[t.type.body, styles.input, { color: t.c.ink }]}
@@ -108,7 +108,7 @@ export default function SearchScreen() {
           header={
             brandHits.length ? (
               <View style={styles.brandHits}>
-                <Text variant="bodyStrong">براندات</Text>
+                <Text variant="bodyStrong">متاجر</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bubbles}>
                   {brandHits.map((b) => (
                     <BrandBubble key={b.id} brand={b} />

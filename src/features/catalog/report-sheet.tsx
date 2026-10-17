@@ -16,7 +16,7 @@ const REASONS: Record<ReportReason, string> = {
   OTHER: 'سبب تاني',
 };
 
-const TARGET_LABEL: Record<ReportTarget, string> = { PRODUCT: 'المنتج', BRAND: 'البراند', REVIEW: 'التقييم' };
+const TARGET_LABEL: Record<ReportTarget, string> = { PRODUCT: 'المنتج', BRAND: 'المتجر', REVIEW: 'التقييم' };
 
 export function ReportSheet({ open, onClose, targetType, targetId }: { open: boolean; onClose: () => void; targetType: ReportTarget; targetId: string }) {
   const [reason, setReason] = useState<ReportReason | null>(null);

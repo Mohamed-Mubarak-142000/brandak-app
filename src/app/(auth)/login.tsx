@@ -29,7 +29,7 @@ export default function Login() {
     onSuccess: async (res) => {
       await completeSignIn(res);
       haptic.success();
-      toast.success(`أهلاً ${res.user.name.split(' ')[0]}، نوّرت براندك`);
+      toast.success(`أهلاً ${res.user.name.split(' ')[0]}، نوّرت دكاكين`);
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)');
     },
@@ -94,7 +94,7 @@ export default function Login() {
       <Button label="تسجيل الدخول" loading={login.isPending} onPress={handleSubmit((v) => login.mutate(v))} />
       <View style={styles.row}>
         <Text variant="ui" color="ink2">
-          أول مرة على براندك؟
+          أول مرة على دكاكين؟
         </Text>
         <Tap pressScale={1} hitSlop={10} onPress={() => router.replace('/(auth)/register')}>
           <Text variant="ui" weight="bold" color="accent">

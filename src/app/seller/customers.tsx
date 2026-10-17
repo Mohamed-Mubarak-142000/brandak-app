@@ -49,7 +49,7 @@ export default function Customers() {
           ) : q.error ? (
             <ErrorState error={q.error} onRetry={() => q.refetch()} />
           ) : (
-            <EmptyState art="empty" title="لسه مفيش عملاء" body="أول ما حد يطلب من البراند هيظهر هنا." />
+            <EmptyState art="empty" title="لسه مفيش عملاء" body="أول ما حد يطلب من متجرك هيظهر هنا." />
           )
         }
       />

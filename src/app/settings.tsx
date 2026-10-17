@@ -48,7 +48,7 @@ export default function SettingsScreen() {
         />
       </MenuGroup>
       <Text variant="meta" color="ink3" align="center">
-        براندك — سوق البراندات المصرية. صُنع بحب في مصر.
+        دكاكين — معارض ومخازن ومحلات وبراندات في مكان واحد. صُنع بحب في مصر.
       </Text>
     </Screen>
   );

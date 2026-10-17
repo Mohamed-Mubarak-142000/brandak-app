@@ -1,0 +1,65 @@
+{
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "file": "brands.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A miniature marketplace neighborhood combining FOUR equally prominent businesses: furniture showroom with sofa in glass window, warehouse with open roller door and stacked cartons, neighborhood retail shop with orange awning, contemporary local fashion brand boutique with garments. Unified inviting commerce ecosystem."
+    },
+    {
+      "file": "cart.png",
+      "prompt": "Create ONE isolated premium matte clay 3D editorial illustration for Brandak, Egyptian general-commerce mobile marketplace. Square canvas, genuinely transparent background, centered scene occupying 80% with clear margins, warm orange #F46A21, cream, sand and charcoal palette, soft studio lighting, clean sophisticated miniature geometry, legible at 160-300px. No words, no text, no logos, no border, no colored background, no mockup. Subject: Shopping trolley with clothing, a home decor lamp and household package, beside two shipping parcels."
+    },
+    {
+      "file": "trust.png",
+      "prompt": "Create ONE isolated premium matte clay 3D editorial illustration for Brandak, Egyptian general-commerce mobile marketplace. Square canvas, genuinely transparent background, centered scene occupying 80% with clear margins, warm orange #F46A21, cream, sand and charcoal palette, soft studio lighting, clean sophisticated miniature geometry, legible at 160-300px. No words, no text, no logos, no border, no colored background, no mockup. Subject: Delivery parcel with friendly hand offering cash coins at delivery and a large shield with checkmark, cash on delivery and trust."
+    },
+    {
+      "file": "store.png",
+      "prompt": "Create ONE isolated premium matte clay 3D editorial illustration for Brandak, Egyptian general-commerce mobile marketplace. Square canvas, genuinely transparent background, centered scene occupying 80% with clear margins, warm orange #F46A21, cream, sand and charcoal palette, soft studio lighting, clean sophisticated miniature geometry, legible at 160-300px. No words, no text, no logos, no border, no colored background, no mockup. Subject: Miniature orange-awning retail shop, furniture showroom, stocked warehouse and fashion boutique clustered around a smartphone with abstract product cards. Equal importance to all four businesses."
+    },
+    {
+      "file": "empty.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: An open empty document tray with a blank order sheet, calm neutral empty-state scene."
+    },
+    {
+      "file": "error.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A softly rounded warning triangle with exclamation mark beside a disconnected small data panel, recoverable loading error."
+    },
+    {
+      "file": "offline.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A small wireless router with a disconnected cable and a floating crossed-out wifi symbol, no internet."
+    },
+    {
+      "file": "bag.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: An open empty shopping bag with orange handles and a tiny folded receipt next to it, no purchases yet."
+    },
+    {
+      "file": "heart.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A large orange heart floating above an open small keepsake box, empty wishlist."
+    },
+    {
+      "file": "search.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A large magnifying glass looking into an empty product display pedestal, no search results."
+    },
+    {
+      "file": "box.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: An open empty shipping carton with two spread flaps and a small packing sheet, no products or orders."
+    },
+    {
+      "file": "pending.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A clock with orange hands beside a closed merchant application folder and a tiny hourglass, waiting for review."
+    },
+    {
+      "file": "success.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A delivered shipping parcel with a large green checkmark badge and three small orange celebration confetti shapes, successful order."
+    },
+    {
+      "file": "bell.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: An orange notification bell resting on a small pedestal with a blank notification card beside it, no notifications."
+    },
+    {
+      "file": "address.png",
+      "prompt": "Use case: illustration-story. Asset: production mobile app illustration, ONE isolated centered scene on genuinely transparent background, square canvas. Premium tactile 3D editorial miniature illustration, smooth matte clay and subtle realistic materials, sophisticated clean geometry, orange #F46A21, warm cream, sand and restrained charcoal, soft studio light from upper left, gentle ambient contact shadows only beneath objects, no backdrop or colored square. Cohesive Egyptian general-commerce marketplace art direction. Main subject occupies 80 percent of square with 10 percent clear margin, legible at 160-300 pixels. No words, no lettering, no logos, no watermarks, no UI screenshot, no border. Subject: A warm cream miniature house with an orange roof and a large orange location pin beside it, small blank address card, saved delivery addresses empty-state. No boxes."
+    }
+  ]
+}

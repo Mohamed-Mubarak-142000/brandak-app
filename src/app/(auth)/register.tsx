@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
-import { CircleAlert, Lock, Mail, Phone, User } from 'lucide-react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { CircleAlert, Lock, Mail, Phone, Store, User } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
@@ -25,6 +25,9 @@ type Form = z.input<typeof schema>;
 
 export default function Register() {
   const router = useRouter();
+  // intent=seller: came from "عندي متجر"; after verification the store wizard opens.
+  const { intent } = useLocalSearchParams<{ intent?: 'seller' }>();
+  const seller = intent === 'seller';
   const { control, handleSubmit, formState, watch, setError } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { name: '', email: '', phone: '', password: '' },
@@ -41,7 +44,7 @@ export default function Register() {
     onSuccess: async (res) => {
       await completeSignIn(res);
       haptic.success();
-      router.replace({ pathname: '/(auth)/verify', params: { channel: 'phone', welcome: '1' } });
+      router.replace({ pathname: '/(auth)/verify', params: { channel: 'phone', welcome: '1', ...(seller ? { intent: 'seller' } : {}) } });
     },
     onError: (e) => {
       haptic.error();
@@ -54,7 +57,17 @@ export default function Register() {
   const submit = handleSubmit((v) => register.mutate(v));
 
   return (
-    <Screen keyboard header={<AuthHeader close title="حساب جديد" subtitle="ثواني وتبدأ تتسوّق من أحلى البراندات المصرية." />}>
+    <Screen
+      keyboard
+      header={
+        <AuthHeader
+          close
+          title={seller ? 'حساب لمتجرك' : 'حساب جديد'}
+          subtitle={seller ? 'الأول حسابك الشخصي، وبعدها هنكمّل بيانات المتجر.' : 'ثواني وتبدأ تتسوّق من كل المتاجر المصرية.'}
+        />
+      }
+    >
+      {seller && <Banner icon={Store} title="بعد التسجيل هتختار نوع نشاطك وتكمّل بيانات متجرك" />}
       {register.error && <Banner icon={CircleAlert} tone="danger" title={errorMessage(register.error)} />}
       <Controller
         control={control}
@@ -126,7 +139,7 @@ export default function Register() {
         )}
       />
       <Text variant="meta" color="ink3">
-        بإنشاء الحساب أنت موافق على شروط الاستخدام وسياسة الخصوصية الخاصة ببراندك.
+        بإنشاء الحساب أنت موافق على شروط الاستخدام وسياسة الخصوصية الخاصة بدكاكين.
       </Text>
       <Button label="إنشاء الحساب" loading={register.isPending} onPress={submit} />
       <View style={styles.row}>

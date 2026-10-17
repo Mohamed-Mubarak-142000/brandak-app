@@ -37,7 +37,7 @@ export default function CartTab() {
       </Text>
       {!!carts.data?.length && (
         <Text variant="ui" color="ink3">
-          {carts.data.length > 1 ? `${carts.data.length} براندات · كل براند طلب منفصل` : 'طلب واحد'}
+          {carts.data.length > 1 ? `${carts.data.length} متاجر · كل متجر طلب منفصل` : 'طلب واحد'}
         </Text>
       )}
     </View>
@@ -47,7 +47,7 @@ export default function CartTab() {
     return (
       <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
         {header}
-        <EmptyState art="bag" title="سلتك مستنياك" body="سجّل دخول عشان تضيف منتجات وتطلب من البراندات اللي بتحبها." action="تسجيل الدخول" onAction={() => showAuth('')} />
+        <EmptyState art="bag" title="سلتك مستنياك" body="سجّل دخول عشان تضيف منتجات وتطلب من المتاجر اللي بتحبها." action="تسجيل الدخول" onAction={() => showAuth('')} />
       </View>
     );
 
@@ -61,7 +61,7 @@ export default function CartTab() {
       ) : carts.error ? (
         <ErrorState error={carts.error} onRetry={() => carts.refetch()} />
       ) : !carts.data?.length ? (
-        <EmptyState art="cart" title="سلتك فاضية" body="لفّ على البراندات وضيف اللي يعجبك." action="ابدأ التسوق" onAction={() => router.push('/explore')} />
+        <EmptyState art="bag" title="سلتك فاضية" body="اكتشف المعارض والمحلات والمخازن والبراندات، وضيف اللي يعجبك." action="ابدأ التسوق" onAction={() => router.push('/explore')} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.list}
@@ -70,7 +70,7 @@ export default function CartTab() {
           {carts.data.map((c) => (
             <BrandCart key={c.brand.id} summary={c} />
           ))}
-          <Banner icon={Truck} title="الدفع كاش عند الاستلام" body="كل براند بيشحن طلبه لوحده، فممكن يوصلوا في أيام مختلفة." />
+          <Banner icon={Truck} title="الدفع كاش عند الاستلام" body="كل متجر بيشحن طلبه لوحده، فممكن يوصلوا في أيام مختلفة." />
         </ScrollView>
       )}
     </View>
@@ -100,7 +100,7 @@ function BrandCart({ summary }: { summary: CartSummary }) {
           style={styles.brandHead}
           pressScale={1}
           onPress={() => router.push({ pathname: '/brand/[slug]', params: { slug: summary.brand.slug } })}
-          accessibilityLabel={`براند ${summary.brand.name}`}
+          accessibilityLabel={`متجر ${summary.brand.name}`}
         >
           <BrandLogo uri={summary.brand.logoUrl} size={36} name={summary.brand.name} />
           <Text variant="bodyStrong" style={styles.flex}>
@@ -140,8 +140,8 @@ function BrandCart({ summary }: { summary: CartSummary }) {
         {data && (
           <View style={[styles.inner, styles.summary, { backgroundColor: t.c.sunken }]}>
             {toFree != null && <FreeShippingBar remaining={toFree} threshold={free!} />}
-            {!data.acceptingOrders && <Banner icon={CircleAlert} tone="warning" title="البراند مش بيستقبل طلبات دلوقتي" />}
-            {belowMin && s && <Banner icon={CircleAlert} tone="warning" title={`أقل طلب للبراند ده ${formatMoney(s.minOrderAmount)}`} body={`ضيف بـ ${formatMoney(s.minOrderAmount - subtotal)} كمان`} />}
+            {!data.acceptingOrders && <Banner icon={CircleAlert} tone="warning" title="المتجر مش بيستقبل طلبات دلوقتي" />}
+            {belowMin && s && <Banner icon={CircleAlert} tone="warning" title={`أقل طلب للمتجر ده ${formatMoney(s.minOrderAmount)}`} body={`ضيف بـ ${formatMoney(s.minOrderAmount - subtotal)} كمان`} />}
             {data.hasIssues && <Banner icon={CircleAlert} tone="danger" title="فيه منتجات محتاجة مراجعة قبل الطلب" />}
             <View style={styles.totalRow}>
               <Text variant="ui" color="ink2">

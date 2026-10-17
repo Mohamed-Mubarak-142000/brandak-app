@@ -1,11 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flatPages, useBrands, useProducts } from '@/api/queries';
+import type { StoreType } from '@/api/types';
 import { BrandCard } from '@/features/catalog/brand-card';
+import { STORE_TYPES } from '@/features/catalog/store-types';
 import { FilterBar, type ProductFilters, type ProductSort } from '@/features/catalog/filters';
 import { ProductGrid } from '@/features/catalog/product-grid';
 import { useTheme } from '@/theme';
@@ -19,8 +21,14 @@ export default function Explore() {
   const t = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ tab?: Tab; sort?: ProductSort }>();
-  const [tab, setTab] = useState<Tab>(params.tab ?? 'products');
+  const params = useLocalSearchParams<{ tab?: Tab; sort?: ProductSort; storeType?: StoreType }>();
+  const [tab, setTab] = useState<Tab>(params.tab ?? (params.storeType ? 'brands' : 'products'));
+  // Explore is a mounted tab: when another screen links here with a new store type, follow it.
+  const [linkedType, setLinkedType] = useState(params.storeType);
+  if (params.storeType !== linkedType) {
+    setLinkedType(params.storeType);
+    if (params.storeType) setTab('brands');
+  }
   const [filters, setFilters] = useState<ProductFilters>({ sort: params.sort });
 
   return (
@@ -38,7 +46,7 @@ export default function Explore() {
         >
           <Icon as={Search} size={20} color="ink3" />
           <Text variant="body" color="ink3">
-            ابحث في براندك...
+            ابحث في دكاكين...
           </Text>
         </Tap>
         <View style={[styles.segment, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]} accessibilityRole="tablist">
@@ -58,7 +66,7 @@ export default function Explore() {
           ))}
         </View>
       </View>
-      {tab === 'products' ? <ProductsTab filters={filters} setFilters={setFilters} /> : <BrandsTab />}
+      {tab === 'products' ? <ProductsTab filters={filters} setFilters={setFilters} /> : <BrandsTab key={linkedType ?? 'all'} initialType={linkedType} />}
     </View>
   );
 }
@@ -85,15 +93,22 @@ function ProductsTab({ filters, setFilters }: { filters: ProductFilters; setFilt
   );
 }
 
-function BrandsTab() {
+function BrandsTab({ initialType }: { initialType?: StoreType }) {
   const t = useTheme();
   const { width } = useWindowDimensions();
   const [sort, setSort] = useState<BrandSort>('rating');
-  const q = useBrands({ sort });
+  const [storeType, setStoreType] = useState<StoreType | undefined>(initialType);
+  const q = useBrands({ sort, storeType });
   const items = flatPages(q.data);
   const w = Math.min(width, 640) - 32;
   return (
     <View style={styles.flex}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <Chip label="كل المتاجر" selected={!storeType} onPress={() => setStoreType(undefined)} />
+        {STORE_TYPES.map((s) => (
+          <Chip key={s.type} label={s.plural} icon={s.icon} selected={storeType === s.type} onPress={() => setStoreType(s.type)} />
+        ))}
+      </ScrollView>
       <View style={styles.chips}>
         {(Object.keys(BRAND_SORT) as BrandSort[]).map((s) => (
           <Chip key={s} label={BRAND_SORT[s]} selected={sort === s} onPress={() => setSort(s)} />

@@ -30,7 +30,7 @@ export default function Overview() {
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
       <DeskHeader
-        title={brand.data?.name ?? 'البراند'}
+        title={brand.data?.name ?? 'متجري'}
         subtitle="لوحة التحكم"
         end={<IconButton icon={Users} label="العملاء" background="surface" onPress={() => router.push('/seller/customers')} />}
       />

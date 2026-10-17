@@ -8,8 +8,8 @@ import { ORDER_STATUS_AR, Text } from '@/ui';
 
 const FLOW: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 const HINT: Partial<Record<OrderStatus, string>> = {
-  PENDING: 'البراند هيراجع طلبك ويأكده',
-  CONFIRMED: 'البراند أكد الطلب',
+  PENDING: 'المتجر هيراجع طلبك ويأكده',
+  CONFIRMED: 'المتجر أكد الطلب',
   PROCESSING: 'بيتجهز ويتغلّف',
   SHIPPED: 'مع شركة الشحن في الطريق ليك',
   DELIVERED: 'وصل بالسلامة',

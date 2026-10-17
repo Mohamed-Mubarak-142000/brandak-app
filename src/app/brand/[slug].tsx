@@ -12,6 +12,7 @@ import { BrandLogo } from '@/features/catalog/brand-card';
 import { FilterBar, type ProductFilters } from '@/features/catalog/filters';
 import { ProductGrid } from '@/features/catalog/product-grid';
 import { ReportSheet } from '@/features/catalog/report-sheet';
+import { StoreTypeBadge } from '@/features/catalog/store-type-ui';
 import { formatMoney } from '@/lib/format';
 import { useTheme } from '@/theme';
 import { Banner, ErrorState, Icon, IconButton, Rating, Skeleton, Tap, Text } from '@/ui';
@@ -76,9 +77,9 @@ export default function BrandScreen() {
         {b && (
           <IconButton
             icon={Share2}
-            label="مشاركة البراند"
+            label="مشاركة المتجر"
             background="surface"
-            onPress={() => Share.share({ message: `اكتشف ${b.name} على براندك\nbrandak://brand/${b.slug}` }).catch(() => undefined)}
+            onPress={() => Share.share({ message: `اكتشف ${b.name} على دكاكين\ndakakeen://brand/${b.slug}` }).catch(() => undefined)}
           />
         )}
       </View>
@@ -105,15 +106,16 @@ function BrandInfo({ brand: b, onReport }: { brand: PublicBrand; onReport: () =>
       </View>
       <View style={styles.inline}>
         <Text variant="page">{b.name}</Text>
-        <BadgeCheck size={20} color={t.c.brand} accessibilityLabel="براند معتمد" />
+        <BadgeCheck size={20} color={t.c.brand} accessibilityLabel="متجر معتمد" />
       </View>
+      <StoreTypeBadge type={b.storeType} />
       <Rating value={b.ratingAvg} count={b.ratingCount} />
       {!!b.description && (
         <Text variant="body" color="ink2">
           {b.description}
         </Text>
       )}
-      {!s.acceptsOrders && <Banner icon={Clock} tone="warning" title="البراند مش بيستقبل طلبات دلوقتي" body="تقدر تتصفح وتحفظ في المفضلة لحد ما يرجع." />}
+      {!s.acceptsOrders && <Banner icon={Clock} tone="warning" title="المتجر مش بيستقبل طلبات دلوقتي" body="تقدر تتصفح وتحفظ في المفضلة لحد ما يرجع." />}
 
       <View style={styles.facts}>
         <Fact icon={Truck} label="الشحن" value={Number.isFinite(minFee) ? `من ${formatMoney(minFee)}` : 'حسب المحافظة'} />
@@ -180,7 +182,7 @@ function BrandInfo({ brand: b, onReport }: { brand: PublicBrand; onReport: () =>
       <Tap onPress={onReport} pressScale={1} style={styles.report}>
         <Icon as={Flag} size={14} color="ink3" />
         <Text variant="meta" color="ink3">
-          الإبلاغ عن البراند
+          الإبلاغ عن المتجر
         </Text>
       </Tap>
     </View>

@@ -80,7 +80,7 @@ export default function ProductScreen() {
     });
 
   const share = () =>
-    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على براندك\nbrandak://product/${p.id}` }).catch(() => undefined);
+    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على دكاكين\ndakakeen://product/${p.id}` }).catch(() => undefined);
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
@@ -134,7 +134,7 @@ export default function ProductScreen() {
           {/* Brand */}
           <Tap
             onPress={() => p.brand.slug && router.push({ pathname: '/brand/[slug]', params: { slug: p.brand.slug } })}
-            accessibilityLabel={`زيارة براند ${p.brand.name}`}
+            accessibilityLabel={`زيارة متجر ${p.brand.name}`}
             pressScale={0.99}
           >
             <Card style={styles.brandCard}>
@@ -145,7 +145,7 @@ export default function ProductScreen() {
                   <BadgeCheck size={16} color={t.c.brand} />
                 </View>
                 <Text variant="meta" color="ink3">
-                  زور متجر البراند
+                  زور المتجر
                 </Text>
               </View>
               <Icon as={ChevronLeft} color="ink3" />

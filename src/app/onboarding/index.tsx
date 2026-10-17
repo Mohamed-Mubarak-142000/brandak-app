@@ -51,13 +51,14 @@ export default function Onboarding() {
     haptic.tap();
   };
 
-  const finish = (to: 'shop' | 'login') => {
-    prefs.set(PREF.onboardingDone, true);
+  const finish = (to: 'welcome' | 'login') => {
     if (to === 'login') {
+      prefs.set(PREF.onboardingDone, true);
       router.replace('/(tabs)');
       router.push('/(auth)/login');
     } else {
-      router.replace('/onboarding/interests');
+      // Welcome asks: buyer, store owner or existing account. It marks onboarding as done.
+      router.replace('/onboarding/welcome');
     }
   };
 
@@ -87,7 +88,7 @@ export default function Onboarding() {
         <View style={styles.brandRow}>
           <BrandMark size={26} />
           <Text variant="section" color="brand">
-            براندك
+            Dakakeen
           </Text>
         </View>
         {!isLast && (
@@ -115,7 +116,7 @@ export default function Onboarding() {
         </View>
         {isLast ? (
           <View style={styles.actions}>
-            <Button label="ابدأ التسوق" iconEnd={ArrowLeft} onPress={() => finish('shop')} />
+            <Button label="يلا نبدأ" iconEnd={ArrowLeft} onPress={() => finish('welcome')} />
             <Tap onPress={() => finish('login')} pressScale={1} style={styles.login} accessibilityLabel="عندك حساب؟ سجّل دخول">
               <Text variant="ui" color="ink2">
                 عندك حساب؟{' '}

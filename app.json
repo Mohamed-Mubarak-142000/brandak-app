@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "براندك",
+    "name": "Dakakeen",
     "slug": "brandak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "brandak",
+    "icon": "./assets/brand/dakakeen-logo.png",
+    "scheme": "dakakeen",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FEFCF7",
     "ios": {
-      "bundleIdentifier": "app.brandak",
+      "bundleIdentifier": "app.dakakeen",
       "supportsTablet": false,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "براندك محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو البراند وإيصال التحويل.",
-        "NSCameraUsageDescription": "براندك محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
+        "NSPhotoLibraryUsageDescription": "دكاكين محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
+        "NSCameraUsageDescription": "دكاكين محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
         "CFBundleDevelopmentRegion": "ar",
         "ExpoLocalization_forcesRTL": true,
         "CFBundleLocalizations": [
@@ -22,12 +22,11 @@
       }
     },
     "android": {
-      "package": "app.brandak",
+      "package": "app.dakakeen",
       "adaptiveIcon": {
         "backgroundColor": "#FEFCF7",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/brand/dakakeen-mark.png",
+        "monochromeImage": "./assets/brand/dakakeen-mark.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -36,7 +35,7 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/brand/dakakeen-mark.png"
     },
     "plugins": [
       "expo-router",
@@ -44,11 +43,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FEFCF7",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120,
+          "image": "./assets/brand/dakakeen-mark.png",
+          "imageWidth": 150,
           "dark": {
             "backgroundColor": "#17110D",
-            "image": "./assets/images/splash-icon.png"
+            "image": "./assets/brand/dakakeen-mark.png"
           }
         }
       ],
@@ -66,8 +65,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "براندك محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو البراند وإيصال التحويل.",
-          "cameraPermission": "براندك محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
+          "photosPermission": "دكاكين محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
+          "cameraPermission": "دكاكين محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
         }
       ],
       [
