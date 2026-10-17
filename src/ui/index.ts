@@ -11,3 +11,5 @@ export * from './text';
 export * from './text-field';
 export * from './toast';
 export * from './select';
+export * from './multi-select';
+export * from './loop-carousel';

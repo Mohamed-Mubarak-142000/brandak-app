@@ -8,14 +8,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flatPages, useBrands, useCategories, useProducts, useUnreadCount } from '@/api/queries';
 import { useMe } from '@/auth/use-auth';
-import { BrandBubble, BrandCard } from '@/features/catalog/brand-card';
+import { BrandBubble } from '@/features/catalog/brand-card';
 import { ProductCard } from '@/features/catalog/product-card';
+import { CategoryTiles } from '@/features/home/category-tiles';
+import { HeroSlider } from '@/features/home/hero-slider';
+import { InlineEmpty } from '@/features/home/inline-empty';
 import { STORE_TYPES } from '@/features/catalog/store-types';
 import { ProductSkeleton, useCardWidth } from '@/features/catalog/product-grid';
 import { PREF, prefs } from '@/lib/storage';
 import { useTheme } from '@/theme';
 import { BrandMark } from '@/ui/brand-mark';
-import { Chip, ErrorState, Icon, IconButton, SectionHeader, Skeleton, Tap, Text } from '@/ui';
+import { ErrorState, Icon, IconButton, SectionHeader, Skeleton, Tap, Text } from '@/ui';
 
 function greeting() {
   const h = new Date().getHours();
@@ -45,7 +48,6 @@ export default function Home() {
   }, [categories.data, interests]);
   const forYou = useProducts({ categoryId: interests[0], sort: 'popular' }, 10);
 
-  const heroW = Math.min(width - 48, 420);
   const featuredList = flatPages(featured.data);
   const allFailed = featured.isError && popular.isError && latest.isError;
 
@@ -97,25 +99,8 @@ export default function Home() {
           contentContainerStyle={{ paddingBottom: 32, gap: 26 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={t.c.brand} colors={[t.c.brand]} />}
         >
-          {/* Hero rail: top-rated brands */}
-          <View>
-            {featured.isLoading ? (
-              <View style={styles.pad}>
-                <Skeleton width={heroW} height={heroW * 0.42 + 120} radius={16} />
-              </View>
-            ) : (
-              <FlatList
-                horizontal
-                data={featuredList}
-                keyExtractor={(b) => b.id}
-                renderItem={({ item }) => <BrandCard brand={item} width={heroW} />}
-                contentContainerStyle={styles.rail}
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={heroW + 12}
-                decelerationRate="fast"
-              />
-            )}
-          </View>
+          {/* Hero: promo banners + top-rated stores, auto-playing and endless */}
+          <HeroSlider featured={featuredList} />
 
           {/* Trust strip */}
           <Animated.View entering={FadeIn.duration(300)} style={[styles.trust, styles.mx, { backgroundColor: t.c.accentSoft, borderRadius: t.radius.lg }]}>
@@ -162,18 +147,7 @@ export default function Home() {
             <View style={styles.mx}>
               <SectionHeader title="تسوّق حسب القسم" action="الكل" onAction={() => router.push('/explore')} />
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-              {categories.isLoading
-                ? Array.from({ length: 5 }, (_, i) => <Skeleton key={i} width={90} height={40} radius={20} />)
-                : roots.map((c) => (
-                    <Chip
-                      key={c._id}
-                      label={c.nameAr}
-                      selected={interests.includes(c._id)}
-                      onPress={() => router.push({ pathname: '/category/[id]', params: { id: c._id, name: c.nameAr } })}
-                    />
-                  ))}
-            </ScrollView>
+            <CategoryTiles categories={roots} loading={categories.isLoading} />
           </View>
 
           {interests.length > 0 && (
@@ -201,7 +175,11 @@ export default function Home() {
                       <Skeleton key={i} width={68} height={68} radius={34} />
                     ))}
                   </View>
-                ) : undefined
+                ) : fresh.isError ? (
+                  <InlineEmpty art="error" title="تعذّر تحميل المتاجر" body="اسحب لتحت عشان تحدّث الصفحة." width={width - 32} />
+                ) : (
+                  <InlineEmpty art="store" title="لسه مفيش متاجر جديدة" body="أول ما متجر جديد ينضم لدكاكين هيظهر هنا." width={width - 32} />
+                )
               }
             />
           </View>

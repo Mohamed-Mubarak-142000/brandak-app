@@ -14,7 +14,7 @@ import { displaySocial, normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { Banner, Button, Card, Chip, IconButton, Select, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
+import { Banner, Button, Card, Chip, IconButton, MultiSelect, Select, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
 
 const num = (s: string) => {
   const n = Number(latinDigits(s).trim());
@@ -140,19 +140,16 @@ function StoreForm({ b }: { b: OwnerBrand }) {
             </View>
           </View>
           <TextField label="الوصف" placeholder="بتبيعوا إيه؟ وإيه اللي يميزكم؟" multiline value={description} onChangeText={setDescription} maxLength={1000} />
-          <Text variant="ui" color="ink2">
-            الأقسام ({cats.length}/5)
-          </Text>
-          <View style={styles.wrap}>
-            {(categories.data ?? [])
-              .filter((c) => c.isActive)
-              .map((c) => {
-                const on = cats.includes(c._id);
-                return (
-                  <Chip key={c._id} label={c.nameAr} selected={on} disabled={!on && cats.length >= 5} onPress={() => setCats((x) => (on ? (x.length > 1 ? x.filter((i) => i !== c._id) : x) : [...x, c._id]))} />
-                );
-              })}
-          </View>
+          <MultiSelect
+            label="الأقسام"
+            placeholder="اختار من 1 لـ 5 أقسام"
+            sheetTitle="أقسام المتجر"
+            max={5}
+            value={cats}
+            onChange={setCats}
+            loading={categories.isLoading}
+            options={(categories.data ?? []).filter((c) => c.isActive).map((c) => ({ value: c._id, label: c.nameAr }))}
+          />
         </Section>
 
         <Section title="التواصل">

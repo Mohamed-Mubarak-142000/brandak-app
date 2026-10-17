@@ -53,7 +53,7 @@ interface RequestOptions {
 
 let refreshing: Promise<boolean> | null = null;
 
-function refreshSession(): Promise<boolean> {
+export function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     const { tokens, setTokens, signOut } = useSession.getState();
     if (!tokens?.refreshToken) return false;

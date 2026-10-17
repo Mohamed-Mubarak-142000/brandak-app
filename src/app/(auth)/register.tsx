@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Briefcase, Check, CircleAlert, Lock, Mail, Phone, ShoppingBag, Store, User } from 'lucide-react-native';
+import { Briefcase, CircleAlert, Lock, Mail, Phone, ShoppingBag, Store, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
@@ -18,7 +18,7 @@ import { STORE_TYPES, storeTypeInfo } from '@/features/catalog/store-types';
 import { haptic } from '@/lib/haptics';
 import { emailField, latinDigits, passwordField, phoneField } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { Banner, Button, Chip, Divider, Icon, Screen, Select, Skeleton, Tap, Text, TextField, toast } from '@/ui';
+import { Banner, Button, Divider, Icon, MultiSelect, Screen, Select, Tap, Text, TextField, toast } from '@/ui';
 
 const schema = z.object({
   name: z.string().trim().min(2, 'اكتب اسمك (حرفين على الأقل)').max(80),
@@ -283,32 +283,20 @@ export default function Register() {
                 placeholder={NAME_EXAMPLE[storeType]}
                 error={bizErrors.storeName || undefined}
               />
-              <View style={styles.gap}>
-                <Text variant="ui" color={bizErrors.cats ? 'danger' : 'ink2'}>
-                  {bizErrors.cats || `ال${info!.label} بيبيع إيه؟ اختار من 1 لـ 5 أقسام (${cats.length}/5)`}
-                </Text>
-                <View style={styles.wrap}>
-                  {categories.isLoading
-                    ? [0, 1, 2, 3].map((i) => <Skeleton key={i} width={100} height={40} radius={20} />)
-                    : (categories.data ?? []).map((c) => {
-                        const on = cats.includes(c._id);
-                        return (
-                          <Chip
-                            key={c._id}
-                            label={c.nameAr}
-                            selected={on}
-                            icon={on ? Check : undefined}
-                            disabled={!on && cats.length >= 5}
-                            onPress={() => {
-                              haptic.tap();
-                              setCats((x) => (on ? x.filter((i) => i !== c._id) : [...x, c._id]));
-                              if (bizErrors.cats) setBizErrors((e) => ({ ...e, cats: '' }));
-                            }}
-                          />
-                        );
-                      })}
-                </View>
-              </View>
+              <MultiSelect
+                label={`ال${info!.label} بيبيع إيه؟`}
+                placeholder="اختار من 1 لـ 5 أقسام"
+                sheetTitle={`أقسام ال${info!.label}`}
+                max={5}
+                value={cats}
+                onChange={(v) => {
+                  setCats(v);
+                  if (bizErrors.cats) setBizErrors((e) => ({ ...e, cats: '' }));
+                }}
+                loading={categories.isLoading}
+                error={bizErrors.cats || undefined}
+                options={(categories.data ?? []).map((c) => ({ value: c._id, label: c.nameAr }))}
+              />
             </>
           )}
           <Text variant="meta" color="ink3">

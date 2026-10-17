@@ -16,7 +16,7 @@ import { normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
 import { EG_MOBILE, latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Chip, Illustration, Screen, Text, TextField } from '@/ui';
+import { AppBar, Banner, Button, Illustration, MultiSelect, Screen, Text, TextField } from '@/ui';
 
 const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور'];
 
@@ -187,26 +187,18 @@ export default function Apply() {
         {step === 2 && (
           <>
             <Text variant="section">ال{info.label} بيبيع في أنهي أقسام؟</Text>
-            <Text variant="ui" color={errors.cats ? 'danger' : 'ink2'}>
-              {errors.cats ?? `اختار من 1 لـ 5 أقسام (${cats.length}/5)`}
-            </Text>
-            <View style={styles.wrap}>
-              {(categories.data ?? [])
-                .filter((c) => c.isActive)
-                .map((c) => {
-                  const on = cats.includes(c._id);
-                  return (
-                    <Chip
-                      key={c._id}
-                      label={c.nameAr}
-                      selected={on}
-                      icon={on ? Check : undefined}
-                      disabled={!on && cats.length >= 5}
-                      onPress={() => setCats((x) => (on ? x.filter((i) => i !== c._id) : [...x, c._id]))}
-                    />
-                  );
-                })}
-            </View>
+            <MultiSelect
+              label="الأقسام"
+              placeholder="اختار من 1 لـ 5 أقسام"
+              sheetTitle={`أقسام ال${info.label}`}
+              max={5}
+              value={cats}
+              onChange={setCats}
+              loading={categories.isLoading}
+              error={errors.cats}
+              hint="بتظهر هنا الأقسام المناسبة لنوع نشاطك بس"
+              options={(categories.data ?? []).filter((c) => c.isActive).map((c) => ({ value: c._id, label: c.nameAr }))}
+            />
           </>
         )}
         {step === 3 && (

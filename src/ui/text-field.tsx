@@ -68,7 +68,8 @@ export function TextField({ label, error, hint, icon, password, ltr, optional, m
             onBlur?.(e);
           }}
           style={[
-            t.type.body,
+            // No lineHeight on inputs: on Android it hides the placeholder and clips Arabic glyphs.
+            { fontFamily: t.type.body.fontFamily, fontSize: t.type.body.fontSize, includeFontPadding: false },
             styles.input,
             {
               color: t.c.ink,

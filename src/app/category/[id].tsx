@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { flatPages, useCategories, useProducts } from '@/api/queries';
-import { FilterBar, type ProductFilters } from '@/features/catalog/filters';
+import { FilterBar, productQuery, type ProductFilters } from '@/features/catalog/filters';
 import { ProductGrid } from '@/features/catalog/product-grid';
 import { useTheme } from '@/theme';
 import { AppBar } from '@/ui';
@@ -13,8 +13,8 @@ export default function CategoryScreen() {
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
   const categories = useCategories();
   const title = name ?? categories.data?.find((c) => c._id === id)?.nameAr ?? 'القسم';
-  const [filters, setFilters] = useState<ProductFilters>({ categoryId: id });
-  const q = useProducts({ ...filters, categoryId: id });
+  const [filters, setFilters] = useState<ProductFilters>({});
+  const q = useProducts({ ...productQuery(filters), categoryId: id });
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>

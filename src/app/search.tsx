@@ -62,7 +62,7 @@ export default function SearchScreen() {
             placeholder="ابحث عن منتج أو متجر..."
             placeholderTextColor={t.c.ink3}
             returnKeyType="search"
-            style={[t.type.body, styles.input, { color: t.c.ink }]}
+            style={[{ fontFamily: t.type.body.fontFamily, fontSize: t.type.body.fontSize, includeFontPadding: false }, styles.input, { color: t.c.ink }]}
             accessibilityLabel="بحث"
             selectionColor={t.c.brand}
           />

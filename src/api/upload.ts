@@ -2,7 +2,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
-import { api, ApiError } from './client';
+import * as FileSystem from 'expo-file-system/legacy';
+
+import { useSession } from '@/auth/session';
+import { api, API_BASE, ApiError, refreshSession } from './client';
+import { arabicError } from './errors';
 import type { UploadPurpose, UploadResult } from './types';
 
 export interface PickedImage {
@@ -60,21 +64,49 @@ export async function uploadFile(file: PickedImage, purpose: UploadPurpose) {
     // Fall back to the original; the API will say if it's too big or the wrong type.
   }
 
-  const form = new FormData();
   if (Platform.OS === 'web') {
+    const form = new FormData();
     const blob = await (await fetch(ready.uri)).blob();
     form.append('file', blob, ready.name);
-  } else {
-    form.append('file', { uri: ready.uri, name: ready.name, type: ready.type } as unknown as Blob);
+    form.append('purpose', purpose);
+    return api.post<UploadResult>('/uploads', form);
   }
-  form.append('purpose', purpose);
+  return nativeUpload(ready, purpose);
+}
+
+/**
+ * Multipart upload through the OS networking stack (expo-file-system) instead of RN fetch +
+ * FormData, which fails on some Android devices with "Network request failed" even online.
+ * Same contract as the API client: bearer token, one refresh-and-retry on 401, Arabic errors.
+ */
+async function nativeUpload(file: PickedImage, purpose: UploadPurpose): Promise<UploadResult> {
+  const send = () =>
+    FileSystem.uploadAsync(`${API_BASE}/uploads`, file.uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: file.type,
+      parameters: { purpose },
+      headers: { accept: 'application/json', authorization: `Bearer ${useSession.getState().tokens?.accessToken ?? ''}` },
+    });
+
+  let res: FileSystem.FileSystemUploadResult;
   try {
-    return await api.post<UploadResult>('/uploads', form);
-  } catch (e) {
-    // A dropped upload looks like "no internet"; say what most likely happened instead.
-    if (e instanceof ApiError && e.code === 'NETWORK') {
-      throw new ApiError(0, 'UPLOAD_FAILED', 'تعذّر رفع الصورة. تأكد من الاتصال وجرّب صورة تانية أو أصغر');
-    }
-    throw e;
+    res = await send();
+    if (res.status === 401 && (await refreshSession())) res = await send();
+  } catch {
+    throw new ApiError(0, 'UPLOAD_FAILED', 'تعذّر رفع الصورة. تأكد من الاتصال وجرّب تاني');
   }
+
+  let json: { success?: boolean; data?: UploadResult; error?: { code?: string; details?: { field?: string; reason: string }[] } } | null = null;
+  try {
+    json = JSON.parse(res.body);
+  } catch {
+    json = null;
+  }
+  if (res.status >= 400 || !json?.success || !json.data) {
+    const code = json?.error?.code ?? 'UNKNOWN';
+    throw new ApiError(res.status, code, arabicError(code, res.status), json?.error?.details);
+  }
+  return json.data;
 }

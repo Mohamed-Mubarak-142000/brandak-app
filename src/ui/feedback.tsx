@@ -71,7 +71,11 @@ export function EmptyState({
           {body}
         </Text>
       )}
-      {action && <Button label={action} onPress={onAction} block={false} style={styles.cta} />}
+      {action && (
+        <View style={styles.ctaRow}>
+          <Button label={action} onPress={onAction} block={false} style={styles.cta} />
+        </View>
+      )}
       {children}
     </View>
   );
@@ -90,7 +94,9 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
         {message}
       </Text>
       {onRetry && (
-        <Button label="إعادة المحاولة" icon={offline ? WifiOff : RotateCw} variant="secondary" onPress={onRetry} block={false} style={styles.cta} />
+        <View style={styles.ctaRow}>
+          <Button label="إعادة المحاولة" icon={offline ? WifiOff : RotateCw} variant="secondary" onPress={onRetry} block={false} style={styles.cta} />
+        </View>
       )}
     </View>
   );
@@ -99,5 +105,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
   body: { maxWidth: 320 },
-  cta: { marginTop: 12, minWidth: 180, alignSelf: 'center' },
+  // Full-width row that centres the button, whatever the parent alignment or direction.
+  ctaRow: { alignSelf: 'stretch', alignItems: 'center', marginTop: 12 },
+  cta: { minWidth: 180, alignSelf: 'center' },
 });

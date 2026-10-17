@@ -9,7 +9,7 @@ import { flatPages, useBrand, useProducts } from '@/api/queries';
 import type { PublicBrand } from '@/api/types';
 import { useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
-import { FilterBar, type ProductFilters } from '@/features/catalog/filters';
+import { FilterBar, productQuery, type ProductFilters } from '@/features/catalog/filters';
 import { ProductGrid } from '@/features/catalog/product-grid';
 import { ReportSheet } from '@/features/catalog/report-sheet';
 import { StoreTypeBadge } from '@/features/catalog/store-type-ui';
@@ -24,7 +24,7 @@ export default function BrandScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const brand = useBrand(slug);
   const [filters, setFilters] = useState<ProductFilters>({});
-  const products = useProducts({ ...filters, brandSlug: slug });
+  const products = useProducts({ ...productQuery(filters), brandSlug: slug });
   const [reportOpen, setReportOpen] = useState(false);
   const requireAuth = useRequireAuth();
   const b = brand.data;
