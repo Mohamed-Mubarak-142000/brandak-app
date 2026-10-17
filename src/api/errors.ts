@@ -43,6 +43,10 @@ const BY_CODE: Record<string, string> = {
 
   BRAND_EXISTS: 'عندك متجر بالفعل',
   NO_BRAND: 'لسه معندكش متجر',
+  BRAND_DELETED: 'المتجر اتشال من دكاكين. تواصل مع فريق الدعم لو محتاج تسترجعه',
+  ADMIN_PROTECTED: 'مينفعش تحذف حساب أدمن',
+  HAS_CHILDREN: 'فيه أقسام فرعية تحت القسم ده',
+  REPORT_OPEN: 'اقفل البلاغ الأول قبل ما تحذفه',
   BRAND_SUSPENDED: 'المتجر موقوف ومينفعش يتعدّل',
   BRAND_NOT_ELIGIBLE: 'المتجر لازم يتقبل الأول قبل الاشتراك',
   INVALID_STATE: 'الإجراء ده مش متاح في الحالة الحالية',
