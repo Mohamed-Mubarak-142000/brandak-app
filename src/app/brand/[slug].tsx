@@ -93,9 +93,9 @@ function BrandInfo({ brand: b, onReport }: { brand: PublicBrand; onReport: () =>
   const s = b.shipping;
   const minFee = Math.min(...[s.defaultFee, ...s.zones.map((z) => z.fee)].filter((x): x is number => x != null));
   const socials = [
-    b.socialLinks.instagram && { icon: AtSign, label: 'إنستجرام', url: b.socialLinks.instagram },
-    b.socialLinks.website && { icon: Globe, label: 'الموقع', url: b.socialLinks.website },
-    b.contact.whatsapp && { icon: MessageCircle, label: 'واتساب', url: `https://wa.me/${b.contact.whatsapp.replace(/\D/g, '')}` },
+    b.socialLinks?.instagram && { icon: AtSign, label: 'إنستجرام', url: b.socialLinks.instagram },
+    b.socialLinks?.website && { icon: Globe, label: 'الموقع', url: b.socialLinks.website },
+    b.contact?.whatsapp && { icon: MessageCircle, label: 'واتساب', url: `https://wa.me/${b.contact.whatsapp.replace(/\D/g, '')}` },
   ].filter(Boolean) as { icon: typeof Globe; label: string; url: string }[];
 
   return (

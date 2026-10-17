@@ -50,12 +50,12 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const [cats, setCats] = useState<string[]>(b.categoryIds);
   const [logo, setLogo] = useState<UploadedImage | null>(b.logoUrl ? { fileId: '', url: b.logoUrl } : null);
   const [cover, setCover] = useState<UploadedImage | null>(b.coverUrl ? { fileId: '', url: b.coverUrl } : null);
-  const [phone, setPhone] = useState(b.contact.phone?.replace(/^\+20/, '0') ?? '');
-  const [whatsapp, setWhatsapp] = useState(b.contact.whatsapp?.replace(/^\+20/, '0') ?? '');
-  const [email, setEmail] = useState(b.contact.email ?? '');
-  const [instagram, setInstagram] = useState(displaySocial(b.socialLinks.instagram));
-  const [facebook, setFacebook] = useState(displaySocial(b.socialLinks.facebook));
-  const [website, setWebsite] = useState(displaySocial(b.socialLinks.website));
+  const [phone, setPhone] = useState(b.contact?.phone?.replace(/^\+20/, '0') ?? '');
+  const [whatsapp, setWhatsapp] = useState(b.contact?.whatsapp?.replace(/^\+20/, '0') ?? '');
+  const [email, setEmail] = useState(b.contact?.email ?? '');
+  const [instagram, setInstagram] = useState(displaySocial(b.socialLinks?.instagram));
+  const [facebook, setFacebook] = useState(displaySocial(b.socialLinks?.facebook));
+  const [website, setWebsite] = useState(displaySocial(b.socialLinks?.website));
   const [zones, setZones] = useState<ShippingZone[]>(s0.shippingZones);
   const [defaultFee, setDefaultFee] = useState(s0.defaultShippingFee != null ? String(s0.defaultShippingFee) : '');
   const [freeOver, setFreeOver] = useState(s0.freeShippingThreshold != null ? String(s0.freeShippingThreshold) : '');

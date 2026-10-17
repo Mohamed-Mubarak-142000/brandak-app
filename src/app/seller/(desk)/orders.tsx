@@ -1,8 +1,7 @@
-import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { flatPages, useSellerOrders } from '@/api/queries';
 import type { OrderStatus } from '@/api/types';
@@ -39,7 +38,7 @@ export default function SellerOrders() {
           ))}
         </ScrollView>
       </View>
-      <FlashList
+      <FlatList
         data={items}
         keyExtractor={(o) => o.id}
         renderItem={({ item }) => (

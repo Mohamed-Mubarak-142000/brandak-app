@@ -1,10 +1,9 @@
-import { FlashList } from '@shopify/flash-list';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Minus, Plus, Search } from 'lucide-react-native';
 import { memo, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { flatPages, useSellerProducts } from '@/api/queries';
@@ -50,7 +49,7 @@ export default function SellerProducts() {
           ))}
         </ScrollView>
       </View>
-      <FlashList
+      <FlatList
         data={items}
         keyExtractor={(p) => p._id}
         renderItem={({ item }) => (

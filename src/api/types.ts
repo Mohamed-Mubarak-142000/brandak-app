@@ -65,7 +65,8 @@ export interface PublicBrand {
   coverUrl: string | null;
   categoryIds: string[];
   contact: { phone?: string; email?: string; whatsapp?: string };
-  socialLinks: { instagram?: string; facebook?: string; tiktok?: string; website?: string };
+  /** Missing on brands created before social links existed. */
+  socialLinks?: { instagram?: string; facebook?: string; tiktok?: string; website?: string };
   shipping: {
     zones: ShippingZone[];
     defaultFee: number | null;
@@ -341,7 +342,7 @@ export interface OwnerBrand {
   status: BrandStatus;
   statusReason: string | null;
   contact: PublicBrand['contact'];
-  socialLinks: PublicBrand['socialLinks'];
+  socialLinks?: PublicBrand['socialLinks'];
   settings: BrandSettings;
   subscriptionEndsAt: ISODate | null;
   isVisible: boolean;

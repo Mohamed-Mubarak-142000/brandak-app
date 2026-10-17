@@ -1,6 +1,5 @@
-import { FlashList } from '@shopify/flash-list';
 import type { ReactElement } from 'react';
-import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { ProductCard as Product } from '@/api/types';
 import { useTheme } from '@/theme';
@@ -64,15 +63,19 @@ export function ProductGrid({
   const t = useTheme();
   const w = useCardWidth();
   return (
-    <FlashList
+    <FlatList
       data={isLoading || error ? [] : items}
       numColumns={2}
       keyExtractor={(p) => p.id}
-      renderItem={({ item, index }) => (
-        <View style={{ paddingStart: index % 2 ? GAP / 2 : 0, paddingEnd: index % 2 ? 0 : GAP / 2, marginBottom: 20 }}>
+      renderItem={({ item }) => (
+        <View style={styles.cell}>
           <ProductCard product={item} width={w} />
         </View>
       )}
+      columnWrapperStyle={styles.columns}
+      initialNumToRender={6}
+      windowSize={7}
+      removeClippedSubviews
       contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 32 }}
       ListHeaderComponent={header}
       ListEmptyComponent={
@@ -84,7 +87,7 @@ export function ProductGrid({
           empty ?? <EmptyState art="search" title="مفيش منتجات هنا لسه" body="جرّب فلاتر تانية أو ارجع بعدين." />
         )
       }
-      ListFooterComponent={loadingMore ? <GridSkeleton count={2} /> : null}
+      ListFooterComponent={loadingMore ? <GridSkeleton count={2} /> : undefined}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.c.brand} colors={[t.c.brand]} /> : undefined}
@@ -95,5 +98,7 @@ export function ProductGrid({
 }
 
 const styles = StyleSheet.create({
+  cell: { marginBottom: 20 },
+  columns: { gap: GAP },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, rowGap: 20, paddingTop: 4 },
 });

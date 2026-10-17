@@ -76,7 +76,7 @@ export function Button({
       ) : (
         <View style={styles.row}>
           {icon && <Icon as={icon} size={size === 'sm' ? 18 : 20} color={c.fg} />}
-          <Text variant={size === 'sm' ? 'ui' : 'bodyStrong'} color={c.fg}>
+          <Text variant={size === 'sm' ? 'ui' : 'bodyStrong'} color={c.fg} numberOfLines={1} style={styles.label}>
             {label}
           </Text>
           {iconEnd && <Icon as={iconEnd} size={size === 'sm' ? 18 : 20} color={c.fg} />}
@@ -135,7 +135,8 @@ export function IconButton({
 
 const styles = StyleSheet.create({
   base: { alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '100%' },
+  label: { flexShrink: 1 },
   badge: {
     position: 'absolute',
     top: 2,

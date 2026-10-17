@@ -1,5 +1,4 @@
-import { FlashList } from '@shopify/flash-list';
-import { Linking, StyleSheet, View } from 'react-native';
+import { FlatList, Linking, StyleSheet, View } from 'react-native';
 import { Phone } from 'lucide-react-native';
 
 import { flatPages, useCustomers } from '@/api/queries';
@@ -14,7 +13,7 @@ export default function Customers() {
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
       <AppBar title="العملاء" />
-      <FlashList
+      <FlatList
         data={items}
         keyExtractor={(c) => c.customerId}
         contentContainerStyle={styles.list}

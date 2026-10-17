@@ -1,8 +1,7 @@
-import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useState } from 'react';
-import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flatPages, useBrands, useProducts } from '@/api/queries';
@@ -53,7 +52,7 @@ export default function Explore() {
               style={[styles.segItem, { borderRadius: t.radius.sm + 2 }, tab === k && { backgroundColor: t.c.surface, shadowColor: t.c.shadow, shadowOpacity: 0.08, shadowRadius: 6, elevation: 1 }]}
             >
               <Text variant="ui" weight={tab === k ? 'bold' : 'medium'} color={tab === k ? 'ink' : 'ink3'}>
-                {k === 'products' ? 'المنتجات' : 'البراندات'}
+                {k === 'products' ? 'المنتجات' : 'المتاجر'}
               </Text>
             </Tap>
           ))}
@@ -100,7 +99,7 @@ function BrandsTab() {
           <Chip key={s} label={BRAND_SORT[s]} selected={sort === s} onPress={() => setSort(s)} />
         ))}
       </View>
-      <FlashList
+      <FlatList
         data={items}
         keyExtractor={(b) => b.id}
         renderItem={({ item }) => (
@@ -122,7 +121,7 @@ function BrandsTab() {
           ) : q.error ? (
             <ErrorState error={q.error} onRetry={() => q.refetch()} />
           ) : (
-            <EmptyState art="store" title="لسه مفيش براندات" body="البراندات بتتراجع وتنضم كل يوم. ارجع قريب!" />
+            <EmptyState art="store" title="لسه مفيش متاجر" body="معارض ومخازن ومحلات وبراندات بتنضم كل يوم. ارجع قريب!" />
           )
         }
         showsVerticalScrollIndicator={false}

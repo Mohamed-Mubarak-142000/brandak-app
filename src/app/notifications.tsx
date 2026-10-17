@@ -1,8 +1,7 @@
-import { FlashList } from '@shopify/flash-list';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { BadgeCheck, CircleX, CreditCard, Package, ShoppingBag, TriangleAlert, type LucideIcon } from 'lucide-react-native';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api } from '@/api/client';
 import { flatPages, qk, useNotifications } from '@/api/queries';
@@ -60,7 +59,7 @@ export default function Notifications() {
           ) : undefined
         }
       />
-      <FlashList
+      <FlatList
         data={items}
         keyExtractor={(n) => n._id}
         renderItem={({ item: n }) => {
