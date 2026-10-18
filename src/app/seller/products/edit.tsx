@@ -1,23 +1,26 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Archive, CircleAlert, ImagePlus, Plus, Star, Trash2, X } from 'lucide-react-native';
+import { Archive, Check, CircleAlert, ImagePlus, Plus, Star, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
+import { qk, useCategories, useMyBrand, useMySubscriptions, useSellerProduct } from '@/api/queries';
 import type { BrandProduct } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
+import { swatchFor } from '@/features/catalog/variant-picker';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Card, Chip, ErrorState, IconButton, Screen, Skeleton, Tap, Text, TextField, toast } from '@/ui';
+import { AppBar, Banner, Button, Card, Chip, ErrorState, IconButton, Screen, Sheet, Skeleton, Tap, Text, TextField, toast } from '@/ui';
 
 interface Img {
   fileId?: string;
   url: string;
   uploading?: boolean;
+  /** The variant colour this photo shows; null = every colour. */
+  color?: string | null;
 }
 interface VariantDraft {
   key: string;
@@ -67,7 +70,7 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const ofBrand = active.filter((c) => brandCats.includes(c._id) || (!!c.parentId && brandCats.includes(c.parentId)));
   const options = ofBrand.length ? ofBrand : active;
 
-  const [images, setImages] = useState<Img[]>(() => p?.images.map((i) => ({ fileId: i.fileId, url: i.url })) ?? []);
+  const [images, setImages] = useState<Img[]>(() => p?.images.map((i) => ({ fileId: i.fileId, url: i.url, color: i.color ?? null })) ?? []);
   const [title, setTitle] = useState(p?.title ?? '');
   const [description, setDescription] = useState(p?.description ?? '');
   const [pickedCategory, setCategoryId] = useState(p?.categoryId ?? '');
@@ -82,12 +85,16 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       ? p.variants.map((v) => ({ key: v._id, id: v._id, size: v.size ?? '', color: v.color ?? '', sku: v.sku ?? '', price: v.price != null ? String(v.price) : '', stock: String(v.stock) }))
       : [newVariant()],
   );
+  const [colorFor, setColorFor] = useState<number | null>(null);
+  const colorOptions = [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))];
+  const subs = useMySubscriptions();
+  const maxImages = subs.data?.current?.planSnapshot.limits.maxImagesPerProduct ?? 10;
   const [tags, setTags] = useState(p?.tags.join('، ') ?? '');
   const [publish, setPublish] = useState(p ? p.status === 'ACTIVE' : true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addImages = async () => {
-    const files = await pickImages({ multiple: true, limit: 10 - images.length });
+    const files = await pickImages({ multiple: true, limit: Math.max(1, maxImages - images.length) });
     for (const f of files) {
       setImages((xs) => [...xs, { url: f.uri, uploading: true }]);
       uploadFile(f, 'PRODUCT_IMAGE')
@@ -124,6 +131,8 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     price: num(price),
     compareAtPrice: num(compareAt) ?? null,
     imageFileIds: images.filter((i) => i.fileId).map((i) => i.fileId!),
+    // A colour that was renamed or removed from the variants falls back to "every colour".
+    imageColors: images.filter((i) => i.fileId).map((i) => (i.color && colorOptions.includes(i.color) ? i.color : '')),
     variants: variants.map((v) => ({
       id: v.id,
       size: v.size.trim() || undefined,
@@ -203,13 +212,19 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
 
       {/* Images */}
       <View style={styles.gap}>
-        <Text variant="bodyStrong">الصور ({images.length}/10)</Text>
+        <Text variant="bodyStrong">
+          الصور ({images.length}/{maxImages})
+        </Text>
         <Text variant="meta" color={errors.images ? 'danger' : 'ink3'}>
-          {errors.images ?? 'الصورة الأولى هي الغلاف. دوس على النجمة عشان تخلي صورة غلاف.'}
+          {errors.images ??
+            (colorOptions.length > 1
+              ? 'الصورة الأولى هي الغلاف. حدد لون كل صورة عشان العميل لما يختار لون يشوف صوره هو بس.'
+              : 'الصورة الأولى هي الغلاف. دوس على النجمة عشان تخلي صورة غلاف.')}
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imgs}>
           {images.map((img, i) => (
-            <View key={img.url} style={[styles.img, { backgroundColor: t.c.sunken, borderColor: i === 0 ? t.c.brand : t.c.line }]}>
+            <View key={img.url} style={styles.imgCol}>
+            <View style={[styles.img, { backgroundColor: t.c.sunken, borderColor: i === 0 ? t.c.brand : t.c.line }]}>
               <Image source={img.url} style={StyleSheet.absoluteFill} contentFit="cover" />
               {img.uploading && (
                 <View style={[styles.imgOverlay, { backgroundColor: t.c.overlay }]}>
@@ -228,8 +243,22 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
                 </View>
               )}
             </View>
+            {colorOptions.length > 0 && (
+              <Tap
+                onPress={() => setColorFor(i)}
+                pressScale={0.97}
+                accessibilityLabel={`لون الصورة ${i + 1}: ${img.color ?? 'كل الألوان'}`}
+                style={[styles.colorPill, { borderColor: img.color ? t.c.brand : t.c.line, backgroundColor: img.color ? t.c.accentSoft : t.c.surface }]}
+              >
+                {img.color && swatchFor(img.color) ? <View style={[styles.colorDot, { backgroundColor: swatchFor(img.color), borderColor: t.c.lineStrong }]} /> : null}
+                <Text variant="meta" color={img.color ? 'accent' : 'ink3'} numberOfLines={1}>
+                  {img.color ?? 'كل الألوان'}
+                </Text>
+              </Tap>
+            )}
+            </View>
           ))}
-          {images.length < 10 && (
+          {images.length < maxImages && (
             <Tap onPress={addImages} style={[styles.img, styles.addImg, { borderColor: t.c.lineStrong, backgroundColor: t.c.surface }]} accessibilityLabel="إضافة صور">
               <ImagePlus size={28} color={t.c.ink3} />
               <Text variant="meta" color="ink3">
@@ -325,6 +354,30 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
         </View>
         <Switch value={publish} onValueChange={setPublish} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="نشر في المتجر" />
       </View>
+      <Sheet open={colorFor !== null} onClose={() => setColorFor(null)} title="الصورة دي بتاعة أنهي لون؟">
+        {[null, ...colorOptions].map((c) => {
+          const on = colorFor !== null && (images[colorFor]?.color ?? null) === c;
+          return (
+            <Tap
+              key={c ?? 'all'}
+              onPress={() => {
+                setImages((xs) => xs.map((x, j) => (j === colorFor ? { ...x, color: c } : x)));
+                setColorFor(null);
+              }}
+              pressScale={1}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              style={[styles.colorRow, { borderBottomColor: t.c.line }]}
+            >
+              {c && swatchFor(c) ? <View style={[styles.colorDotLg, { backgroundColor: swatchFor(c), borderColor: t.c.lineStrong }]} /> : null}
+              <Text variant="body" weight={on ? 'semibold' : 'regular'} color={on ? 'accent' : 'ink'} style={styles.flex}>
+                {c ?? 'كل الألوان'}
+              </Text>
+              {on && <Check size={20} color={t.c.accent} />}
+            </Tap>
+          );
+        })}
+      </Sheet>
     </Screen>
   );
 }
@@ -338,6 +391,11 @@ const styles = StyleSheet.create({
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   imgs: { gap: 10 },
   img: { width: 110, height: 136, borderRadius: 12, overflow: 'hidden', borderWidth: 2 },
+  imgCol: { gap: 6, width: 110 },
+  colorPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 30, borderRadius: 15, borderWidth: 1, paddingHorizontal: 8 },
+  colorDot: { width: 12, height: 12, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth },
+  colorDotLg: { width: 22, height: 22, borderRadius: 11, borderWidth: StyleSheet.hairlineWidth },
+  colorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, borderBottomWidth: StyleSheet.hairlineWidth },
   addImg: { alignItems: 'center', justifyContent: 'center', gap: 6, borderStyle: 'dashed', borderWidth: 1.5 },
   imgOverlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   imgActions: { flexDirection: 'row', justifyContent: 'space-between', padding: 4 },

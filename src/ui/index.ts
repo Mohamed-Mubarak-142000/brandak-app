@@ -7,6 +7,7 @@ export * from './pressable';
 export * from './screen';
 export * from './sheet';
 export * from './stepper';
+export * from './tab-bar';
 export * from './text';
 export * from './text-field';
 export * from './toast';

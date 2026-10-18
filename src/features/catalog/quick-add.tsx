@@ -11,7 +11,7 @@ import { useRequireAuth } from '@/auth/use-auth';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { Button, PriceTag, QuantityStepper, Sheet, Skeleton, Text, toast } from '@/ui';
-import { useVariantSelection, VariantPicker } from './variant-picker';
+import { imagesForColor, useVariantSelection, VariantPicker } from './variant-picker';
 
 /** Full-width "add to cart" at the bottom of a product card; size and colour are picked in a sheet. */
 export function QuickAddButton({ product }: { product: ProductCard }) {
@@ -45,6 +45,7 @@ function QuickAddSheet({ product, onClose }: { product: ProductCard; onClose: ()
   const sel = useVariantSelection(detail.data?.variants ?? [], size, color);
   const v = sel.selected;
   const max = Math.max(1, Math.min(v?.available ?? 20, 20));
+  const thumb = detail.data ? (imagesForColor(detail.data.images, detail.data.imageColors, color)[0] ?? product.imageUrl) : product.imageUrl;
 
   const add = () => {
     if (!v) {
@@ -77,7 +78,7 @@ function QuickAddSheet({ product, onClose }: { product: ProductCard; onClose: ()
     >
       <View style={styles.head}>
         <View style={[styles.thumb, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]}>
-          {product.imageUrl ? <Image source={product.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" /> : <ImageOff size={22} color={t.c.lineStrong} />}
+          {thumb ? <Image source={thumb} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : <ImageOff size={22} color={t.c.lineStrong} />}
         </View>
         <View style={styles.flex}>
           <Text variant="ui" weight="semibold" numberOfLines={2}>

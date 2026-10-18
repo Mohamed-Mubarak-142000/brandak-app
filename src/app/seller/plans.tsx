@@ -10,7 +10,8 @@ import type { BillingPeriod, Plan, SubscriptionRequestResult } from '@/api/types
 import { BILLING_LABEL, formatDate, formatMoney } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Badge, Banner, Button, Card, ErrorState, Icon, Screen, Skeleton, Tap, Text } from '@/ui';
+import { planLimitsText } from '@/features/seller/plan-limits';
+import { AppBar, Badge, Banner, Button, Card, ErrorState, Icon, Screen, Skeleton, Tap, Text, toast } from '@/ui';
 
 const PAY_STATUS_AR = { AWAITING_PROOF: 'مستني إثبات الدفع', PENDING_REVIEW: 'تحت المراجعة', APPROVED: 'اتقبل', REJECTED: 'اترفض', CANCELLED: 'اتلغى' } as const;
 
@@ -28,7 +29,10 @@ export default function Plans() {
     onSuccess: (res) => {
       haptic.success();
       qc.invalidateQueries({ queryKey: qk.mySubs });
-      router.push({ pathname: '/seller/pay/[subscriptionId]', params: { subscriptionId: res.subscription._id } });
+      qc.invalidateQueries({ queryKey: qk.myBrand });
+      // Free plans are active straight away; only paid ones go to the transfer screen.
+      if (res.subscription.status === 'ACTIVE') toast.success(`اتفعّلت باقة ${res.subscription.planSnapshot.nameAr}`);
+      else router.push({ pathname: '/seller/pay/[subscriptionId]', params: { subscriptionId: res.subscription._id } });
     },
     onError: () => haptic.error(),
   });
@@ -150,27 +154,35 @@ function PlanCard({
         </Text>
       )}
       <View style={styles.priceRow}>
-        <Text variant="page">{formatMoney(price)}</Text>
-        <Text variant="ui" color="ink3">
-          / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
-        </Text>
+        {price === 0 ? (
+          <Text variant="page" color="success">
+            مجانية
+          </Text>
+        ) : (
+          <>
+            <Text variant="page">{formatMoney(price)}</Text>
+            <Text variant="ui" color="ink3">
+              / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
+            </Text>
+          </>
+        )}
       </View>
-      {perMonth && (
+      {!!perMonth && (
         <Text variant="meta" color="success">
           يعني {formatMoney(Math.round(perMonth))} في الشهر
         </Text>
       )}
       <View style={styles.features}>
-        <Feature text={`لحد ${plan.limits.maxActiveProducts} منتج منشور`} />
+        <Feature text={planLimitsText(plan.limits)} />
         {plan.features.map((f) => (
           <Feature key={f} text={f} />
         ))}
       </View>
       <Button
-        label={current ? 'جدّد الباقة' : 'اختار الباقة'}
+        label={current ? (price === 0 ? 'باقتك الحالية' : 'جدّد الباقة') : price === 0 ? 'فعّل المجانية' : 'اختار الباقة'}
         variant={featured ? 'primary' : 'secondary'}
         loading={loading}
-        disabled={disabled}
+        disabled={disabled || (current && price === 0)}
         onPress={onChoose}
       />
     </View>

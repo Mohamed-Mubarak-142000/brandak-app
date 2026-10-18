@@ -9,6 +9,7 @@ import Animated, { FadeInLeft, FadeOutRight, useAnimatedStyle, withTiming } from
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories, useInstructions, usePlans } from '@/api/queries';
 import type { BillingPeriod, OwnerBrand, PaymentView, StoreType, SubscriptionRequestResult } from '@/api/types';
+import { planLimitsText } from '@/features/seller/plan-limits';
 import { BILLING_LABEL, formatMoney } from '@/lib/format';
 import { meKey, useMe } from '@/auth/use-auth';
 import { StoreTypePicker } from '@/features/catalog/store-type-ui';
@@ -60,26 +61,29 @@ export default function Apply() {
   const planList = (plans.data ?? []).filter((p) => p.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   const plan = planList.find((p) => p._id === planId);
   const amount = plan ? (period === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly) : 0;
+  // A free plan needs no payment step: the store is sent for review right from the plan step.
+  const isFree = !!plan && amount === 0;
+  const lastStep = isFree ? PLAN_STEP : PAY_STEP;
 
   /**
    * One button does the whole flow: create the store, request the chosen plan, and send the
    * transfer receipt if there is one. Each step is remembered so a retry continues where it failed.
    */
   const submit = useMutation({
-    mutationFn: async ({ skipPlan }: { skipPlan?: boolean } = {}) => {
-      const brand = created ?? (await applyRequest());
-      if (!created) {
-        setCreated(brand);
-        qc.setQueryData(qk.myBrand, brand);
-      }
-      if (skipPlan || !planId) return { brand, subscriptionId: null, paid: false };
+    mutationFn: async () => {
+      // The store and its plan are created together; a store can't exist without a plan.
+      let brand = created;
       let subId = subscriptionId;
-      if (!subId) {
-        const res = await api.post<SubscriptionRequestResult>('/brand/subscriptions', { planId, billingPeriod: period });
-        subId = res.subscription._id;
+      if (!brand) {
+        const res = await applyRequest();
+        brand = res;
+        subId = res.subscription?.subscription._id ?? null;
+        setCreated(res);
         setSubscriptionId(subId);
+        qc.setQueryData(qk.myBrand, res);
+        if (res.subscription?.subscription.status === 'ACTIVE') return { brand, subscriptionId: null, paid: false };
       }
-      if (!proof) return { brand, subscriptionId: subId, paid: false };
+      if (!subId || !proof) return { brand, subscriptionId: subId, paid: false };
       await api.post<PaymentView>(`/brand/subscriptions/${subId}/payment-proofs`, {
         proofFileId: proof.fileId,
         transactionReference: latinDigits(reference).trim(),
@@ -100,7 +104,9 @@ export default function Apply() {
   });
 
   const applyRequest = () =>
-      api.post<OwnerBrand>('/brand-applications', {
+      api.post<OwnerBrand & { subscription?: SubscriptionRequestResult }>('/brand-applications', {
+        planId,
+        billingPeriod: period,
         storeType,
         name: name.trim(),
         description: description.trim() || undefined,
@@ -135,7 +141,7 @@ export default function Apply() {
       if (whatsapp && !EG_MOBILE.test(latinDigits(whatsapp).replace(/\s/g, ''))) e.whatsapp = 'رقم واتساب غير صحيح';
       if (email && !/^\S+@\S+\.\S+$/.test(email.trim())) e.email = 'بريد إلكتروني غير صحيح';
     }
-    if (step === PLAN_STEP && !planId) e.plan = 'اختار باقة، أو دوس "هختار الباقة بعدين"';
+    if (step === PLAN_STEP && !planId) e.plan = 'اختار باقة لمتجرك';
     if (step === PAY_STEP && proof) {
       const r = latinDigits(reference).trim();
       if (r.length < 4 || r.length > 64) e.ref = 'رقم العملية من 4 لـ 64 حرف';
@@ -147,7 +153,7 @@ export default function Apply() {
   const next = () => {
     if (!validate()) return haptic.warning();
     haptic.tap();
-    if (step === STEPS.length - 1) submit.mutate({});
+    if (step === lastStep) submit.mutate();
     else setStep((s) => s + 1);
   };
 
@@ -196,8 +202,8 @@ export default function Apply() {
         <View style={styles.footer}>
           {step > 0 && <Button label="رجوع" variant="secondary" block={false} onPress={() => setStep((s) => s - 1)} />}
           <Button
-            label={step === STEPS.length - 1 ? (proof ? 'إرسال الطلب والإيصال' : 'إرسال الطلب') : 'التالي'}
-            iconEnd={step === STEPS.length - 1 ? Check : ArrowLeft}
+            label={step === lastStep ? (proof ? 'إرسال الطلب والإيصال' : 'إرسال الطلب') : 'التالي'}
+            iconEnd={step === lastStep ? Check : ArrowLeft}
             loading={submit.isPending}
             onPress={next}
             style={styles.flex}
@@ -335,14 +341,20 @@ export default function Apply() {
                     <View style={styles.flex}>
                       <Text variant="bodyStrong">{p.nameAr}</Text>
                       <Text variant="meta" color="ink2">
-                        لحد {p.limits.maxActiveProducts} منتج منشور{p.features.length ? ` · ${p.features.slice(0, 2).join(' · ')}` : ''}
+                        {planLimitsText(p.limits)}
                       </Text>
                     </View>
                     <View style={styles.planPrice}>
-                      <Text variant="bodyStrong">{formatMoney(price)}</Text>
-                      <Text variant="meta" color="ink3">
-                        / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
-                      </Text>
+                      {price === 0 ? (
+                        <Badge label="مجانية" tone="success" />
+                      ) : (
+                        <>
+                          <Text variant="bodyStrong">{formatMoney(price)}</Text>
+                          <Text variant="meta" color="ink3">
+                            / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
+                          </Text>
+                        </>
+                      )}
                     </View>
                   </Tap>
                 );
@@ -353,11 +365,11 @@ export default function Apply() {
                 {errors.plan}
               </Text>
             )}
-            <Tap pressScale={1} style={styles.later} onPress={() => submit.mutate({ skipPlan: true })} disabled={submit.isPending}>
-              <Text variant="ui" color="ink2">
-                هختار الباقة بعدين، ابعت طلب المتجر بس
+            {isFree && (
+              <Text variant="meta" color="ink3">
+                الباقة المجانية بتتفعل من غير دفع. تقدر تطوّرها في أي وقت من لوحة المتجر.
               </Text>
-            </Tap>
+            )}
           </>
         )}
         {step === PAY_STEP && (
@@ -462,7 +474,6 @@ const styles = StyleSheet.create({
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
   planPrice: { alignItems: 'flex-end' },
-  later: { height: 44, alignItems: 'center', justifyContent: 'center' },
   payRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   copyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, paddingHorizontal: 8 },
 });

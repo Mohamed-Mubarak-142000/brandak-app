@@ -13,7 +13,7 @@ import { Gallery } from '@/features/catalog/gallery';
 import { WishlistHeart } from '@/features/catalog/product-card';
 import { ReportSheet } from '@/features/catalog/report-sheet';
 import { ReviewItem } from '@/features/catalog/review-item';
-import { useVariantSelection, VariantPicker } from '@/features/catalog/variant-picker';
+import { imagesForColor, useVariantSelection, VariantPicker } from '@/features/catalog/variant-picker';
 import { formatMoney } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
@@ -60,6 +60,8 @@ export default function ProductScreen() {
   const totalReviews = reviews.data?.pages[0]?.meta.total ?? 0;
 
   const total = price * Math.min(qty, max);
+  // Picking a colour shows that colour's photos (the gallery restarts at its first one).
+  const gallery = imagesForColor(p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : [], p.images.length ? p.imageColors : undefined, color);
   const soldOut = !p.inStock || (!!v && !v.inStock);
 
   /** `buyNow` skips the cart screen and goes straight to checkout for this store. */
@@ -92,7 +94,7 @@ export default function ProductScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 24 }}>
-        <Gallery images={p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : []} width={galleryW} height={galleryH}>
+        <Gallery key={color ?? 'all'} images={gallery} width={galleryW} height={galleryH}>
           {/* Floating controls inside the image card */}
           <View style={styles.topBar} pointerEvents="box-none">
             <IconButton icon={ArrowRight} label="رجوع" background="surface" onPress={() => router.back()} />

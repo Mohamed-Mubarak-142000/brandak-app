@@ -111,6 +111,8 @@ export interface Variant {
 export interface ProductDetail extends ProductCard {
   description: string;
   images: string[];
+  /** Same order as images: the colour each photo shows; null = every colour. Missing on old API versions. */
+  imageColors?: (string | null)[];
   categoryId: string;
   tags: string[];
   variants: Variant[];
@@ -261,6 +263,12 @@ export interface AppNotification {
 }
 
 // ---------- Seller ----------
+/** maxOrdersPerMonth null = unlimited; older subscriptions may lack the newer limits. */
+export interface PlanLimits {
+  maxActiveProducts: number;
+  maxOrdersPerMonth?: number | null;
+  maxImagesPerProduct?: number;
+}
 export interface Plan {
   _id: string;
   code: string;
@@ -269,7 +277,7 @@ export interface Plan {
   descriptionAr: string;
   priceMonthly: number;
   priceYearly: number;
-  limits: { maxActiveProducts: number };
+  limits: PlanLimits;
   features: string[];
   isActive: boolean;
   sortOrder: number;
@@ -304,7 +312,7 @@ export interface SubscriptionDoc {
     nameEn: string;
     price: number;
     durationDays: number;
-    limits: { maxActiveProducts: number };
+    limits: PlanLimits;
   };
   billingPeriod: BillingPeriod;
   status: 'PENDING_PAYMENT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
@@ -319,10 +327,11 @@ export interface MySubscriptions {
   pending: (SubWithPayment & { instructions: PaymentInstructions }) | null;
   history: SubWithPayment[];
 }
+/** A free plan comes back already ACTIVE with no payment and no instructions. */
 export interface SubscriptionRequestResult {
   subscription: SubscriptionDoc;
-  payment: PaymentView;
-  instructions: PaymentInstructions;
+  payment: PaymentView | null;
+  instructions: PaymentInstructions | null;
 }
 export interface BrandSettings {
   shippingZones: ShippingZone[];
@@ -359,7 +368,7 @@ export interface BrandProduct {
   categoryId: string;
   title: string;
   description: string;
-  images: { fileId: string; url: string }[];
+  images: { fileId: string; url: string; color?: string | null }[];
   price: number;
   compareAtPrice: number | null;
   variants: { _id: string; sku?: string; size?: string; color?: string; price: number | null; stock: number }[];
@@ -397,7 +406,16 @@ export interface BrandOverview {
     imageUrl: string | null;
     variants: { id: string; size: string | null; color: string | null; stock: number }[];
   }[];
-  plan: { name: string; endsAt: ISODate; activeProducts: number; maxActiveProducts: number } | null;
+  plan: {
+    name: string;
+    endsAt: ISODate;
+    activeProducts: number;
+    maxActiveProducts: number;
+    isFree?: boolean;
+    maxOrdersPerMonth?: number | null;
+    maxImagesPerProduct?: number;
+    ordersThisMonth?: number;
+  } | null;
 }
 export interface UploadResult {
   id: string;

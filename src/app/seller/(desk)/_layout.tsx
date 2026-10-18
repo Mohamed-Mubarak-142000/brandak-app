@@ -1,18 +1,15 @@
 import { Redirect, Tabs, useSegments } from 'expo-router';
-import { type BottomTabBarProps } from 'expo-router/tabs';
-import { LayoutDashboard, Package, ShoppingCart, Store, type LucideIcon } from 'lucide-react-native';
+import { LayoutDashboard, Package, ShoppingCart, Store } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
 import { useMyBrand } from '@/api/queries';
 import { useMe } from '@/auth/use-auth';
 import { BrandStatusScreen } from '@/features/seller/brand-status';
-import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { ErrorState, Skeleton, Tap, Text } from '@/ui';
+import { ErrorState, Skeleton, TabBar, type TabSpec } from '@/ui';
 
-const TABS: { name: string; label: string; icon: LucideIcon }[] = [
+const TABS: TabSpec[] = [
   { name: 'index', label: 'نظرة عامة', icon: LayoutDashboard },
   { name: 'orders', label: 'الطلبات', icon: ShoppingCart },
   { name: 'products', label: 'المنتجات', icon: Package },
@@ -41,7 +38,7 @@ export default function DeskLayout() {
   if (brand.data.status !== 'ACTIVE' && !onStore) return <BrandStatusScreen brand={brand.data} />;
 
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <DeskBar {...props} />}>
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} tabs={TABS} />}>
       {TABS.map((tab) => (
         <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.label }} />
       ))}
@@ -49,47 +46,6 @@ export default function DeskLayout() {
   );
 }
 
-function DeskBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
-  const t = useTheme();
-  const insets = useSafeAreaInsets();
-  return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8), backgroundColor: t.c.ink }]} accessibilityRole="tabbar">
-      {state.routes.map((route, i) => {
-        const tab = TABS.find((x) => x.name === route.name);
-        if (!tab) return null;
-        const focused = state.index === i;
-        const Glyph = tab.icon;
-        return (
-          <Tap
-            key={route.key}
-            onPress={() => {
-              const e = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-              if (!focused && !e.defaultPrevented) {
-                haptic.tap();
-                navigateToTab(route.key);
-              }
-            }}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: focused }}
-            accessibilityLabel={tab.label}
-            style={styles.item}
-          >
-            <View style={[styles.pill, focused && { backgroundColor: t.c.brand }]}>
-              <Glyph size={20} color={focused ? '#fff' : t.c.ink3} />
-            </View>
-            <Text variant="meta" style={{ color: focused ? t.c.ground : t.c.ink3 }} weight={focused ? 'semibold' : 'regular'}>
-              {tab.label}
-            </Text>
-          </Tap>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  bar: { flexDirection: 'row', paddingTop: 8 },
-  item: { flex: 1, alignItems: 'center', gap: 2, minHeight: 52 },
-  pill: { width: 52, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
 });

@@ -24,6 +24,16 @@ export function useVariantSelection(variants: Variant[], size: string | null, co
   }, [variants, size, color]);
 }
 
+/**
+ * Photos for the chosen colour: those tagged with it, else every photo. Untagged photos (shown
+ * for all colours) only fill in when the colour has none of its own.
+ */
+export function imagesForColor(images: string[], colors: (string | null)[] | undefined, color: string | null) {
+  if (!color || !colors?.length) return images;
+  const own = images.filter((_, i) => colors[i] === color);
+  return own.length ? own : images;
+}
+
 /** Sellers type colours freely ("اسود", "أسود", "Black"); the common ones get a swatch. */
 const SWATCHES: Record<string, string> = {
   اسود: '#1F1A17', black: '#1F1A17',

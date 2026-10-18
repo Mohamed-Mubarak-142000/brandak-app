@@ -71,7 +71,19 @@ export async function uploadFile(file: PickedImage, purpose: UploadPurpose) {
     form.append('purpose', purpose);
     return api.post<UploadResult>('/uploads', form);
   }
-  return nativeUpload(ready, purpose);
+  return multipartUpload<UploadResult>('/uploads', ready, { purpose });
+}
+
+/** Sends any picked file (an import spreadsheet, for example) as the `file` field to `path`. */
+export async function uploadDocument<T>(path: string, file: { uri: string; name: string; type: string }, params: Record<string, string> = {}) {
+  if (Platform.OS === 'web') {
+    const form = new FormData();
+    const blob = await (await fetch(file.uri)).blob();
+    form.append('file', blob, file.name);
+    Object.entries(params).forEach(([k, v]) => form.append(k, v));
+    return api.post<T>(path, form);
+  }
+  return multipartUpload<T>(path, file, params);
 }
 
 /**
@@ -79,14 +91,14 @@ export async function uploadFile(file: PickedImage, purpose: UploadPurpose) {
  * FormData, which fails on some Android devices with "Network request failed" even online.
  * Same contract as the API client: bearer token, one refresh-and-retry on 401, Arabic errors.
  */
-async function nativeUpload(file: PickedImage, purpose: UploadPurpose): Promise<UploadResult> {
+async function multipartUpload<T>(path: string, file: { uri: string; type: string }, parameters: Record<string, string>): Promise<T> {
   const send = () =>
-    FileSystem.uploadAsync(`${API_BASE}/uploads`, file.uri, {
+    FileSystem.uploadAsync(`${API_BASE}${path}`, file.uri, {
       httpMethod: 'POST',
       uploadType: FileSystem.FileSystemUploadType.MULTIPART,
       fieldName: 'file',
       mimeType: file.type,
-      parameters: { purpose },
+      parameters,
       headers: { accept: 'application/json', authorization: `Bearer ${useSession.getState().tokens?.accessToken ?? ''}` },
     });
 
@@ -95,10 +107,10 @@ async function nativeUpload(file: PickedImage, purpose: UploadPurpose): Promise<
     res = await send();
     if (res.status === 401 && (await refreshSession())) res = await send();
   } catch {
-    throw new ApiError(0, 'UPLOAD_FAILED', 'تعذّر رفع الصورة. تأكد من الاتصال وجرّب تاني');
+    throw new ApiError(0, 'UPLOAD_FAILED', 'تعذّر رفع الملف. تأكد من الاتصال وجرّب تاني');
   }
 
-  let json: { success?: boolean; data?: UploadResult; error?: { code?: string; details?: { field?: string; reason: string }[] } } | null = null;
+  let json: { success?: boolean; data?: T; error?: { code?: string; details?: { field?: string; reason: string }[] } } | null = null;
   try {
     json = JSON.parse(res.body);
   } catch {

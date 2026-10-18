@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Minus, Plus, Search } from 'lucide-react-native';
+import { FileSpreadsheet, Minus, Plus, Search } from 'lucide-react-native';
 import { memo, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -41,7 +41,15 @@ export default function SellerProducts() {
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
-      <DeskHeader title="المنتجات" end={<IconButton icon={Plus} label="منتج جديد" background="accent" color="onAccent" onPress={() => router.push('/seller/products/edit')} />} />
+      <DeskHeader
+        title="المنتجات"
+        end={
+          <View style={styles.headActions}>
+            <IconButton icon={FileSpreadsheet} label="استيراد من ملف Excel" background="surface" color="accent" onPress={() => router.push('/seller/products/import')} />
+            <IconButton icon={Plus} label="منتج جديد" background="accent" color="onAccent" onPress={() => router.push('/seller/products/edit')} />
+          </View>
+        }
+      />
       <View style={styles.search}>
         <View style={styles.flex}>
           <TextField label="بحث" icon={Search} value={text} onChangeText={setText} placeholder="اسم المنتج" returnKeyType="search" />
@@ -79,7 +87,10 @@ export default function SellerProducts() {
           ) : products.error ? (
             <ErrorState error={products.error} onRetry={() => products.refetch()} />
           ) : (
-            <EmptyState art="box" title="ضيف أول منتج" body="صور حلوة + وصف واضح + مقاسات = مبيعات أكتر." action="إضافة منتج" onAction={() => router.push('/seller/products/edit')} />
+            <View style={styles.emptyWrap}>
+              <EmptyState art="box" title="ضيف أول منتج" body="صور حلوة + وصف واضح + مقاسات = مبيعات أكتر." action="إضافة منتج" onAction={() => router.push('/seller/products/edit')} />
+              <Button label="عندك منتجات كتير؟ استوردها من Excel" icon={FileSpreadsheet} variant="ghost" size="md" onPress={() => router.push('/seller/products/import')} />
+            </View>
           )
         }
       />
@@ -146,6 +157,8 @@ function StockSheet({ product, onClose }: { product: BrandProduct | null; onClos
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  headActions: { flexDirection: 'row', gap: 8 },
+  emptyWrap: { gap: 4 },
   search: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
   chips: { paddingHorizontal: 16, paddingBottom: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 32 },
