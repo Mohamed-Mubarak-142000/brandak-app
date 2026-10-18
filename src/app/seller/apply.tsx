@@ -1,13 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, AtSign, Check, CircleAlert, Globe, Mail, MessageCircle, Phone, Store } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { ArrowLeft, AtSign, Check, CircleAlert, Copy, Globe, Mail, MessageCircle, Phone, Receipt, Store } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInLeft, FadeOutRight, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { api, errorMessage } from '@/api/client';
-import { qk, useCategories } from '@/api/queries';
-import type { OwnerBrand, StoreType } from '@/api/types';
+import { qk, useCategories, useInstructions, usePlans } from '@/api/queries';
+import type { BillingPeriod, OwnerBrand, PaymentView, StoreType, SubscriptionRequestResult } from '@/api/types';
+import { BILLING_LABEL, formatMoney } from '@/lib/format';
 import { meKey, useMe } from '@/auth/use-auth';
 import { StoreTypePicker } from '@/features/catalog/store-type-ui';
 import { storeTypeInfo } from '@/features/catalog/store-types';
@@ -16,9 +18,11 @@ import { normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
 import { EG_MOBILE, latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Illustration, MultiSelect, Screen, Text, TextField } from '@/ui';
+import { AppBar, Badge, Banner, Button, Card, Divider, Icon, Illustration, MultiSelect, Screen, Skeleton, Tap, Text, TextField, toast } from '@/ui';
 
-const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور'];
+const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور', 'الباقة', 'الدفع'];
+const PLAN_STEP = 5;
+const PAY_STEP = 6;
 
 export default function Apply() {
   const t = useTheme();
@@ -43,9 +47,59 @@ export default function Apply() {
   const [logo, setLogo] = useState<UploadedImage | null>(null);
   const [cover, setCover] = useState<UploadedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const plans = usePlans();
+  const instructions = useInstructions();
+  const [period, setPeriod] = useState<BillingPeriod>('MONTHLY');
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [proof, setProof] = useState<UploadedImage | null>(null);
+  const [reference, setReference] = useState('');
+  // Kept across retries: a failed payment step must not re-create the store (BRAND_EXISTS).
+  const [created, setCreated] = useState<OwnerBrand | null>(null);
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
 
+  const planList = (plans.data ?? []).filter((p) => p.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+  const plan = planList.find((p) => p._id === planId);
+  const amount = plan ? (period === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly) : 0;
+
+  /**
+   * One button does the whole flow: create the store, request the chosen plan, and send the
+   * transfer receipt if there is one. Each step is remembered so a retry continues where it failed.
+   */
   const submit = useMutation({
-    mutationFn: () =>
+    mutationFn: async ({ skipPlan }: { skipPlan?: boolean } = {}) => {
+      const brand = created ?? (await applyRequest());
+      if (!created) {
+        setCreated(brand);
+        qc.setQueryData(qk.myBrand, brand);
+      }
+      if (skipPlan || !planId) return { brand, subscriptionId: null, paid: false };
+      let subId = subscriptionId;
+      if (!subId) {
+        const res = await api.post<SubscriptionRequestResult>('/brand/subscriptions', { planId, billingPeriod: period });
+        subId = res.subscription._id;
+        setSubscriptionId(subId);
+      }
+      if (!proof) return { brand, subscriptionId: subId, paid: false };
+      await api.post<PaymentView>(`/brand/subscriptions/${subId}/payment-proofs`, {
+        proofFileId: proof.fileId,
+        transactionReference: latinDigits(reference).trim(),
+        paidAt: new Date().toISOString(),
+      });
+      return { brand, subscriptionId: subId, paid: true };
+    },
+    onSuccess: async ({ subscriptionId: subId, paid }) => {
+      haptic.success();
+      qc.invalidateQueries({ queryKey: qk.mySubs });
+      await qc.invalidateQueries({ queryKey: meKey });
+      if (paid) toast.success('اتبعت طلب المتجر وإثبات الدفع للمراجعة');
+      // No receipt yet: open the payment screen so the transfer details stay in front of them.
+      if (subId && !paid) router.replace({ pathname: '/seller/pay/[subscriptionId]', params: { subscriptionId: subId } });
+      else router.replace('/seller');
+    },
+    onError: () => haptic.error(),
+  });
+
+  const applyRequest = () =>
       api.post<OwnerBrand>('/brand-applications', {
         storeType,
         name: name.trim(),
@@ -63,15 +117,13 @@ export default function Apply() {
         },
         logoFileId: logo?.fileId,
         coverFileId: cover?.fileId,
-      }),
-    onSuccess: async (brand) => {
-      haptic.success();
-      qc.setQueryData(qk.myBrand, brand);
-      await qc.invalidateQueries({ queryKey: meKey });
-      router.replace('/seller');
-    },
-    onError: () => haptic.error(),
-  });
+      });
+
+  const copy = async (value: string, label: string) => {
+    await Clipboard.setStringAsync(value);
+    haptic.light();
+    toast.success(`اتنسخ ${label}`);
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -83,6 +135,11 @@ export default function Apply() {
       if (whatsapp && !EG_MOBILE.test(latinDigits(whatsapp).replace(/\s/g, ''))) e.whatsapp = 'رقم واتساب غير صحيح';
       if (email && !/^\S+@\S+\.\S+$/.test(email.trim())) e.email = 'بريد إلكتروني غير صحيح';
     }
+    if (step === PLAN_STEP && !planId) e.plan = 'اختار باقة، أو دوس "هختار الباقة بعدين"';
+    if (step === PAY_STEP && proof) {
+      const r = latinDigits(reference).trim();
+      if (r.length < 4 || r.length > 64) e.ref = 'رقم العملية من 4 لـ 64 حرف';
+    }
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -90,7 +147,7 @@ export default function Apply() {
   const next = () => {
     if (!validate()) return haptic.warning();
     haptic.tap();
-    if (step === STEPS.length - 1) submit.mutate();
+    if (step === STEPS.length - 1) submit.mutate({});
     else setStep((s) => s + 1);
   };
 
@@ -107,9 +164,9 @@ export default function Apply() {
           </Text>
         </View>
         {[
-          ['قدّم بيانات نشاطك', 'دقيقتين بالظبط — الاسم والأقسام وطرق التواصل'],
-          ['فريقنا يراجع الطلب', 'عادةً خلال يوم عمل، وهيوصلك إشعار'],
-          ['اختار باقتك وادفع بـ InstaPay', 'ارفع صورة التحويل ونفعّل الاشتراك'],
+          ['قدّم بيانات نشاطك', 'الاسم والأقسام وطرق التواصل والصور'],
+          ['اختار باقتك وادفع بـ InstaPay', 'هتشوف المبلغ وبيانات التحويل، وترفع الإيصال في نفس الخطوات'],
+          ['فريقنا يراجع الطلب والتحويل', 'عادةً خلال يوم عمل، وهيوصلك إشعار'],
           ['ابدأ تبيع', 'ضيف منتجاتك واستقبل الطلبات من موبايلك'],
         ].map(([title, body], i) => (
           <View key={title} style={styles.howRow}>
@@ -139,7 +196,7 @@ export default function Apply() {
         <View style={styles.footer}>
           {step > 0 && <Button label="رجوع" variant="secondary" block={false} onPress={() => setStep((s) => s - 1)} />}
           <Button
-            label={step === STEPS.length - 1 ? 'إرسال الطلب للمراجعة' : 'التالي'}
+            label={step === STEPS.length - 1 ? (proof ? 'إرسال الطلب والإيصال' : 'إرسال الطلب') : 'التالي'}
             iconEnd={step === STEPS.length - 1 ? Check : ArrowLeft}
             loading={submit.isPending}
             onPress={next}
@@ -230,8 +287,140 @@ export default function Apply() {
             </View>
           </>
         )}
+        {step === PLAN_STEP && (
+          <>
+            <Text variant="section">اختار باقتك</Text>
+            <Text variant="ui" color="ink2">
+              الباقة بتحدد عدد المنتجات اللي تقدر تنشرها. الدفع بـ InstaPay في الخطوة الجاية.
+            </Text>
+            <View style={[styles.toggle, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]} accessibilityRole="tablist">
+              {(['MONTHLY', 'YEARLY'] as BillingPeriod[]).map((p) => (
+                <Tap
+                  key={p}
+                  onPress={() => setPeriod(p)}
+                  pressScale={1}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: period === p }}
+                  style={[styles.toggleItem, { borderRadius: t.radius.sm + 2 }, period === p && { backgroundColor: t.c.surface }]}
+                >
+                  <Text variant="ui" weight={period === p ? 'bold' : 'medium'} color={period === p ? 'ink' : 'ink3'}>
+                    {BILLING_LABEL[p]}
+                  </Text>
+                </Tap>
+              ))}
+            </View>
+            {plans.isLoading ? (
+              <>
+                <Skeleton height={110} />
+                <Skeleton height={110} />
+              </>
+            ) : (
+              planList.map((p) => {
+                const on = planId === p._id;
+                const price = period === 'MONTHLY' ? p.priceMonthly : p.priceYearly;
+                return (
+                  <Tap
+                    key={p._id}
+                    onPress={() => {
+                      haptic.tap();
+                      setPlanId(p._id);
+                      setErrors({});
+                    }}
+                    pressScale={0.99}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    style={[styles.planOpt, { borderRadius: t.radius.lg, borderColor: on ? t.c.brand : t.c.line, borderWidth: on ? 2 : 1, backgroundColor: on ? t.c.accentSoft : t.c.surface }]}
+                  >
+                    <View style={[styles.radio, { borderColor: on ? t.c.accent : t.c.lineStrong }]}>{on && <View style={[styles.radioDot, { backgroundColor: t.c.accent }]} />}</View>
+                    <View style={styles.flex}>
+                      <Text variant="bodyStrong">{p.nameAr}</Text>
+                      <Text variant="meta" color="ink2">
+                        لحد {p.limits.maxActiveProducts} منتج منشور{p.features.length ? ` · ${p.features.slice(0, 2).join(' · ')}` : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.planPrice}>
+                      <Text variant="bodyStrong">{formatMoney(price)}</Text>
+                      <Text variant="meta" color="ink3">
+                        / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
+                      </Text>
+                    </View>
+                  </Tap>
+                );
+              })
+            )}
+            {errors.plan && (
+              <Text variant="meta" color="danger">
+                {errors.plan}
+              </Text>
+            )}
+            <Tap pressScale={1} style={styles.later} onPress={() => submit.mutate({ skipPlan: true })} disabled={submit.isPending}>
+              <Text variant="ui" color="ink2">
+                هختار الباقة بعدين، ابعت طلب المتجر بس
+              </Text>
+            </Tap>
+          </>
+        )}
+        {step === PAY_STEP && (
+          <>
+            <Text variant="section">الدفع بـ InstaPay</Text>
+            <Card style={styles.payRow}>
+              <View style={styles.flex}>
+                <Text variant="meta" color="ink3">
+                  المطلوب تحويله
+                </Text>
+                <Text variant="page" color="accent">
+                  {formatMoney(amount)}
+                </Text>
+              </View>
+              {plan && <Badge label={`${plan.nameAr} · ${BILLING_LABEL[period]}`} tone="neutral" />}
+            </Card>
+            {instructions.data ? (
+              <Card style={styles.gap}>
+                <Text variant="bodyStrong">حوّل على</Text>
+                <CopyRow label="عنوان InstaPay" value={instructions.data.receiver} onCopy={() => copy(instructions.data!.receiver, 'العنوان')} />
+                <Divider />
+                <CopyRow label="باسم" value={instructions.data.receiverName} />
+                <Divider />
+                <CopyRow label="المبلغ" value={String(amount)} onCopy={() => copy(String(amount), 'المبلغ')} />
+              </Card>
+            ) : (
+              <Skeleton height={160} />
+            )}
+            <Text variant="bodyStrong">حوّلت؟ ارفع الإيصال</Text>
+            <ImageSlot label="صورة إيصال التحويل" purpose="PAYMENT_PROOF" value={proof} onChange={setProof} width="100%" height={170} />
+            {proof && (
+              <TextField label="رقم العملية (Reference)" placeholder="مثال: 123456789012" icon={Receipt} value={reference} onChangeText={setReference} autoCapitalize="characters" ltr error={errors.ref} hint="موجود في رسالة تأكيد InstaPay" />
+            )}
+            <Text variant="meta" color="ink3">
+              لسه محوّلتش؟ ابعت الطلب دلوقتي، وهتلاقي بيانات التحويل ورفع الإيصال في الشاشة اللي بعدها وفي لوحة المتجر.
+            </Text>
+          </>
+        )}
       </Animated.View>
     </Screen>
+  );
+}
+
+function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy?: () => void }) {
+  return (
+    <View style={styles.payRow}>
+      <View style={styles.flex}>
+        <Text variant="meta" color="ink3">
+          {label}
+        </Text>
+        <Text variant="bodyStrong" selectable>
+          {value}
+        </Text>
+      </View>
+      {onCopy && (
+        <Tap onPress={onCopy} style={styles.copyBtn} accessibilityLabel={`نسخ ${label}`}>
+          <Icon as={Copy} size={18} color="accent" />
+          <Text variant="ui" color="accent">
+            نسخ
+          </Text>
+        </Tap>
+      )}
+    </View>
   );
 }
 
@@ -267,4 +456,13 @@ const styles = StyleSheet.create({
   fill: { height: '100%', borderRadius: 3 },
   labels: { flexDirection: 'row', justifyContent: 'space-between' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  toggle: { flexDirection: 'row', padding: 4 },
+  toggleItem: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
+  planOpt: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
+  planPrice: { alignItems: 'flex-end' },
+  later: { height: 44, alignItems: 'center', justifyContent: 'center' },
+  payRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  copyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, paddingHorizontal: 8 },
 });

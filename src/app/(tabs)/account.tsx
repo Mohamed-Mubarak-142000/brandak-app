@@ -12,7 +12,10 @@ import {
   MapPin,
   MessageSquareText,
   Moon,
-  Phone,
+  Mail,
+  FileText,
+  Info,
+  Shield,
   Settings,
   ShoppingBag,
   Store,
@@ -86,14 +89,14 @@ export default function Account() {
               </Text>
             </View>
           </View>
-          {!u.phoneVerified && (
+          {!u.emailVerified && (
             <Banner
-              icon={Phone}
+              icon={Mail}
               tone="warning"
-              title="رقم موبايلك لسه مش متأكد"
-              body="أكّده عشان المتاجر تقدر تتواصل معاك بخصوص الطلب."
+              title="بريدك الإلكتروني لسه مش متأكد"
+              body="هنبعتلك كود على الإيميل. بنستخدمه كمان لو نسيت كلمة السر."
               action="أكّد"
-              onAction={() => router.push({ pathname: '/(auth)/verify', params: { channel: 'phone' } })}
+              onAction={() => router.push({ pathname: '/(auth)/verify', params: { channel: 'email' } })}
             />
           )}
         </>
@@ -137,8 +140,14 @@ export default function Account() {
       <MenuGroup title="الإعدادات">
         <MenuRow icon={Moon} label="المظهر" value={THEME_LABEL[mode]} onPress={() => router.push('/settings')} />
         {authed && <MenuRow icon={KeyRound} label="تغيير كلمة السر" onPress={() => router.push('/change-password')} />}
-        <MenuRow icon={Settings} label="الإعدادات" onPress={() => router.push('/settings')} />
-        <MenuRow icon={CircleHelp} label="عن دكاكين" onPress={() => router.push('/settings')} last />
+        <MenuRow icon={Settings} label="الإعدادات" onPress={() => router.push('/settings')} last />
+      </MenuGroup>
+
+      <MenuGroup title="المساعدة">
+        <MenuRow icon={CircleHelp} label="الأسئلة الشائعة" onPress={() => router.push('/faq')} />
+        <MenuRow icon={Info} label="من نحن" onPress={() => router.push('/about')} />
+        <MenuRow icon={FileText} label="الشروط والأحكام" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })} />
+        <MenuRow icon={Shield} label="سياسة الخصوصية" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })} last />
       </MenuGroup>
 
       {authed && (

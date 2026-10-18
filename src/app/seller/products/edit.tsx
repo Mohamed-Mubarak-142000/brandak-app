@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useCategories, useSellerProduct } from '@/api/queries';
+import { qk, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
 import type { BrandProduct } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
 import { haptic } from '@/lib/haptics';
@@ -58,12 +58,23 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const t = useTheme();
   const router = useRouter();
   const qc = useQueryClient();
-  const categories = useCategories();
+  const brand = useMyBrand();
+  const categories = useCategories(brand.data?.storeType);
+
+  // The store already chose its categories; a product picks only from those (and their subcategories).
+  const brandCats = brand.data?.categoryIds ?? [];
+  const active = (categories.data ?? []).filter((c) => c.isActive);
+  const ofBrand = active.filter((c) => brandCats.includes(c._id) || (!!c.parentId && brandCats.includes(c.parentId)));
+  const options = ofBrand.length ? ofBrand : active;
 
   const [images, setImages] = useState<Img[]>(() => p?.images.map((i) => ({ fileId: i.fileId, url: i.url })) ?? []);
   const [title, setTitle] = useState(p?.title ?? '');
   const [description, setDescription] = useState(p?.description ?? '');
-  const [categoryId, setCategoryId] = useState(p?.categoryId ?? '');
+  const [pickedCategory, setCategoryId] = useState(p?.categoryId ?? '');
+  // A store with one category doesn't pick it again for every product.
+  const onlyOption = options.length === 1 ? options[0] : undefined;
+  const categoryId = pickedCategory || onlyOption?._id || (brandCats.length === 1 ? brandCats[0] : '');
+  const categoryName = categories.data?.find((c) => c._id === categoryId)?.nameAr;
   const [price, setPrice] = useState(p ? String(p.price) : '');
   const [compareAt, setCompareAt] = useState(p?.compareAtPrice != null ? String(p.compareAtPrice) : '');
   const [variants, setVariants] = useState<VariantDraft[]>(() =>
@@ -94,6 +105,8 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     const e: Record<string, string> = {};
     if (title.trim().length < 2) e.title = 'اسم المنتج حرفين على الأقل';
     if (!categoryId) e.category = 'اختار القسم';
+    // A published product with no photo shows an empty box everywhere in the app.
+    if (publish && !images.length) e.images = 'ضيف صورة واحدة على الأقل عشان المنتج يتنشر، أو احفظه كمسودة';
     const p = num(price);
     if (!p || p < 1) e.price = 'السعر لازم يكون 1 جنيه أو أكتر';
     const c = num(compareAt);
@@ -230,18 +243,31 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       <TextField label="اسم المنتج" placeholder="مثال: تيشيرت قطن أوفرسايز" value={title} onChangeText={setTitle} maxLength={120} error={errors.title} />
       <TextField label="الوصف" optional multiline value={description} onChangeText={setDescription} maxLength={5000} placeholder="الخامة، المقاسات، طريقة الغسيل..." />
 
-      <View style={styles.gap}>
-        <Text variant="ui" color={errors.category ? 'danger' : 'ink2'}>
-          {errors.category ?? 'القسم'}
-        </Text>
-        <View style={styles.wrap}>
-          {(categories.data ?? [])
-            .filter((c) => c.isActive)
-            .map((c) => (
-              <Chip key={c._id} label={c.nameAr} selected={categoryId === c._id} onPress={() => setCategoryId(c._id)} />
-            ))}
+      {onlyOption && (!pickedCategory || pickedCategory === onlyOption._id) ? (
+        <View style={[styles.fixedCat, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]}>
+          <Text variant="ui" color="ink2">
+            القسم: <Text variant="ui" weight="bold">{categoryName ?? onlyOption.nameAr}</Text>
+          </Text>
+          <Text variant="meta" color="ink3">
+            من إعدادات المتجر
+          </Text>
         </View>
-      </View>
+      ) : (
+        <View style={styles.gap}>
+          <Text variant="ui" color={errors.category ? 'danger' : 'ink2'}>
+            {errors.category ?? 'القسم'}
+          </Text>
+          {categories.isLoading || brand.isLoading ? (
+            <Skeleton height={40} />
+          ) : (
+            <View style={styles.wrap}>
+              {options.map((c) => (
+                <Chip key={c._id} label={c.nameAr} selected={categoryId === c._id} onPress={() => setCategoryId(c._id)} />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.row}>
         <View style={styles.flex}>
@@ -317,4 +343,5 @@ const styles = StyleSheet.create({
   imgActions: { flexDirection: 'row', justifyContent: 'space-between', padding: 4 },
   coverTag: { position: 'absolute', bottom: 0, start: 0, end: 0, alignItems: 'center', paddingVertical: 2 },
   publish: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1 },
+  fixedCat: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
 });

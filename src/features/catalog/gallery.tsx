@@ -1,50 +1,91 @@
 import { Image } from 'expo-image';
-import { X } from 'lucide-react-native';
-import { useState } from 'react';
-import { FlatList, Modal, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { ImageOff, X } from 'lucide-react-native';
+import { useRef, useState } from 'react';
+import { FlatList, Modal, ScrollView, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme';
-import { IconButton, Tap } from '@/ui';
+import { IconButton, Tap, Text } from '@/ui';
 
-/** Swipeable product images with dots; tap opens a full-screen pinch-to-zoom viewer. */
-export function Gallery({ images, height }: { images: string[]; height: number }) {
+const THUMB = 58;
+
+/**
+ * Product images in a rounded card: swipe between them, pick one from the thumbnail column on
+ * the side, tap to open a full-screen pinch-to-zoom viewer. `children` floats on top (back,
+ * share, wishlist).
+ */
+export function Gallery({ images, width, height, children }: { images: string[]; width: number; height: number; children?: React.ReactNode }) {
   const t = useTheme();
-  const { width } = useWindowDimensions();
+  const list = useRef<FlatList<string>>(null);
   const [index, setIndex] = useState(0);
   const [zoom, setZoom] = useState<number | null>(null);
-  const list = images.length ? images : [null];
+  const thumbs = images.length > 1;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(Math.abs(e.nativeEvent.contentOffset.x) / width);
     if (i !== index) setIndex(i);
   };
 
+  const go = (i: number) => {
+    setIndex(i);
+    list.current?.scrollToIndex({ index: i, animated: true });
+  };
+
   return (
-    <View style={{ height, backgroundColor: t.c.sunken }}>
-      <FlatList
-        horizontal
-        pagingEnabled
-        data={list}
-        keyExtractor={(u, i) => `${u}-${i}`}
-        onScroll={onScroll}
-        scrollEventThrottle={32}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item, index: i }) => (
-          <Tap pressScale={1} onPress={() => item && setZoom(i)} accessibilityLabel={`صورة ${i + 1} من ${list.length}، اضغط للتكبير`}>
-            <Image source={item} style={{ width, height }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
-          </Tap>
-        )}
-      />
-      {list.length > 1 && (
-        <View style={styles.dots} pointerEvents="none">
-          {list.map((_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: i === index ? t.c.brand : 'rgba(255,255,255,0.8)', width: i === index ? 20 : 7 }]} />
-          ))}
+    <View style={[styles.card, { width, height, backgroundColor: t.c.accentSoft, borderRadius: t.radius.xl }]}>
+      {images.length ? (
+        <FlatList
+          ref={list}
+          horizontal
+          pagingEnabled
+          data={images}
+          keyExtractor={(u, i) => `${u}-${i}`}
+          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+          onScroll={onScroll}
+          scrollEventThrottle={32}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item, index: i }) => (
+            <Tap pressScale={1} onPress={() => setZoom(i)} accessibilityLabel={`صورة ${i + 1} من ${images.length}، اضغط للتكبير`}>
+              <Image source={item} style={{ width, height }} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+            </Tap>
+          )}
+        />
+      ) : (
+        <View style={styles.empty}>
+          <ImageOff size={40} color={t.c.lineStrong} />
+          <Text variant="meta" color="ink3">
+            مفيش صور للمنتج ده لسه
+          </Text>
         </View>
       )}
+
+      {thumbs && (
+        <ScrollView
+          style={[styles.thumbs, { top: 72, maxHeight: height - 72 - 16 }]}
+          contentContainerStyle={styles.thumbsInner}
+          showsVerticalScrollIndicator={false}
+        >
+          {images.map((u, i) => (
+            <Tap
+              key={`${u}-${i}`}
+              onPress={() => go(i)}
+              pressScale={0.95}
+              accessibilityLabel={`عرض الصورة ${i + 1}`}
+              accessibilityState={{ selected: i === index }}
+              style={[
+                styles.thumb,
+                { borderRadius: t.radius.md, borderColor: i === index ? t.c.brand : t.c.surface, backgroundColor: t.c.surface },
+              ]}
+            >
+              <Image source={u} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+            </Tap>
+          ))}
+        </ScrollView>
+      )}
+
+      {children}
       <ZoomViewer images={images} start={zoom} onClose={() => setZoom(null)} />
     </View>
   );
@@ -103,8 +144,11 @@ function ZoomableImage({ uri, width, height }: { uri: string; width: number; hei
 }
 
 const styles = StyleSheet.create({
-  dots: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', gap: 6 },
-  dot: { height: 7, borderRadius: 4 },
+  card: { overflow: 'hidden', alignSelf: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  thumbs: { position: 'absolute', end: 12 },
+  thumbsInner: { gap: 8 },
+  thumb: { width: THUMB, height: THUMB * 1.15, borderWidth: 2, overflow: 'hidden' },
   viewer: { flex: 1, backgroundColor: '#000' },
   close: { position: 'absolute', end: 12 },
 });

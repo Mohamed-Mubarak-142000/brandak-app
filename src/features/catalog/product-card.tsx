@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Heart } from 'lucide-react-native';
+import { Heart, ImageOff } from 'lucide-react-native';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import { useRequireAuth } from '@/auth/use-auth';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { Badge, PriceTag, Rating, Tap, Text } from '@/ui';
+import { QuickAddButton } from './quick-add';
 
 export const CARD_ASPECT = 1.25; // image height / width
 
@@ -58,11 +59,16 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
   return (
     <Tap
       onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
-      style={{ width }}
+      style={[styles.card, { width }]}
       pressScale={0.98}
       accessibilityLabel={`${product.title}، ${product.brand.name ?? ''}`}
     >
       <View style={[styles.imageWrap, { width, height: width * CARD_ASPECT, backgroundColor: t.c.sunken, borderRadius: t.radius.lg }]}>
+        {!product.imageUrl && (
+          <View style={styles.noImage} pointerEvents="none">
+            <ImageOff size={28} color={t.c.lineStrong} />
+          </View>
+        )}
         <Image
           source={product.imageUrl}
           style={StyleSheet.absoluteFill}
@@ -96,15 +102,19 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
         <PriceTag price={product.price} compareAt={product.compareAtPrice} size="sm" />
         <Rating value={product.ratingAvg} count={product.ratingCount} size={12} />
       </View>
+      <QuickAddButton product={product} />
     </Tap>
   );
 });
 
 const styles = StyleSheet.create({
+  // Column that fills the grid row, so every card's button sits on the same line.
+  card: { gap: 8, alignSelf: 'stretch' },
   imageWrap: { overflow: 'hidden' },
+  noImage: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 8 },
   heart: { alignItems: 'center', justifyContent: 'center' },
   soldOut: { position: 'absolute', bottom: 0, start: 0, end: 0, paddingVertical: 6, alignItems: 'center' },
-  meta: { paddingTop: 8, gap: 2 },
+  meta: { gap: 2 },
   title: { minHeight: 42 },
 });

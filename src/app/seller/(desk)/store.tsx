@@ -77,8 +77,6 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         name: name.trim(),
         description: description.trim(),
         categoryIds: cats,
-        ...(logo?.fileId ? { logoFileId: logo.fileId } : {}),
-        ...(cover?.fileId ? { coverFileId: cover.fileId } : {}),
         contact: {
           phone: latinDigits(phone).replace(/\s/g, ''),
           whatsapp: latinDigits(whatsapp).replace(/\s/g, '') || undefined,
@@ -109,6 +107,24 @@ function StoreForm({ b }: { b: OwnerBrand }) {
     onError: () => haptic.error(),
   });
 
+  // Logo and cover are saved the moment they finish uploading. Before, they waited for the
+  // "save" button at the bottom of a long form, and a picked logo that was never saved looked
+  // like an image that "doesn't show" everywhere else in the app.
+  const saveImage = (field: 'logoFileId' | 'coverFileId', img: UploadedImage, set: (v: UploadedImage | null) => void, prev: UploadedImage | null) => {
+    set(img);
+    api
+      .patch<OwnerBrand>('/brands/me', { [field]: img.fileId })
+      .then((nb) => {
+        qc.setQueryData(qk.myBrand, nb);
+        qc.invalidateQueries({ queryKey: qk.brand(nb.slug) });
+        toast.success(field === 'logoFileId' ? 'اتحفظ اللوجو' : 'اتحفظ الغلاف');
+      })
+      .catch((e) => {
+        set(prev);
+        toast.error(errorMessage(e));
+      });
+  };
+
   const govName = (code: string) => govs.data?.find((g) => g.code === code)?.ar ?? code;
 
   return (
@@ -132,9 +148,9 @@ function StoreForm({ b }: { b: OwnerBrand }) {
             }}
             options={STORE_TYPES.map((x) => ({ value: x.type, label: x.label, description: x.description, icon: x.icon }))}
           />
-          <ImageSlot label="الغلاف" purpose="BRAND_COVER" value={cover} onChange={setCover} aspect={[16, 9]} width="100%" height={150} />
+          <ImageSlot label="الغلاف" purpose="BRAND_COVER" value={cover} onChange={(img) => saveImage('coverFileId', img, setCover, cover)} aspect={[16, 9]} width="100%" height={150} />
           <View style={styles.logoRow}>
-            <ImageSlot label="اللوجو" purpose="BRAND_LOGO" value={logo} onChange={setLogo} width={92} round />
+            <ImageSlot label="اللوجو" purpose="BRAND_LOGO" value={logo} onChange={(img) => saveImage('logoFileId', img, setLogo, logo)} width={92} round />
             <View style={styles.flex}>
               <TextField label={storeTypeInfo(storeType).nameLabel} placeholder="مثال: معرض النور للأجهزة" value={name} onChangeText={setName} maxLength={60} />
             </View>

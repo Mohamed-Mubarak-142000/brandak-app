@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShoppingBag, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShoppingBag, Truck, Undo2, Wallet, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -40,9 +40,11 @@ export default function ProductScreen() {
   const [allReviews, setAllReviews] = useState(false);
   const sel = useVariantSelection(p?.variants ?? [], size, color);
   const v = sel.selected;
-  const galleryH = Math.min(width * 1.15, 560);
+  const galleryW = width - 24;
+  const galleryH = Math.min(galleryW * 1.1, 520);
+  const [descOpen, setDescOpen] = useState(false);
 
-  if (product.isLoading) return <ProductSkeleton height={galleryH} />;
+  if (product.isLoading) return <ProductSkeleton width={galleryW} height={galleryH} top={insets.top + 8} />;
   if (product.error || !p)
     return (
       <View style={[styles.flex, { backgroundColor: t.c.ground, paddingTop: insets.top }]}>
@@ -57,7 +59,11 @@ export default function ProductScreen() {
   const reviewItems = flatPages(reviews.data);
   const totalReviews = reviews.data?.pages[0]?.meta.total ?? 0;
 
-  const add = () =>
+  const total = price * Math.min(qty, max);
+  const soldOut = !p.inStock || (!!v && !v.inStock);
+
+  /** `buyNow` skips the cart screen and goes straight to checkout for this store. */
+  const add = (buyNow = false) =>
     requireAuth('سجّل عشان تضيف للسلة وتطلب.', () => {
       if (!v) {
         setMissing(true);
@@ -65,11 +71,12 @@ export default function ProductScreen() {
         return;
       }
       cart.add.mutate(
-        { productId: p.id, variantId: v.id, quantity: qty },
+        { productId: p.id, variantId: v.id, quantity: Math.min(qty, max) },
         {
           onSuccess: () => {
             haptic.success();
-            toast.success('اتضاف للسلة', { label: 'عرض السلة', onPress: () => router.push('/cart') });
+            if (buyNow) router.push({ pathname: '/checkout/[brandId]', params: { brandId: p.brand.id } });
+            else toast.success('اتضاف للسلة', { label: 'عرض السلة', onPress: () => router.push('/cart') });
           },
           onError: (e) => {
             haptic.error();
@@ -84,27 +91,42 @@ export default function ProductScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-        <Gallery images={p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : []} height={galleryH} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 24 }}>
+        <Gallery images={p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : []} width={galleryW} height={galleryH}>
+          {/* Floating controls inside the image card */}
+          <View style={styles.topBar} pointerEvents="box-none">
+            <IconButton icon={ArrowRight} label="رجوع" background="surface" onPress={() => router.back()} />
+            <View style={styles.inline}>
+              <IconButton icon={Share2} label="مشاركة" background="surface" onPress={share} />
+              <View style={[styles.heartWrap, { backgroundColor: t.c.surface }]}>
+                <WishlistHeart productId={p.id} size={44} floating={false} />
+              </View>
+            </View>
+          </View>
+        </Gallery>
 
         <Animated.View entering={FadeInDown.duration(260)} style={styles.body}>
-          <View style={styles.titleRow}>
-            <View style={styles.flex}>
-              <Text variant="section" style={styles.title}>
-                {p.title}
-              </Text>
-              <Rating value={p.ratingAvg} count={p.ratingCount} />
+          <View style={[styles.sheet, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.xl }]}>
+            <View style={styles.titleRow}>
+              <View style={styles.flex}>
+                <Text variant="section" style={styles.title}>
+                  {p.title}
+                </Text>
+                <Rating value={p.ratingAvg} count={p.ratingCount} />
+              </View>
+              {p.inStock && <QuantityStepper value={Math.min(qty, max)} onChange={setQty} max={max} compact />}
             </View>
-            <WishlistHeart productId={p.id} size={44} floating={false} />
-          </View>
-          <PriceTag price={price} compareAt={p.compareAtPrice} size="lg" />
-          {!p.inStock ? (
-            <Badge label="نفدت الكمية" tone="danger" />
-          ) : v && v.available <= 3 && v.inStock ? (
-            <Badge label={`باقي ${v.available} قطع بس`} tone="warning" />
-          ) : null}
 
-          <VariantPicker
+            <View style={styles.priceRow}>
+              <PriceTag price={price} compareAt={p.compareAtPrice} size="lg" />
+              {!p.inStock ? (
+                <Badge label="نفدت الكمية" tone="danger" />
+              ) : v && v.available <= 3 && v.inStock ? (
+                <Badge label={`باقي ${v.available} قطع بس`} tone="warning" />
+              ) : null}
+            </View>
+
+            <VariantPicker
             sizes={sel.sizes}
             colors={sel.colors}
             size={size}
@@ -122,13 +144,23 @@ export default function ProductScreen() {
             sizeAvailable={sel.sizeAvailable}
             colorAvailable={sel.colorAvailable}
             missing={missing}
-          />
+            />
 
-          <View style={styles.qtyRow}>
-            <Text variant="ui" color="ink2">
-              الكمية
-            </Text>
-            <QuantityStepper value={Math.min(qty, max)} onChange={setQty} max={max} />
+            {!!p.description && (
+              <View style={styles.gapSm}>
+                <Text variant="bodyStrong">الوصف</Text>
+                <Text variant="ui" color="ink2" numberOfLines={descOpen ? undefined : 3}>
+                  {p.description}
+                </Text>
+                {p.description.length > 140 && (
+                  <Tap onPress={() => setDescOpen((o) => !o)} hitSlop={10} pressScale={1} style={styles.more}>
+                    <Text variant="ui" color="accent" weight="semibold">
+                      {descOpen ? 'أقل' : 'اقرأ أكتر'}
+                    </Text>
+                  </Tap>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Brand */}
@@ -180,15 +212,6 @@ export default function ProductScreen() {
             )}
           </Card>
 
-          {!!p.description && (
-            <View style={styles.gap}>
-              <Text variant="section">عن المنتج</Text>
-              <Text variant="body" color="ink2">
-                {p.description}
-              </Text>
-            </View>
-          )}
-
           {/* Reviews */}
           <View style={styles.gap}>
             <View style={styles.inlineBetween}>
@@ -221,27 +244,23 @@ export default function ProductScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Floating top controls over the gallery */}
-      <View style={[styles.topBar, { top: insets.top + 6 }]} pointerEvents="box-none">
-        <IconButton icon={ArrowRight} label="رجوع" background="surface" onPress={() => router.back()} />
-        <IconButton icon={Share2} label="مشاركة" background="surface" onPress={share} />
-      </View>
-
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: t.c.surface, borderTopColor: t.c.line }]}>
-        <View>
-          <Text variant="meta" color="ink3">
+        <View style={styles.inlineBetween}>
+          <Text variant="ui" color="ink3">
             الإجمالي
           </Text>
-          <Text variant="section">{formatMoney(price * Math.min(qty, max))}</Text>
+          <Text variant="bodyStrong" style={{ fontFamily: t.fonts.bold }}>
+            {formatMoney(total)}
+          </Text>
         </View>
-        <Button
-          label={p.inStock ? 'أضف للسلة' : 'نفدت الكمية'}
-          icon={ShoppingBag}
-          disabled={!p.inStock || (v && !v.inStock)}
-          loading={cart.add.isPending}
-          onPress={add}
-          style={styles.flex}
-        />
+        {soldOut ? (
+          <Button label="نفدت الكمية" disabled />
+        ) : (
+          <View style={styles.actions}>
+            <Button label="أضف للسلة" icon={ShoppingBag} variant="soft" disabled={cart.add.isPending} onPress={() => add(false)} style={styles.flex} />
+            <Button label="اشتري دلوقتي" icon={Zap} loading={cart.add.isPending} onPress={() => add(true)} style={styles.flex} />
+          </View>
+        )}
       </View>
 
       <ReportSheet open={reportOpen} onClose={() => setReportOpen(false)} targetType="PRODUCT" targetId={p.id} />
@@ -273,11 +292,11 @@ function InfoRow({ icon, title, body }: { icon: typeof Truck; title: string; bod
   );
 }
 
-function ProductSkeleton({ height }: { height: number }) {
+function ProductSkeleton({ width, height, top }: { width: number; height: number; top: number }) {
   const t = useTheme();
   return (
-    <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
-      <Skeleton height={height} radius={0} />
+    <View style={[styles.flex, { backgroundColor: t.c.ground, paddingTop: top, alignItems: 'center' }]}>
+      <Skeleton width={width} height={height} radius={t.radius.xl} />
       <View style={[styles.body, { gap: 12 }]}>
         <Skeleton width="80%" height={24} />
         <Skeleton width="40%" height={28} />
@@ -290,16 +309,21 @@ function ProductSkeleton({ height }: { height: number }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  body: { padding: 16, gap: 18 },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  body: { padding: 12, gap: 16, alignSelf: 'stretch' },
+  sheet: { padding: 16, gap: 18, borderWidth: StyleSheet.hairlineWidth },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { marginBottom: 2 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  gapSm: { gap: 6 },
+  more: { alignSelf: 'flex-start' },
+  heartWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', gap: 10 },
   brandCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   inlineBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   gap: { gap: 12 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   report: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', height: 44 },
-  topBar: { position: 'absolute', start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between' },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  topBar: { position: 'absolute', top: 12, start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between' },
+  footer: { gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });

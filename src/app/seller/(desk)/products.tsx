@@ -3,15 +3,17 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Minus, Plus, Search } from 'lucide-react-native';
 import { memo, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { flatPages, useSellerProducts } from '@/api/queries';
 import type { BrandProduct, ProductStatus } from '@/api/types';
+import { ActiveChips, FilterButton } from '@/features/catalog/filters';
 import { DeskHeader } from '@/features/seller/desk-header';
+import { StatusFilterSheet } from '@/features/seller/status-filter';
 import { formatMoney } from '@/lib/format';
 import { useTheme } from '@/theme';
-import { Badge, Button, Chip, EmptyState, ErrorState, IconButton, Sheet, Skeleton, Tap, Text, TextField, toast } from '@/ui';
+import { Badge, Button, EmptyState, ErrorState, IconButton, Sheet, Skeleton, Tap, Text, TextField, toast } from '@/ui';
 
 const STATUS: { key?: ProductStatus; label: string }[] = [
   { label: 'الكل' },
@@ -26,6 +28,7 @@ export default function SellerProducts() {
   const t = useTheme();
   const router = useRouter();
   const [status, setStatus] = useState<ProductStatus | undefined>();
+  const [filterOpen, setFilterOpen] = useState(false);
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
   const [stockFor, setStockFor] = useState<BrandProduct | null>(null);
@@ -40,15 +43,23 @@ export default function SellerProducts() {
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
       <DeskHeader title="المنتجات" end={<IconButton icon={Plus} label="منتج جديد" background="accent" color="onAccent" onPress={() => router.push('/seller/products/edit')} />} />
       <View style={styles.search}>
-        <TextField label="بحث" icon={Search} value={text} onChangeText={setText} placeholder="اسم المنتج" returnKeyType="search" />
+        <View style={styles.flex}>
+          <TextField label="بحث" icon={Search} value={text} onChangeText={setText} placeholder="اسم المنتج" returnKeyType="search" />
+        </View>
+        <FilterButton count={status ? 1 : 0} label="فلترة المنتجات" onPress={() => setFilterOpen(true)} />
       </View>
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {STATUS.map((s) => (
-            <Chip key={s.label} label={s.label} selected={status === s.key} onPress={() => setStatus(s.key)} />
-          ))}
-        </ScrollView>
+      <View style={styles.chips}>
+        <ActiveChips chips={status ? [{ key: 'status', label: STATUS_AR[status], onRemove: () => setStatus(undefined) }] : []} />
       </View>
+      <StatusFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="فلترة المنتجات"
+        applyLabel="عرض المنتجات"
+        options={STATUS.map((s) => ({ value: s.key, label: s.label }))}
+        value={status}
+        onApply={setStatus}
+      />
       <FlatList
         data={items}
         keyExtractor={(p) => p._id}
@@ -135,8 +146,8 @@ function StockSheet({ product, onClose }: { product: BrandProduct | null; onClos
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  search: { paddingHorizontal: 16, paddingBottom: 8 },
-  chips: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
+  search: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
+  chips: { paddingHorizontal: 16, paddingBottom: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 32 },
   gap: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderWidth: 1, marginBottom: 10 },

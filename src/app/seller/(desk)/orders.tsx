@@ -1,14 +1,16 @@
 import { useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { flatPages, useSellerOrders } from '@/api/queries';
 import type { OrderStatus } from '@/api/types';
 import { OrderCard } from '@/features/orders/order-card';
+import { ActiveChips, FilterButton } from '@/features/catalog/filters';
 import { DeskHeader } from '@/features/seller/desk-header';
+import { StatusFilterSheet } from '@/features/seller/status-filter';
 import { useTheme } from '@/theme';
-import { Chip, EmptyState, ErrorState, ORDER_STATUS_AR, Skeleton, TextField } from '@/ui';
+import { EmptyState, ErrorState, ORDER_STATUS_AR, Skeleton, TextField } from '@/ui';
 
 const STATUSES: (OrderStatus | undefined)[] = [undefined, 'PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
@@ -16,6 +18,7 @@ export default function SellerOrders() {
   const t = useTheme();
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus | undefined>('PENDING');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
   useEffect(() => {
@@ -29,15 +32,23 @@ export default function SellerOrders() {
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
       <DeskHeader title="الطلبات" subtitle={orders.data ? `${orders.data.pages[0]?.meta.total ?? 0} طلب` : undefined} />
       <View style={styles.search}>
-        <TextField label="بحث" icon={Search} value={text} onChangeText={setText} placeholder="رقم الطلب أو موبايل العميل" returnKeyType="search" />
+        <View style={styles.flex}>
+          <TextField label="بحث" icon={Search} value={text} onChangeText={setText} placeholder="رقم الطلب أو موبايل العميل" returnKeyType="search" />
+        </View>
+        <FilterButton count={status ? 1 : 0} label="فلترة الطلبات" onPress={() => setFilterOpen(true)} />
       </View>
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {STATUSES.map((s) => (
-            <Chip key={s ?? 'all'} label={s ? ORDER_STATUS_AR[s] : 'الكل'} selected={status === s} onPress={() => setStatus(s)} />
-          ))}
-        </ScrollView>
+      <View style={styles.chips}>
+        <ActiveChips chips={status ? [{ key: 'status', label: ORDER_STATUS_AR[status], onRemove: () => setStatus(undefined) }] : []} />
       </View>
+      <StatusFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="فلترة الطلبات"
+        applyLabel="عرض الطلبات"
+        options={STATUSES.map((s) => ({ value: s, label: s ? ORDER_STATUS_AR[s] : 'كل الطلبات' }))}
+        value={status}
+        onApply={setStatus}
+      />
       <FlatList
         data={items}
         keyExtractor={(o) => o.id}
@@ -69,8 +80,8 @@ export default function SellerOrders() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  search: { paddingHorizontal: 16, paddingBottom: 8 },
-  chips: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
+  search: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
+  chips: { paddingHorizontal: 16, paddingBottom: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 32 },
   item: { marginBottom: 12 },
   gap: { gap: 12 },

@@ -18,7 +18,7 @@ const COOLDOWN = 60;
 /** Confirms the phone (or email) with the 6-digit code. Reachable after sign-up and from the account banner. */
 export default function Verify() {
   const router = useRouter();
-  const { channel = 'phone', welcome, intent } = useLocalSearchParams<{ channel?: 'phone' | 'email'; welcome?: string; intent?: 'seller' }>();
+  const { channel = 'email', welcome, intent } = useLocalSearchParams<{ channel?: 'phone' | 'email'; welcome?: string; intent?: 'seller' }>();
   const me = useMe();
   const [code, setCode] = useState('');
   const [left, setLeft] = useState(0);

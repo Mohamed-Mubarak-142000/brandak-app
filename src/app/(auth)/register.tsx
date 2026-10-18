@@ -95,7 +95,7 @@ export default function Register() {
         router.replace({ pathname: '/seller/apply', params: { storeType: storeType ?? undefined, name: storeName.trim() } });
         return;
       }
-      router.replace({ pathname: '/(auth)/verify', params: { channel: 'phone', welcome: '1', ...(business ? { intent: 'seller' } : {}) } });
+      router.replace({ pathname: '/(auth)/verify', params: { channel: 'email', welcome: '1', ...(business ? { intent: 'seller' } : {}) } });
     },
     onError: (e) => {
       haptic.error();
@@ -306,7 +306,15 @@ export default function Register() {
       )}
 
       <Text variant="meta" color="ink3">
-        بإنشاء الحساب أنت موافق على شروط الاستخدام وسياسة الخصوصية الخاصة بدكاكين.
+        بإنشاء الحساب أنت موافق على{' '}
+        <Text variant="meta" color="accent" weight="semibold" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>
+          الشروط والأحكام
+        </Text>{' '}
+        و
+        <Text variant="meta" color="accent" weight="semibold" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}>
+          سياسة الخصوصية
+        </Text>{' '}
+        الخاصة بدكاكين.
       </Text>
       <Button label={business ? 'إنشاء الحساب والمتجر' : 'إنشاء الحساب'} loading={register.isPending} onPress={() => submit()} />
       <View style={styles.row}>
