@@ -7,7 +7,7 @@ import { Alert, RefreshControl, StyleSheet, View } from 'react-native';
 import { api, errorMessage } from '@/api/client';
 import { qk, useSellerOrder } from '@/api/queries';
 import type { OrderDetail, OrderStatus } from '@/api/types';
-import { ContactButtons, OrderAddress, OrderItems } from '@/features/orders/order-sections';
+import { ContactButtons, isPickupOrder, OrderAddress, OrderItems } from '@/features/orders/order-sections';
 import { OrderTimeline } from '@/features/orders/timeline';
 import { formatDateTime, formatMoney, formatPhone } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -96,11 +96,12 @@ export default function SellerOrder() {
             )}
             {next && NEXT_LABEL[next] && (
               <Button
-                label={NEXT_LABEL[next]!.label}
+                label={next === 'SHIPPED' && o && isPickupOrder(o) ? 'جاهز للاستلام' : NEXT_LABEL[next]!.label}
                 icon={NEXT_LABEL[next]!.icon}
                 loading={move.isPending && !cancelOpen}
                 // Shipping asks for the tracking number so the customer can follow the parcel.
-                onPress={() => (next === 'SHIPPED' ? setShipOpen(true) : move.mutate({ status: next }))}
+                // (Pickup orders have nothing to ship: "ready" tells the customer to come.)
+                onPress={() => (next === 'SHIPPED' && !(o && isPickupOrder(o)) ? setShipOpen(true) : move.mutate({ status: next }))}
                 style={styles.flex}
               />
             )}
@@ -200,7 +201,7 @@ export default function SellerOrder() {
             <OrderItems order={o} />
           </View>
           <View style={styles.gap}>
-            <Text variant="section">التوصيل</Text>
+            <Text variant="section">{isPickupOrder(o) ? 'استلام من المتجر' : 'التوصيل'}</Text>
             <OrderAddress order={o} />
           </View>
           <View style={styles.gap}>

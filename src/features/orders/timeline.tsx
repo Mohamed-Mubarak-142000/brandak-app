@@ -18,6 +18,10 @@ const HINT: Partial<Record<OrderStatus, string>> = {
 /** Vertical progress: done steps filled, the current one ringed, future ones muted. */
 export function OrderTimeline({ order }: { order: OrderDetail }) {
   const t = useTheme();
+  // A pickup order is "ready" instead of "on its way".
+  const pickup = order.fulfillment === 'PICKUP';
+  const label = (s: OrderStatus) => (pickup && s === 'SHIPPED' ? 'جاهز للاستلام' : pickup && s === 'DELIVERED' ? 'اتسلم' : ORDER_STATUS_AR[s]);
+  const hint = (s: OrderStatus) => (pickup && s === 'SHIPPED' ? 'تعالى استلمه من المتجر' : pickup && s === 'DELIVERED' ? 'استلمته من المتجر' : HINT[s]);
   const at = (s: OrderStatus) => order.history.filter((h) => h.status === s).at(-1);
   // Cancelled and refused orders end early: the steps they reached, then how they ended.
   const ended = order.status === 'CANCELLED' || order.status === 'REFUSED';
@@ -34,7 +38,7 @@ export function OrderTimeline({ order }: { order: OrderDetail }) {
         const entry = at(s);
         const color = isCancel ? t.c.danger : done ? t.c.success : t.c.lineStrong;
         return (
-          <View key={s} style={styles.step} accessibilityLabel={`${ORDER_STATUS_AR[s]}${done ? '، تم' : ''}`}>
+          <View key={s} style={styles.step} accessibilityLabel={`${label(s)}${done ? '، تم' : ''}`}>
             <View style={styles.rail}>
               <View
                 style={[
@@ -49,7 +53,7 @@ export function OrderTimeline({ order }: { order: OrderDetail }) {
             </View>
             <View style={[styles.copy, !last && styles.copyGap]}>
               <Text variant="ui" weight={current ? 'bold' : 'semibold'} color={done ? 'ink' : 'ink3'}>
-                {ORDER_STATUS_AR[s]}
+                {label(s)}
               </Text>
               {entry ? (
                 <Text variant="meta" color="ink3">
@@ -58,9 +62,9 @@ export function OrderTimeline({ order }: { order: OrderDetail }) {
                 </Text>
               ) : (
                 !done &&
-                HINT[s] && (
+                hint(s) && (
                   <Text variant="meta" color="ink3">
-                    {HINT[s]}
+                    {hint(s)}
                   </Text>
                 )
               )}

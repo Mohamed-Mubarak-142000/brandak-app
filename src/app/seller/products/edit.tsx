@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Archive, Check, CircleAlert, ImagePlus, Plus, Star, Trash2, X } from 'lucide-react-native';
+import { Archive, Check, CircleAlert, ImagePlus, Plus, Sparkles, Star, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useCampaigns, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
-import type { BrandProduct } from '@/api/types';
+import { qk, useAiStatus, useCampaigns, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
+import type { BrandProduct, ProductDraft } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
 import { swatchFor } from '@/features/catalog/variant-picker';
 import { haptic } from '@/lib/haptics';
@@ -37,6 +37,12 @@ const num = (s: string) => {
   return s.trim() !== '' && Number.isFinite(n) ? n : undefined;
 };
 const newVariant = (): VariantDraft => ({ key: Math.random().toString(36).slice(2), size: '', color: '', sku: '', price: '', stock: '' });
+interface TierDraft {
+  key: string;
+  qty: string;
+  price: string;
+}
+const newTier = (): TierDraft => ({ key: Math.random().toString(36).slice(2), qty: '', price: '' });
 
 export default function ProductEditor() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -102,7 +108,52 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const campaigns = useCampaigns();
   const seasons = (campaigns.data ?? []).filter((c) => new Date(c.endsAt).getTime() > mountedAt);
   const season = seasons.find((c) => c._id === seasonId);
+  // Wholesale: a minimum per order and cheaper prices by quantity (warehouses, mostly).
+  const [wsOn, setWsOn] = useState(!!p?.wholesale);
+  const [wsMin, setWsMin] = useState(p?.wholesale ? String(p.wholesale.minQty) : '');
+  const [tiers, setTiers] = useState<TierDraft[]>(() =>
+    p?.wholesale?.tiers.length ? p.wholesale.tiers.map((x) => ({ key: String(x.minQty), qty: String(x.minQty), price: String(x.price) })) : [newTier()],
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const ai = useAiStatus(!id);
+
+  /** Fills the form from the model's suggestion; the seller reviews before saving. */
+  const applyDraft = (d: ProductDraft) => {
+    if (d.title) setTitle(d.title);
+    if (d.description) setDescription(d.description);
+    if (d.categoryId) setCategoryId(d.categoryId);
+    if (d.tags.length) setTags(d.tags.join('، '));
+    const sizes = d.sizes.length ? d.sizes : [''];
+    const colors = d.colors.length ? d.colors : [''];
+    if (sizes.length * colors.length > 1 || sizes[0] || colors[0]) {
+      setVariants(sizes.flatMap((size) => colors.map((color) => ({ ...newVariant(), size, color }))).slice(0, 30));
+    }
+  };
+  const draft = useMutation({
+    mutationFn: async () => {
+      let fileId = images.find((i) => i.fileId)?.fileId;
+      if (!fileId) {
+        const [f] = await pickImages();
+        if (!f) return null;
+        setImages((xs) => [...xs, { url: f.uri, uploading: true }]);
+        const res = await uploadFile(f, 'PRODUCT_IMAGE');
+        setImages((xs) => xs.map((x) => (x.url === f.uri ? { fileId: res.id, url: res.url ?? f.uri } : x)));
+        fileId = res.id;
+      }
+      return api.post<ProductDraft>('/brand/ai/product-draft', { imageFileId: fileId });
+    },
+    onSuccess: (d) => {
+      if (!d) return;
+      haptic.success();
+      applyDraft(d);
+      qc.invalidateQueries({ queryKey: ['seller', 'ai'] });
+      toast.success('البيانات جاهزة، راجعها واكتب السعر والمخزون');
+    },
+    onError: (e) => {
+      haptic.error();
+      toast.error(errorMessage(e));
+    },
+  });
 
   const addImages = async () => {
     const files = await pickImages({ multiple: true, limit: Math.max(1, maxImages - images.length) });
@@ -135,6 +186,15 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       else if (season && pct < season.minPercent) e.sale = `الموسم ده محتاج خصم ${season.minPercent}% على الأقل`;
     }
     if (variants.some((v) => num(v.stock) == null || num(v.stock)! < 0)) e.variants = 'اكتب المخزون لكل اختيار';
+    if (wsOn) {
+      const filled = tiers.filter((x) => x.qty.trim() || x.price.trim());
+      const sorted = filled.map((x) => ({ q: num(x.qty) ?? 0, pr: num(x.price) ?? 0 })).sort((a, b) => a.q - b.q);
+      if (num(wsMin) == null || num(wsMin)! < 1) e.wholesale = 'اكتب أقل كمية للطلب';
+      else if (sorted.some((x) => x.q < 2 || x.pr < 1)) e.wholesale = 'كل سعر جملة محتاج كمية (2 أو أكتر) وسعر';
+      else if (sorted.some((x, i) => x.pr >= (num(price) ?? 0) || (i > 0 && (x.q === sorted[i - 1].q || x.pr >= sorted[i - 1].pr)))) {
+        e.wholesale = 'كل ما الكمية تزيد السعر يقل، وكله أقل من السعر العادي';
+      }
+    }
     if (images.some((i) => i.uploading)) e.images = 'استنى الصور تخلص رفع';
     setErrors(e);
     return !Object.keys(e).length;
@@ -153,6 +213,12 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
           startsAt: season ? new Date(Math.max(now, new Date(season.startsAt).getTime())).toISOString() : undefined,
           endsAt: season ? season.endsAt : liveSale && !saleDaysTouched ? liveSale.endsAt : new Date(now + saleDays * 86_400_000).toISOString(),
           campaignId: season?._id,
+        }
+      : null,
+    wholesale: wsOn
+      ? {
+          minQty: Math.round(num(wsMin) ?? 1),
+          tiers: tiers.filter((x) => num(x.qty) && num(x.price)).map((x) => ({ minQty: Math.round(num(x.qty)!), price: num(x.price)! })),
         }
       : null,
     imageFileIds: images.filter((i) => i.fileId).map((i) => i.fileId!),
@@ -230,6 +296,20 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
           tone="danger"
           title={saveErr.message}
         />
+      )}
+
+      {!id && ai.data?.enabled && (
+        <Card style={styles.gap}>
+          <View style={styles.between}>
+            <View style={styles.flex}>
+              <Text variant="bodyStrong">اعمل المنتج من صورة</Text>
+              <Text variant="meta" color="ink3">
+                ارفع صورة والذكاء الاصطناعي يكتبلك الاسم والوصف والقسم والمقاسات. باقي النهارده {ai.data.remaining}.
+              </Text>
+            </View>
+          </View>
+          <Button label={images.length ? 'املا البيانات من أول صورة' : 'اختار صورة'} icon={Sparkles} variant="soft" loading={draft.isPending} disabled={!ai.data.remaining || images.some((i) => i.uploading)} onPress={() => draft.mutate()} />
+        </Card>
       )}
 
       {/* Images */}
@@ -429,6 +509,39 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
         {variants.length < 100 && <Button label="إضافة اختيار" icon={Plus} variant="soft" onPress={() => setVariants((xs) => [...xs, newVariant()])} />}
       </View>
 
+      {/* Wholesale */}
+      <View style={[styles.publish, { borderColor: wsOn ? t.c.brand : t.c.line, backgroundColor: t.c.surface, borderRadius: t.radius.md }]}>
+        <View style={styles.flex}>
+          <Text variant="bodyStrong">أسعار الجملة</Text>
+          <Text variant="meta" color="ink3">
+            أقل كمية للطلب، وسعر أقل كل ما الكمية تزيد (كل المقاسات بتتحسب مع بعض)
+          </Text>
+        </View>
+        <Switch value={wsOn} onValueChange={setWsOn} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="أسعار الجملة" />
+      </View>
+      {wsOn && (
+        <Card style={styles.gap}>
+          <TextField label="أقل كمية للطلب" placeholder="مثال: 6" value={wsMin} onChangeText={setWsMin} keyboardType="number-pad" ltr hint="اكتب 1 لو مفيش حد أدنى" />
+          {tiers.map((x, i) => (
+            <View key={x.key} style={[styles.row, styles.center]}>
+              <View style={styles.flex}>
+                <TextField label={i === 0 ? 'من كمية' : ' '} placeholder="12" value={x.qty} onChangeText={(s) => setTiers((xs) => xs.map((y) => (y.key === x.key ? { ...y, qty: s } : y)))} keyboardType="number-pad" ltr />
+              </View>
+              <View style={styles.flex}>
+                <TextField label={i === 0 ? 'سعر القطعة' : ' '} placeholder="80" value={x.price} onChangeText={(s) => setTiers((xs) => xs.map((y) => (y.key === x.key ? { ...y, price: s } : y)))} keyboardType="decimal-pad" ltr />
+              </View>
+              {tiers.length > 1 && <IconButton icon={Trash2} label="حذف السعر" size={36} color="danger" onPress={() => setTiers((xs) => xs.filter((y) => y.key !== x.key))} />}
+            </View>
+          ))}
+          {tiers.length < 3 && <Button label="سعر لكمية أكبر" icon={Plus} variant="soft" size="md" onPress={() => setTiers((xs) => [...xs, newTier()])} />}
+          {errors.wholesale && (
+            <Text variant="meta" color="danger">
+              {errors.wholesale}
+            </Text>
+          )}
+        </Card>
+      )}
+
       <TextField label="كلمات مفتاحية" optional value={tags} onChangeText={setTags} placeholder="صيفي، قطن، أوفرسايز" hint="افصل بينها بفاصلة — بتساعد في البحث" />
 
       <View style={[styles.publish, { borderColor: t.c.line, backgroundColor: t.c.surface, borderRadius: t.radius.md }]}>
@@ -473,6 +586,7 @@ const styles = StyleSheet.create({
   gap: { gap: 10 },
   gapSm: { gap: 8 },
   row: { flexDirection: 'row', gap: 10 },
+  center: { alignItems: 'flex-end' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   imgs: { gap: 10 },

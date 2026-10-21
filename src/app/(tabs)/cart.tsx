@@ -20,6 +20,7 @@ const ISSUE: Record<LineIssue, string> = {
   UNAVAILABLE: 'المنتج ده مبقاش متاح — احذفه عشان تكمل',
   OUT_OF_STOCK: 'نفدت الكمية — احذفه عشان تكمل',
   INSUFFICIENT_STOCK: 'الكمية المتاحة أقل من المطلوب',
+  BELOW_MIN_QTY: 'منتج جملة: زوّد الكمية',
 };
 
 export default function CartTab() {
@@ -187,12 +188,13 @@ function CartLine({ line, busy, onQty, onRemove }: { line: PricedLine; busy: boo
           <Text variant="meta" color="danger">
             {ISSUE[line.issue]}
             {line.issue === 'INSUFFICIENT_STOCK' ? ` (المتاح ${line.available})` : ''}
+            {line.issue === 'BELOW_MIN_QTY' ? ` (أقل طلب ${line.minQty} قطع من كل المقاسات)` : ''}
           </Text>
         )}
         <View style={styles.lineBottom}>
           <Text variant="bodyStrong">{formatMoney(line.lineTotal)}</Text>
           {line.issue !== 'UNAVAILABLE' && line.issue !== 'OUT_OF_STOCK' && (
-            <QuantityStepper compact value={line.quantity} onChange={onQty} max={Math.max(1, Math.min(line.available, 20))} onRemove={onRemove} disabled={busy} />
+            <QuantityStepper compact value={line.quantity} onChange={onQty} max={Math.max(1, Math.min(line.available, (line.minQty ?? 1) > 1 ? 1000 : 20))} onRemove={onRemove} disabled={busy} />
           )}
         </View>
       </View>

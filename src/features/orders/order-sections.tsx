@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { MapPin, MessageCircle, Phone } from 'lucide-react-native';
+import { MapPin, MessageCircle, Phone, Store } from 'lucide-react-native';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import type { OrderDetail } from '@/api/types';
@@ -38,8 +38,45 @@ export function OrderItems({ order }: { order: OrderDetail }) {
   );
 }
 
+/** True when the customer collects the order from the store. */
+export const isPickupOrder = (order: OrderDetail) => order.fulfillment === 'PICKUP';
+
 export function OrderAddress({ order }: { order: OrderDetail }) {
   const a = order.address;
+  if (!a || isPickupOrder(order)) {
+    const p = order.pickup;
+    return (
+      <Card style={styles.gapSm}>
+        <View style={styles.inline}>
+          <Icon as={Store} size={18} color="accent" />
+          <Text variant="ui" weight="bold">
+            استلام من المتجر
+          </Text>
+        </View>
+        {!!p?.address && (
+          <Text variant="meta" color="ink2">
+            {p.address}
+          </Text>
+        )}
+        {!!p?.hours && (
+          <Text variant="meta" color="ink3">
+            المواعيد: {p.hours}
+          </Text>
+        )}
+        {!!p?.mapUrl && <Button label="افتح على الخريطة" icon={MapPin} variant="soft" size="md" onPress={() => Linking.openURL(p.mapUrl).catch(() => undefined)} />}
+        {order.customer && (
+          <Text variant="meta" color="ink3">
+            العميل: {order.customer.name} · {formatPhone(order.customer.phone)}
+          </Text>
+        )}
+        {!!order.notes && (
+          <Text variant="meta" color="ink2">
+            ملاحظات: {order.notes}
+          </Text>
+        )}
+      </Card>
+    );
+  }
   return (
     <Card style={styles.gapSm}>
       <View style={styles.inline}>

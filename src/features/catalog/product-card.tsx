@@ -87,7 +87,15 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
           accessibilityIgnoresInvertColors
         />
         <View style={styles.topRow}>
-          {product.sale ? <Badge label={`-${product.sale.percent}%`} tone="danger" /> : off ? <Badge label="خصم" tone="danger" /> : <View />}
+          {product.sale ? (
+            <Badge label={`-${product.sale.percent}%`} tone="danger" />
+          ) : off ? (
+            <Badge label="خصم" tone="danger" />
+          ) : product.wholesale?.tiers.length ? (
+            <Badge label="جملة" tone="brand" />
+          ) : (
+            <View />
+          )}
           <WishlistHeart productId={product.id} />
         </View>
         {!product.inStock && (

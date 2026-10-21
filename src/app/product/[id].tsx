@@ -12,6 +12,7 @@ import { BrandLogo } from '@/features/catalog/brand-card';
 import { Countdown } from '@/features/catalog/countdown';
 import { Gallery } from '@/features/catalog/gallery';
 import { WishlistHeart } from '@/features/catalog/product-card';
+import { ProductAlerts, WholesaleTable } from '@/features/catalog/product-alerts';
 import { QuestionsSection } from '@/features/catalog/questions';
 import { ReportSheet } from '@/features/catalog/report-sheet';
 import { ReviewItem } from '@/features/catalog/review-item';
@@ -57,13 +58,17 @@ export default function ProductScreen() {
       </View>
     );
 
-  const price = v?.price ?? p.price;
-  const max = Math.max(1, Math.min(v?.available ?? 20, 20));
+  const minQty = p.wholesale?.minQty ?? 1;
+  // Wholesale: the best tier the chosen quantity reaches (all sizes together at checkout).
+  const tier = [...(p.wholesale?.tiers ?? [])].reverse().find((x) => qty >= x.minQty);
+  const regular = v?.price ?? p.price;
+  const price = tier && tier.price < regular ? tier.price : regular;
+  const max = Math.max(minQty, Math.min(v?.available ?? 20, p.wholesale ? 1000 : 20));
   const shipping = brand.data?.shipping;
   const reviewItems = flatPages(reviews.data);
   const totalReviews = reviews.data?.pages[0]?.meta.total ?? 0;
 
-  const total = price * Math.min(qty, max);
+  const total = price * Math.max(minQty, Math.min(qty, max));
   // Picking a colour shows that colour's photos (the gallery restarts at its first one).
   const gallery = imagesForColor(p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : [], p.images.length ? p.imageColors : undefined, color);
   const soldOut = !p.inStock || (!!v && !v.inStock);
@@ -77,7 +82,7 @@ export default function ProductScreen() {
         return;
       }
       cart.add.mutate(
-        { productId: p.id, variantId: v.id, quantity: Math.min(qty, max) },
+        { productId: p.id, variantId: v.id, quantity: Math.max(minQty, Math.min(qty, max)) },
         {
           onSuccess: () => {
             haptic.success();
@@ -120,7 +125,7 @@ export default function ProductScreen() {
                 </Text>
                 <Rating value={p.ratingAvg} count={p.ratingCount} />
               </View>
-              {p.inStock && <QuantityStepper value={Math.min(qty, max)} onChange={setQty} max={max} compact />}
+              {p.inStock && <QuantityStepper value={Math.max(minQty, Math.min(qty, max))} onChange={setQty} min={minQty} max={max} compact />}
             </View>
 
             <View style={styles.priceRow}>
@@ -152,6 +157,9 @@ export default function ProductScreen() {
             colorAvailable={sel.colorAvailable}
             missing={missing}
             />
+
+            {p.wholesale && <WholesaleTable wholesale={p.wholesale} price={regular} />}
+            {!seller && <ProductAlerts productId={p.id} variantId={v?.id ?? null} soldOut={soldOut} />}
 
             {!!p.description && (
               <View style={styles.gapSm}>

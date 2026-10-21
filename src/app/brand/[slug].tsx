@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowRight, AtSign, BadgeCheck, ChevronDown, Clock, Flag, Globe, MessageCircle, Package, Share2, Truck } from 'lucide-react-native';
+import { ArrowRight, AtSign, BadgeCheck, ChevronDown, Clock, Flag, Globe, MessageCircle, Package, Share2, Store, Truck } from 'lucide-react-native';
 import { useState } from 'react';
 import { Linking, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { flatPages, useBrand, useProducts } from '@/api/queries';
 import type { PublicBrand } from '@/api/types';
 import { useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
+import { FollowButton } from '@/features/catalog/follow-button';
 import { FilterBar, productQuery, type ProductFilters } from '@/features/catalog/filters';
 import { ProductGrid } from '@/features/catalog/product-grid';
 import { ReportSheet } from '@/features/catalog/report-sheet';
@@ -110,6 +111,7 @@ function BrandInfo({ brand: b, onReport }: { brand: PublicBrand; onReport: () =>
       </View>
       <StoreTypeBadge type={b.storeType} />
       <Rating value={b.ratingAvg} count={b.ratingCount} />
+      <FollowButton brandId={b.id} />
       {!!b.description && (
         <Text variant="body" color="ink2">
           {b.description}
@@ -121,6 +123,7 @@ function BrandInfo({ brand: b, onReport }: { brand: PublicBrand; onReport: () =>
         <Fact icon={Truck} label="الشحن" value={Number.isFinite(minFee) ? `من ${formatMoney(minFee)}` : 'حسب المحافظة'} />
         <Fact icon={Package} label="التجهيز" value={`${s.processingDays} يوم`} />
         {s.freeShippingThreshold != null && <Fact icon={BadgeCheck} label="شحن مجاني" value={`فوق ${formatMoney(s.freeShippingThreshold)}`} />}
+        {s.pickup?.enabled && <Fact icon={Store} label="استلام" value="من المتجر" />}
       </View>
       {s.minOrderAmount > 0 && (
         <Text variant="meta" color="ink3">

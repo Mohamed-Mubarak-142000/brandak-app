@@ -2,6 +2,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Bell,
+  BellRing,
+  UserCheck,
   Briefcase,
   ChevronLeft,
   CircleHelp,
@@ -133,6 +135,8 @@ export default function Account() {
       {authed && (
         <MenuGroup title="التسوق">
           <MenuRow icon={Heart} label="المفضلة" onPress={() => router.push('/wishlist')} />
+          <MenuRow icon={UserCheck} label="متاجر بتابعها" onPress={() => router.push('/following')} />
+          <MenuRow icon={BellRing} label="تنبيهات الأسعار والمقاسات" onPress={() => router.push('/alerts')} />
           <MenuRow icon={MapPin} label="عناويني" onPress={() => router.push('/addresses')} />
           <MenuRow icon={Bell} label="الإشعارات" value={unread.data ? `${unread.data} جديد` : undefined} onPress={() => router.push('/notifications')} />
           <MenuRow icon={MessageSquareText} label="تقييماتي" onPress={() => router.push('/my-reviews')} />

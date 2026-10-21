@@ -8,7 +8,7 @@ import { RefreshControl, StyleSheet, View } from 'react-native';
 import { api, errorMessage } from '@/api/client';
 import { qk, useOrder, useReturnEligibility } from '@/api/queries';
 import type { OrderDetail } from '@/api/types';
-import { ContactButtons, OrderAddress, OrderItems } from '@/features/orders/order-sections';
+import { ContactButtons, isPickupOrder, OrderAddress, OrderItems } from '@/features/orders/order-sections';
 import { OrderTimeline } from '@/features/orders/timeline';
 import { formatDate } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -118,7 +118,7 @@ export default function OrderScreen() {
             <OrderItems order={o} />
           </View>
           <View style={styles.gap}>
-            <Text variant="section">عنوان التوصيل</Text>
+            <Text variant="section">{isPickupOrder(o) ? 'الاستلام' : 'عنوان التوصيل'}</Text>
             <OrderAddress order={o} />
           </View>
           <View style={styles.gap}>

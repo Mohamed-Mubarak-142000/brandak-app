@@ -267,3 +267,37 @@ export const useAdPrices = () => useQuery({ queryKey: qk.adPrices, queryFn: () =
 export const useSellerAds = () => usePaged<Ad>(qk.sellerAds, '/brand/ads');
 /** Paid "featured" products for the home screen. */
 export const useFeatured = () => useQuery({ queryKey: qk.featured, queryFn: () => api.get<ProductCard[]>('/products/featured'), staleTime: 5 * 60_000 });
+
+// ---------- AI ----------
+/** "Product from a photo": on when the server has a Gemini key; drafts left today. */
+export const useAiStatus = (enabled = true) =>
+  useQuery({ queryKey: ['seller', 'ai'], queryFn: () => api.get<{ enabled: boolean; remaining: number; dailyLimit: number }>('/brand/ai/status'), enabled, staleTime: 60_000 });
+
+// ---------- Alerts & following ----------
+export interface MyAlert {
+  type: 'PRICE_DROP' | 'BACK_IN_STOCK';
+  productId: string;
+  variantId: string | null;
+  variantLabel: string | null;
+  title: string;
+  imageUrl: string | null;
+  watchedPrice: number | null;
+  price: number;
+  inStock: boolean;
+  available: boolean;
+  createdAt: string;
+}
+export interface FollowedBrand {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+}
+export const useMyAlerts = () => useQuery({ queryKey: ['alerts', 'me'], queryFn: () => api.get<MyAlert[]>('/alerts/me'), enabled: useAuthed() });
+export const useFollowedBrands = () =>
+  useQuery({ queryKey: ['following', 'brands'], queryFn: () => api.get<FollowedBrand[]>('/following/brands'), enabled: useAuthed() });
+/** Newest products from the stores the customer follows. */
+export const useFollowingFeed = (enabled = true, limit = 20) =>
+  usePaged<ProductCard>(['following', 'products', limit], '/following/products', {}, useAuthed() && enabled, limit);

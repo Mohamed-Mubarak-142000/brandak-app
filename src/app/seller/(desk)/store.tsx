@@ -68,6 +68,10 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const [shippingPolicy, setShippingPolicy] = useState(s0.shippingPolicy ?? '');
   const [returnPolicy, setReturnPolicy] = useState(s0.returnPolicy ?? '');
   const [returnDays, setReturnDays] = useState(s0.returnDays ?? 14);
+  const [pickupOn, setPickupOn] = useState(!!s0.pickup?.enabled);
+  const [pickupAddress, setPickupAddress] = useState(s0.pickup?.address ?? '');
+  const [pickupHours, setPickupHours] = useState(s0.pickup?.hours ?? '');
+  const [pickupMap, setPickupMap] = useState(s0.pickup?.mapUrl ?? '');
   const [accepts, setAccepts] = useState(s0.acceptsOrders);
   const [zoneOpen, setZoneOpen] = useState(false);
   const [zoneGov, setZoneGov] = useState('');
@@ -99,6 +103,12 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           shippingPolicy: shippingPolicy.trim(),
           returnPolicy: returnPolicy.trim(),
           returnDays,
+          pickup: {
+            enabled: pickupOn,
+            address: pickupAddress.trim(),
+            hours: pickupHours.trim(),
+            mapUrl: /^https?:\/\//.test(pickupMap.trim()) ? pickupMap.trim() : undefined,
+          },
           acceptsOrders: accepts,
         },
       }),
@@ -218,6 +228,24 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           <TextField label="أيام التجهيز" placeholder="مثال: 2" value={days} onChangeText={setDays} keyboardType="number-pad" ltr />
           <TextField label="سياسة الشحن" placeholder="مثال: بنشحن خلال يومين، والتوصيل من 2 لـ 5 أيام حسب المحافظة." optional multiline value={shippingPolicy} onChangeText={setShippingPolicy} maxLength={2000} />
           <TextField label="سياسة الاسترجاع" placeholder="مثال: الاسترجاع خلال 14 يوم والمنتج بحالته الأصلية." optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
+          <View style={styles.pickupRow}>
+            <View style={styles.flex}>
+              <Text variant="ui" weight="semibold">
+                استلام من المتجر
+              </Text>
+              <Text variant="meta" color="ink3">
+                العميل يطلب ويجي ياخد طلبه من غير شحن
+              </Text>
+            </View>
+            <Switch value={pickupOn} onValueChange={setPickupOn} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="استلام من المتجر" />
+          </View>
+          {pickupOn && (
+            <>
+              <TextField label="عنوان الاستلام" placeholder="مثال: 12 شارع التسعين، التجمع الخامس" multiline value={pickupAddress} onChangeText={setPickupAddress} maxLength={300} />
+              <TextField label="المواعيد" optional placeholder="مثال: يومياً من 12 الظهر لـ 10 بالليل" value={pickupHours} onChangeText={setPickupHours} maxLength={120} />
+              <TextField label="لينك الخريطة" optional placeholder="https://maps.app.goo.gl/..." value={pickupMap} onChangeText={setPickupMap} autoCapitalize="none" ltr />
+            </>
+          )}
           <Text variant="ui" color="ink2">
             مدة الإرجاع بعد الاستلام
           </Text>
@@ -229,7 +257,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         </Section>
 
         <Button label="حسابي مع فاترينة" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/balance')} />
-        <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (cats.length ? save.mutate() : toast.error('اختار قسم واحد على الأقل للمتجر'))} />
+        <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (!cats.length ? toast.error('اختار قسم واحد على الأقل للمتجر') : pickupOn && !pickupAddress.trim() ? toast.error('اكتب عنوان الاستلام') : save.mutate())} />
 
         <MenuGroup title="التسويق">
           <MenuRow icon={TicketPercent} label="كوبونات الخصم" onPress={() => router.push('/seller/coupons')} />
@@ -311,6 +339,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 20, paddingBottom: 40 },
   gap: { gap: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickupRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: { flexDirection: 'row', gap: 10 },
   logoRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

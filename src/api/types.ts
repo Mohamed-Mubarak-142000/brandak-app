@@ -80,6 +80,8 @@ export interface PublicBrand {
     returnPolicy: string;
     /** Days after delivery to ask for a return; 0 = no returns. Missing on old API versions. */
     returnDays?: number;
+    /** Collect from the store; missing on old API versions. */
+    pickup?: { enabled: boolean; address?: string; governorate?: string | null; hours?: string; mapUrl?: string | null };
     acceptsOrders: boolean;
   };
   ratingAvg: number;
@@ -108,6 +110,7 @@ export interface ProductCard {
   ratingAvg: number;
   ratingCount: number;
   brand: BrandMini;
+  wholesale?: Wholesale | null;
   /** Paid placement (shown with a "مُموَّل" tag). */
   sponsored?: boolean;
   adId?: string;
@@ -165,7 +168,8 @@ export interface CartSummary {
   itemsCount: number;
   updatedAt: ISODate;
 }
-export type LineIssue = 'UNAVAILABLE' | 'OUT_OF_STOCK' | 'INSUFFICIENT_STOCK';
+/** BELOW_MIN_QTY: a wholesale product with fewer pieces than its minimum (all sizes together). */
+export type LineIssue = 'UNAVAILABLE' | 'OUT_OF_STOCK' | 'INSUFFICIENT_STOCK' | 'BELOW_MIN_QTY';
 export interface PricedLine {
   itemId: string;
   productId: string;
@@ -179,6 +183,8 @@ export interface PricedLine {
   quantity: number;
   lineTotal: number;
   available: number;
+  /** Wholesale minimum for the product; missing on old API versions. */
+  minQty?: number;
   issue: LineIssue | null;
 }
 export interface CartView {
@@ -246,7 +252,10 @@ export interface OrderItem {
 }
 export interface OrderDetail extends Omit<OrderSummary, 'previewImageUrl'> {
   items: OrderItem[];
-  address: Address;
+  /** null for orders collected from the store. */
+  address: Address | null;
+  fulfillment?: 'DELIVERY' | 'PICKUP';
+  pickup?: { address: string; governorate: string | null; hours: string; mapUrl: string } | null;
   subtotal: number;
   shippingFee: number;
   discountTotal: number;
@@ -437,6 +446,7 @@ export interface BrandSettings {
   shippingPolicy: string;
   returnPolicy: string;
   returnDays?: number;
+  pickup?: { enabled: boolean; address: string; governorate: string | null; hours: string; mapUrl: string };
   acceptsOrders: boolean;
 }
 export interface OwnerBrand {
@@ -459,8 +469,21 @@ export interface OwnerBrand {
   ratingCount: number;
   createdAt: ISODate;
 }
+export interface Wholesale {
+  minQty: number;
+  tiers: { minQty: number; price: number }[];
+}
+export interface ProductDraft {
+  title: string;
+  description: string;
+  categoryId: string | null;
+  colors: string[];
+  sizes: string[];
+  tags: string[];
+}
 export interface BrandProduct {
   _id: string;
+  wholesale?: Wholesale | null;
   categoryId: string;
   title: string;
   description: string;

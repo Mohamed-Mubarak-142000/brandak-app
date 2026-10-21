@@ -2,19 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Banknote, CircleAlert, MapPin, Plus, ShieldCheck, TicketPercent } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { Banknote, CircleAlert, MapPin, Plus, ShieldCheck, Store, TicketPercent, Truck } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useAddresses, useCart } from '@/api/queries';
+import { qk, useAddresses, useBrand, useCart } from '@/api/queries';
 import type { OrderDetail, Quote } from '@/api/types';
 import { AddressCard } from '@/features/checkout/address-card';
 import { AddressForm } from '@/features/checkout/address-form';
 import { formatMoney } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Card, Divider, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField } from '@/ui';
+import { AppBar, Banner, Button, Card, Chip, Divider, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField } from '@/ui';
 
 export default function Checkout() {
   const t = useTheme();
@@ -38,10 +39,17 @@ export default function Checkout() {
   const addressId = pickedId ?? fallbackId;
 
   const address = addresses.data?.find((a) => a.id === addressId);
+  // Stores with a showroom can let customers collect the order themselves (no shipping).
+  const brand = useBrand(cart.data?.brand.slug ?? '');
+  const pickup = brand.data?.shipping.pickup;
+  const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  const isPickup = fulfillment === 'PICKUP' && !!pickup?.enabled;
+  const where = isPickup ? { fulfillment: 'PICKUP' as const } : { addressId };
+  const ready = isPickup || !!addressId;
   const quote = useQuery({
-    queryKey: ['quote', brandId, addressId, coupon],
-    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { addressId, couponCode: coupon ?? undefined }),
-    enabled: !!addressId,
+    queryKey: ['quote', brandId, isPickup ? 'pickup' : addressId, coupon],
+    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, couponCode: coupon ?? undefined }),
+    enabled: ready,
     retry: false,
     staleTime: 0,
   });
@@ -50,7 +58,7 @@ export default function Checkout() {
     mutationFn: () =>
       api.post<OrderDetail>(
         `/checkout/${brandId}/orders`,
-        { addressId, paymentMethod: 'COD', notes: notes.trim() || undefined, expectedTotal: quote.data?.grandTotal, couponCode: coupon ?? undefined },
+        { ...where, paymentMethod: 'COD', notes: notes.trim() || undefined, expectedTotal: quote.data?.grandTotal, couponCode: coupon ?? undefined },
         { 'Idempotency-Key': idemKey.current },
       ),
     onSuccess: (order) => {
@@ -74,10 +82,10 @@ export default function Checkout() {
 
   // Checked against the server before it's applied, so the error shows next to the field.
   const checkCoupon = useMutation({
-    mutationFn: (code: string) => api.post<Quote>(`/checkout/${brandId}/quote`, { addressId, couponCode: code }),
+    mutationFn: (code: string) => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, couponCode: code }),
     onSuccess: (res, code) => {
       haptic.success();
-      qc.setQueryData(['quote', brandId, addressId, code], res);
+      qc.setQueryData(['quote', brandId, isPickup ? 'pickup' : addressId, code], res);
       setCoupon(code);
       setCouponInput('');
     },
@@ -104,7 +112,7 @@ export default function Checkout() {
           <Button
             label="تأكيد الطلب"
             style={styles.flex}
-            disabled={!q || !addressId}
+            disabled={!q || !ready}
             loading={place.isPending}
             onPress={() => place.mutate()}
             accessibilityHint="الدفع كاش عند الاستلام"
@@ -112,9 +120,35 @@ export default function Checkout() {
         </View>
       }
     >
-      {/* 1. Address */}
-      <Step n={1} title="التوصيل لـ">
-        {addresses.isLoading ? (
+      {/* 1. Address (or pickup from the store) */}
+      <Step n={1} title={isPickup ? 'الاستلام من' : 'التوصيل لـ'}>
+        {pickup?.enabled && (
+          <View style={styles.choice}>
+            <Chip label="توصيل لعنواني" icon={Truck} selected={!isPickup} onPress={() => setFulfillment('DELIVERY')} />
+            <Chip label="هستلم من المتجر" icon={Store} selected={isPickup} onPress={() => setFulfillment('PICKUP')} />
+          </View>
+        )}
+        {isPickup ? (
+          <Card style={styles.gap}>
+            <View style={styles.line}>
+              <Icon as={Store} color="accent" />
+              <View style={styles.flex}>
+                <Text variant="ui" weight="semibold">
+                  {pickup.address}
+                </Text>
+                {!!pickup.hours && (
+                  <Text variant="meta" color="ink3">
+                    المواعيد: {pickup.hours}
+                  </Text>
+                )}
+              </View>
+            </View>
+            {!!pickup.mapUrl && <Button label="افتح على الخريطة" icon={MapPin} variant="soft" size="md" onPress={() => WebBrowser.openBrowserAsync(pickup.mapUrl!).catch(() => undefined)} />}
+            <Text variant="meta" color="ink3">
+              من غير مصاريف شحن. المتجر هيبلغك لما الطلب يبقى جاهز، وتدفع وانت بتستلم.
+            </Text>
+          </Card>
+        ) : addresses.isLoading ? (
           <Skeleton height={110} radius={12} />
         ) : noAddress ? (
           <Card>
@@ -176,7 +210,7 @@ export default function Checkout() {
                 <Divider />
                 <Row label="الإجمالي" value={formatMoney(q.grandTotal)} strong />
               </>
-            ) : addressId ? (
+            ) : ready ? (
               <Skeleton height={70} />
             ) : (
               <Text variant="meta" color="ink3">
@@ -185,7 +219,7 @@ export default function Checkout() {
             )}
           </Card>
         )}
-        {addressId && (
+        {ready && (
           <View style={styles.couponRow}>
             {coupon ? (
               <View style={[styles.couponApplied, { backgroundColor: t.c.successSoft, borderRadius: t.radius.md }]}>
@@ -336,6 +370,7 @@ function Row({ label, value, strong, highlight }: { label: string; value: string
 }
 
 const styles = StyleSheet.create({
+  choice: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   couponRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
   couponBtn: { marginBottom: 2 },
   couponApplied: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
