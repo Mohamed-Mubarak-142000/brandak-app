@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { signOut } from '@/auth/use-auth';
 import { MenuGroup, MenuRow } from '@/features/account/menu-row';
-import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, Megaphone, MessageCircle, MessageCircleQuestion, Phone, Plus, Settings, ShieldAlert, Star, Trash2, TicketPercent, Undo2 } from 'lucide-react-native';
+import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, Megaphone, MessageCircle, Search, MessageCircleQuestion, Phone, Plus, Settings, ShieldAlert, Star, Trash2, TicketPercent, Undo2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -274,7 +274,9 @@ function StoreForm({ b }: { b: OwnerBrand }) {
 
         <MenuGroup title="التسويق">
           <MenuRow icon={TicketPercent} label="كوبونات الخصم" onPress={() => router.push('/seller/coupons')} />
-          <MenuRow icon={Megaphone} label="إعلانات مميزة" onPress={() => router.push('/seller/ads')} last />
+          <MenuRow icon={Megaphone} label="إعلانات مميزة" onPress={() => router.push('/seller/ads')} />
+          <MenuRow icon={Globe} label="لينك المتجر والبيكسل" onPress={() => router.push('/seller/marketing')} />
+          <MenuRow icon={Search} label="الناس بتدوّر على إيه" onPress={() => router.push('/seller/insights')} last />
         </MenuGroup>
         <MenuGroup title="العملاء">
           <MenuRow icon={MessageCircleQuestion} label="أسئلة العملاء" onPress={() => router.push('/seller/questions')} />

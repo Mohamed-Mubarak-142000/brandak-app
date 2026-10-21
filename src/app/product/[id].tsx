@@ -1,11 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShieldCheck, ShoppingBag, Truck, Undo2, Wallet, Zap } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { errorMessage } from '@/api/client';
+import { api, errorMessage } from '@/api/client';
 import { flatPages, useBrand, useCartMutations, useProduct, useReviews } from '@/api/queries';
 import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
@@ -29,6 +29,10 @@ export default function ProductScreen() {
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useProduct(id);
+  // Counts the view for the store's ad pixels (the product endpoint is cached, so it can't).
+  useEffect(() => {
+    if (id) api.post(`/products/${id}/view`).catch(() => undefined);
+  }, [id]);
   const p = product.data;
   const brand = useBrand(p?.brand.slug ?? '');
   const reviews = useReviews(id);

@@ -135,6 +135,7 @@ export const api = {
   post: async <T>(path: string, body: unknown = {}, headers?: Record<string, string>) =>
     (await request<T>(path, { method: 'POST', body, headers })).data,
   patch: async <T>(path: string, body: unknown) => (await request<T>(path, { method: 'PATCH', body })).data,
+  put: async <T>(path: string, body: unknown) => (await request<T>(path, { method: 'PUT', body })).data,
   del: async <T = null>(path: string) => (await request<T>(path, { method: 'DELETE' })).data,
   /** Login/register/forgot: no bearer, no refresh. */
   anon: async <T>(path: string, body: unknown) => (await request<T>(path, { method: 'POST', body, anonymous: true })).data,
