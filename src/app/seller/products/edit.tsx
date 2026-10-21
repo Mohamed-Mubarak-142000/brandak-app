@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
+import { qk, useCampaigns, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
 import type { BrandProduct } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
 import { swatchFor } from '@/features/catalog/variant-picker';
@@ -90,6 +90,18 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const maxImages = 10;
   const [tags, setTags] = useState(p?.tags.join('، ') ?? '');
   const [publish, setPublish] = useState(p ? p.status === 'ACTIVE' : true);
+  // A running (or scheduled) sale: percent off every size, until a date or the end of a season.
+  const [mountedAt] = useState(() => Date.now());
+  const liveSale = p?.sale && new Date(p.sale.endsAt).getTime() > mountedAt ? p.sale : null;
+  const [saleOn, setSaleOn] = useState(!!liveSale);
+  const [salePct, setSalePct] = useState(liveSale ? String(liveSale.percent) : '');
+  const [saleDays, setSaleDays] = useState(3);
+  const [saleDaysTouched, setSaleDaysTouched] = useState(false);
+  const [now] = useState(() => Date.now());
+  const [seasonId, setSeasonId] = useState<string | null>(liveSale?.campaignId ?? null);
+  const campaigns = useCampaigns();
+  const seasons = (campaigns.data ?? []).filter((c) => new Date(c.endsAt).getTime() > mountedAt);
+  const season = seasons.find((c) => c._id === seasonId);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addImages = async () => {
@@ -117,6 +129,11 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     if (!p || p < 1) e.price = 'السعر لازم يكون 1 جنيه أو أكتر';
     const c = num(compareAt);
     if (c != null && p != null && c <= p) e.compareAt = 'لازم يكون أكبر من السعر';
+    if (saleOn) {
+      const pct = num(salePct);
+      if (!pct || pct < 1 || pct > 90) e.sale = 'نسبة الخصم من 1 لـ 90%';
+      else if (season && pct < season.minPercent) e.sale = `الموسم ده محتاج خصم ${season.minPercent}% على الأقل`;
+    }
     if (variants.some((v) => num(v.stock) == null || num(v.stock)! < 0)) e.variants = 'اكتب المخزون لكل اختيار';
     if (images.some((i) => i.uploading)) e.images = 'استنى الصور تخلص رفع';
     setErrors(e);
@@ -129,6 +146,15 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     categoryId,
     price: num(price),
     compareAtPrice: num(compareAt) ?? null,
+    sale: saleOn
+      ? {
+          percent: Math.round(num(salePct) ?? 0),
+          // A season sale runs for the whole season; otherwise from now for the chosen days.
+          startsAt: season ? new Date(Math.max(now, new Date(season.startsAt).getTime())).toISOString() : undefined,
+          endsAt: season ? season.endsAt : liveSale && !saleDaysTouched ? liveSale.endsAt : new Date(now + saleDays * 86_400_000).toISOString(),
+          campaignId: season?._id,
+        }
+      : null,
     imageFileIds: images.filter((i) => i.fileId).map((i) => i.fileId!),
     // A colour that was renamed or removed from the variants falls back to "every colour".
     imageColors: images.filter((i) => i.fileId).map((i) => (i.color && colorOptions.includes(i.color) ? i.color : '')),
@@ -302,6 +328,70 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
           <TextField label="السعر قبل الخصم" placeholder="مثال: 450" optional value={compareAt} onChangeText={setCompareAt} keyboardType="decimal-pad" ltr error={errors.compareAt} />
         </View>
       </View>
+
+      {/* Limited-time sale */}
+      <View style={[styles.publish, { borderColor: saleOn ? t.c.brand : t.c.line, backgroundColor: t.c.surface, borderRadius: t.radius.md }]}>
+        <View style={styles.flex}>
+          <Text variant="bodyStrong">عرض لفترة محدودة</Text>
+          <Text variant="meta" color="ink3">
+            خصم على كل المقاسات، وعدّاد تنازلي يظهر للعملاء
+          </Text>
+        </View>
+        <Switch value={saleOn} onValueChange={setSaleOn} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="عرض لفترة محدودة" />
+      </View>
+      {saleOn && (
+        <Card style={styles.gap}>
+          <TextField label="نسبة الخصم (%)" placeholder="20" value={salePct} onChangeText={setSalePct} keyboardType="number-pad" ltr error={errors.sale} />
+          {num(price) && num(salePct) ? (
+            <Text variant="meta" color="success">
+              السعر هيبقى {Math.round((num(price)! * (100 - num(salePct)!)) / 100)} ج.م بدل {num(price)} ج.م
+            </Text>
+          ) : null}
+          {seasons.length > 0 && (
+            <>
+              <Text variant="ui" color="ink2">
+                شارك في موسم
+              </Text>
+              <View style={styles.wrap}>
+                <Chip label="من غير موسم" selected={!seasonId} onPress={() => setSeasonId(null)} />
+                {seasons.map((c) => (
+                  <Chip key={c._id} label={`${c.nameAr} (${c.minPercent}%+)`} selected={seasonId === c._id} onPress={() => setSeasonId(c._id)} />
+                ))}
+              </View>
+            </>
+          )}
+          {!season && (
+            <>
+              <Text variant="ui" color="ink2">
+                مدة العرض
+              </Text>
+              <View style={styles.wrap}>
+                {[1, 3, 7, 14].map((d) => (
+                  <Chip
+                    key={d}
+                    label={d === 1 ? 'يوم واحد' : `${d} أيام`}
+                    selected={saleDays === d && (saleDaysTouched || !liveSale)}
+                    onPress={() => {
+                      setSaleDaysTouched(true);
+                      setSaleDays(d);
+                    }}
+                  />
+                ))}
+              </View>
+              {liveSale && !saleDaysTouched && (
+                <Text variant="meta" color="ink3">
+                  العرض الحالي شغال لحد {new Date(liveSale.endsAt).toLocaleDateString('ar-EG')}
+                </Text>
+              )}
+            </>
+          )}
+          {season && (
+            <Text variant="meta" color="ink3">
+              العرض هيشتغل طول مدة {season.nameAr}، ويظهر في صفحة الموسم.
+            </Text>
+          )}
+        </Card>
+      )}
 
       {/* Variants */}
       <View style={styles.gap}>

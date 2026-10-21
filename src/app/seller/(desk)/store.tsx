@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { signOut } from '@/auth/use-auth';
 import { MenuGroup, MenuRow } from '@/features/account/menu-row';
-import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, MessageCircle, Phone, Plus, Settings, Trash2 } from 'lucide-react-native';
+import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, MessageCircle, Phone, Plus, Settings, Trash2, TicketPercent } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -221,6 +221,9 @@ function StoreForm({ b }: { b: OwnerBrand }) {
         <Button label="حسابي مع فاترينة" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/balance')} />
         <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (cats.length ? save.mutate() : toast.error('اختار قسم واحد على الأقل للمتجر'))} />
 
+        <MenuGroup title="التسويق">
+          <MenuRow icon={TicketPercent} label="كوبونات الخصم" onPress={() => router.push('/seller/coupons')} last />
+        </MenuGroup>
         <MenuGroup title="الحساب">
           <MenuRow icon={Bell} label="الإشعارات" onPress={() => router.push('/notifications')} />
           <MenuRow icon={Ban} label="العملاء المحظورين" onPress={() => router.push('/seller/blocks')} />

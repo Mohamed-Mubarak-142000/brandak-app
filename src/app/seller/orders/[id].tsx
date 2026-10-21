@@ -34,16 +34,22 @@ export default function SellerOrder() {
   const q = useSellerOrder(id);
   const o = q.data;
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [shipOpen, setShipOpen] = useState(false);
+  const [carrier, setCarrier] = useState('');
+  const [tracking, setTracking] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
   const [note, setNote] = useState('');
 
   const move = useMutation({
-    mutationFn: (body: { status: OrderStatus; note?: string }) => api.patch<OrderDetail>(`/brand/orders/${id}/status`, body),
+    mutationFn: (body: { status: OrderStatus; note?: string; shipment?: { carrier: string; trackingNumber: string; trackingUrl?: string } }) =>
+      api.patch<OrderDetail>(`/brand/orders/${id}/status`, body),
     onSuccess: (order) => {
       haptic.success();
       qc.setQueryData(qk.sellerOrder(id), order);
       qc.invalidateQueries({ queryKey: ['seller', 'orders'] });
       qc.invalidateQueries({ queryKey: ['seller', 'overview'] });
       setCancelOpen(false);
+      setShipOpen(false);
       toast.success(`الطلب دلوقتي: ${order.statusLabelAr}`);
     },
     onError: (e) => {
@@ -89,7 +95,14 @@ export default function SellerOrder() {
               />
             )}
             {next && NEXT_LABEL[next] && (
-              <Button label={NEXT_LABEL[next]!.label} icon={NEXT_LABEL[next]!.icon} loading={move.isPending && !cancelOpen} onPress={() => move.mutate({ status: next })} style={styles.flex} />
+              <Button
+                label={NEXT_LABEL[next]!.label}
+                icon={NEXT_LABEL[next]!.icon}
+                loading={move.isPending && !cancelOpen}
+                // Shipping asks for the tracking number so the customer can follow the parcel.
+                onPress={() => (next === 'SHIPPED' ? setShipOpen(true) : move.mutate({ status: next }))}
+                style={styles.flex}
+              />
             )}
           </View>
         ) : undefined
@@ -156,6 +169,23 @@ export default function SellerOrder() {
               </Text>
             </Tap>
           </Card>
+          {o.shipment && (
+            <Card style={styles.commission}>
+              <Icon as={Truck} color="accent" />
+              <Text variant="ui" style={styles.flex}>
+                {o.shipment.carrier} · {o.shipment.trackingNumber}
+              </Text>
+            </Card>
+          )}
+          {o.coupon && (
+            <Card style={styles.commission}>
+              <Text variant="ui" color="ink2" style={styles.flex}>
+                كوبون {o.coupon.code}
+                {o.coupon.fundedBy === 'PLATFORM' ? ' (على حساب فاترينة، هيترد لك)' : ''}
+              </Text>
+              <Text variant="bodyStrong">- {formatMoney(o.coupon.discount)}</Text>
+            </Card>
+          )}
           {o.commission && (
             <Card style={styles.commission}>
               <Text variant="ui" color="ink2" style={styles.flex}>
@@ -181,6 +211,42 @@ export default function SellerOrder() {
           </View>
         </>
       )}
+
+      <Sheet
+        open={shipOpen}
+        onClose={() => setShipOpen(false)}
+        title="شحن الطلب"
+        footer={
+          <View style={styles.footer}>
+            <Button label="من غير رقم شحنة" variant="secondary" block={false} onPress={() => move.mutate({ status: 'SHIPPED' })} />
+            <Button
+              label="تم الشحن"
+              icon={Truck}
+              disabled={!carrier.trim() || tracking.trim().length < 3}
+              loading={move.isPending}
+              onPress={() =>
+                move.mutate({
+                  status: 'SHIPPED',
+                  shipment: { carrier: carrier.trim(), trackingNumber: tracking.trim(), trackingUrl: /^https?:\/\//.test(trackingUrl.trim()) ? trackingUrl.trim() : undefined },
+                })
+              }
+              style={styles.flex}
+            />
+          </View>
+        }
+      >
+        <Text variant="ui" color="ink2">
+          رقم الشحنة بيظهر للعميل عشان يتابع طلبه.
+        </Text>
+        <View style={styles.wrap}>
+          {['بوسطة', 'أرامكس', 'J&T', 'مايلرز', 'البريد المصري', 'مندوب المتجر'].map((c) => (
+            <Chip key={c} label={c} selected={carrier === c} onPress={() => setCarrier(c)} />
+          ))}
+        </View>
+        <TextField label="شركة الشحن" value={carrier} onChangeText={setCarrier} maxLength={40} />
+        <TextField label="رقم الشحنة" value={tracking} onChangeText={setTracking} ltr maxLength={60} />
+        <TextField label="لينك التتبع" optional value={trackingUrl} onChangeText={setTrackingUrl} ltr autoCapitalize="none" keyboardType="url" placeholder="https://" />
+      </Sheet>
 
       <Sheet
         open={cancelOpen}

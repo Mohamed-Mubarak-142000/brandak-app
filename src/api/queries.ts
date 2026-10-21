@@ -25,7 +25,7 @@ import type {
   PublicBrand,
   StoreType,
   Review,
-  WishlistItem, CommissionStatus, CommissionTerms, LedgerEntry } from './types';
+  WishlistItem, CommissionStatus, CommissionTerms, LedgerEntry, Campaign, Coupon } from './types';
 
 export const qk = {
   categories: ['categories'] as const,
@@ -93,6 +93,9 @@ export const useBrand = (slug: string) =>
 
 export const useProducts = (q: Query = {}, limit = 20, enabled = true) =>
   usePaged<ProductCard>(qk.products({ ...q, limit }), q.brandSlug ? `/brands/${q.brandSlug}/products` : '/products', { ...q, brandSlug: undefined }, enabled, limit);
+/** Running and upcoming seasons (White Friday, Ramadan...). */
+export const useCampaigns = () => useQuery({ queryKey: ['campaigns'], queryFn: () => api.get<Campaign[]>('/campaigns'), staleTime: 5 * 60_000 });
+export const useSellerCoupons = () => useQuery({ queryKey: ['seller', 'coupons'], queryFn: () => api.get<Coupon[]>('/brand/coupons') });
 export const useProduct = (id: string) => useQuery({ queryKey: qk.product(id), queryFn: () => api.get<ProductDetail>(`/products/${id}`) });
 export const useReviews = (id: string) => usePaged<Review>(qk.reviews(id), `/products/${id}/reviews`, {}, true, 10);
 export const useMyReviews = () => usePaged<MyReview>(qk.myReviews, '/reviews/me', {}, useAuthed());

@@ -71,12 +71,12 @@ export const space = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xx
 export const radius = { sm: 6, md: 10, lg: 16, xl: 24, pill: 999 } as const;
 
 export const fonts = {
-  display: 'ReemKufi_700Bold',
-  displayMedium: 'ReemKufi_500Medium',
-  regular: 'IBMPlexSansArabic_400Regular',
-  medium: 'IBMPlexSansArabic_500Medium',
-  semibold: 'IBMPlexSansArabic_600SemiBold',
-  bold: 'IBMPlexSansArabic_700Bold',
+  display: 'Cairo_800ExtraBold',
+  displayMedium: 'Cairo_600SemiBold',
+  regular: 'Cairo_400Regular',
+  medium: 'Cairo_500Medium',
+  semibold: 'Cairo_600SemiBold',
+  bold: 'Cairo_700Bold',
 } as const;
 
 /** Type scale: 12 meta · 14 ui · 16 body · 18 lead · 20 section · 26 page · 34 display. */
@@ -86,7 +86,7 @@ export const type = {
   body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 27 },
   bodyStrong: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 27 },
   lead: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 30 },
-  section: { fontFamily: fonts.display, fontSize: 20, lineHeight: 34 },
+  section: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 34 },
   page: { fontFamily: fonts.display, fontSize: 26, lineHeight: 42 },
   display: { fontFamily: fonts.display, fontSize: 34, lineHeight: 54 },
 } as const;

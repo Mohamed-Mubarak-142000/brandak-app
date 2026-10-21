@@ -11,6 +11,7 @@ import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { Badge, PriceTag, Rating, Tap, Text } from '@/ui';
+import { Countdown } from './countdown';
 import { QuickAddButton } from './quick-add';
 
 export const CARD_ASPECT = 1.25; // image height / width
@@ -81,7 +82,7 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
           accessibilityIgnoresInvertColors
         />
         <View style={styles.topRow}>
-          {off ? <Badge label="خصم" tone="danger" /> : <View />}
+          {product.sale ? <Badge label={`-${product.sale.percent}%`} tone="danger" /> : off ? <Badge label="خصم" tone="danger" /> : <View />}
           <WishlistHeart productId={product.id} />
         </View>
         {!product.inStock && (
@@ -102,6 +103,7 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
           {product.title}
         </Text>
         <PriceTag price={product.price} compareAt={product.compareAtPrice} size="sm" />
+        {product.sale && <Countdown endsAt={product.sale.endsAt} prefix="باقي" />}
         <Rating value={product.ratingAvg} count={product.ratingCount} size={12} />
       </View>
       <QuickAddButton product={product} />

@@ -9,6 +9,7 @@ import { errorMessage } from '@/api/client';
 import { flatPages, useBrand, useCartMutations, useProduct, useReviews } from '@/api/queries';
 import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
+import { Countdown } from '@/features/catalog/countdown';
 import { Gallery } from '@/features/catalog/gallery';
 import { WishlistHeart } from '@/features/catalog/product-card';
 import { ReportSheet } from '@/features/catalog/report-sheet';
@@ -123,6 +124,7 @@ export default function ProductScreen() {
 
             <View style={styles.priceRow}>
               <PriceTag price={price} compareAt={p.compareAtPrice} size="lg" />
+              {p.sale && <Countdown endsAt={p.sale.endsAt} />}
               {!p.inStock ? (
                 <Badge label="نفدت الكمية" tone="danger" />
               ) : v && v.available <= 3 && v.inStock ? (

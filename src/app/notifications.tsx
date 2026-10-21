@@ -40,7 +40,8 @@ export default function Notifications() {
     const d = n.data ?? {};
     // Brand-side events go to the seller desk; customer order updates to the order page.
     if (n.type === 'ORDER_PLACED' && d.orderId) router.push({ pathname: '/seller/orders/[id]', params: { id: d.orderId } });
-    else if (n.type === 'ORDER_STATUS_CHANGED' && d.orderId) router.push({ pathname: '/order/[id]', params: { id: d.orderId } });
+    else if ((n.type === 'ORDER_STATUS_CHANGED' || n.type === 'ORDER_TRACKING') && d.orderId) router.push({ pathname: '/order/[id]', params: { id: d.orderId } });
+    else if (n.type === 'CART_REMINDER') router.push('/(tabs)/cart');
     else if (n.type.startsWith('SETTLEMENT') || n.type.startsWith('PAYMENT') || n.type.startsWith('SUBSCRIPTION')) router.push('/seller/balance');
     else if (n.type.startsWith('BRAND')) router.push('/seller');
   };

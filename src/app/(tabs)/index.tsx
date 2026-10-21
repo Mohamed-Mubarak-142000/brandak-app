@@ -6,7 +6,8 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, 
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { flatPages, useBrands, useCategories, useProducts, useUnreadCount } from '@/api/queries';
+import { flatPages, useBrands, useCampaigns, useCategories, useProducts, useUnreadCount } from '@/api/queries';
+import { Countdown } from '@/features/catalog/countdown';
 import { useMe } from '@/auth/use-auth';
 import { BrandBubble } from '@/features/catalog/brand-card';
 import { ProductCard } from '@/features/catalog/product-card';
@@ -39,6 +40,10 @@ export default function Home() {
   const fresh = useBrands({ sort: 'newest' }, 12);
   const popular = useProducts({ sort: 'popular' }, 10);
   const latest = useProducts({ sort: 'newest' }, 10);
+  const deals = useProducts({ onSale: true, sort: 'discount' }, 10);
+  const campaigns = useCampaigns();
+  const [now] = useState(() => Date.now());
+  const season = campaigns.data?.find((c) => new Date(c.startsAt).getTime() <= now + 7 * 86_400_000);
   const [refreshing, setRefreshing] = useState(false);
 
   const interests = useMemo(() => prefs.get<string[]>(PREF.interests, []), []);
@@ -53,7 +58,7 @@ export default function Home() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await qc.invalidateQueries({ predicate: (q) => ['brands', 'products', 'categories', 'notifications'].includes(String(q.queryKey[0])) });
+    await qc.invalidateQueries({ predicate: (q) => ['brands', 'products', 'categories', 'notifications', 'campaigns'].includes(String(q.queryKey[0])) });
     setRefreshing(false);
   };
 
@@ -101,6 +106,23 @@ export default function Home() {
         >
           {/* Hero: promo banners + top-rated stores, auto-playing and endless */}
           <HeroSlider featured={featuredList} />
+
+          {/* A running (or next-week) season: White Friday, Ramadan... */}
+          {season && (
+            <Tap onPress={() => router.push({ pathname: '/offers', params: { campaign: season.slug } })} pressScale={0.99} style={styles.mx} accessibilityLabel={season.nameAr}>
+              <View style={[styles.season, { backgroundColor: season.color, borderRadius: t.radius.lg }]}>
+                <View style={styles.flex}>
+                  <Text variant="section" style={styles.onColor}>
+                    {season.nameAr}
+                  </Text>
+                  <Text variant="meta" style={styles.onColor}>
+                    {season.descriptionAr || 'خصومات لفترة محدودة من متاجر فاترينة'}
+                  </Text>
+                </View>
+                <Countdown endsAt={new Date(season.startsAt).getTime() > now ? season.startsAt : season.endsAt} prefix={new Date(season.startsAt).getTime() > now ? 'بيبدأ خلال' : 'باقي'} />
+              </View>
+            </Tap>
+          )}
 
           {/* Trust strip */}
           <Animated.View entering={FadeIn.duration(300)} style={[styles.trust, styles.mx, { backgroundColor: t.c.accentSoft, borderRadius: t.radius.lg }]}>
@@ -153,6 +175,8 @@ export default function Home() {
           {interests.length > 0 && (
             <ProductRail title="مختارات على ذوقك" query={forYou} width={cardW * 0.85} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
           )}
+
+          {flatPages(deals.data).length > 0 && <ProductRail title="عروض النهارده" query={deals} width={cardW * 0.85} onMore={() => router.push('/offers')} />}
 
           <ProductRail title="الأكثر مبيعاً" query={popular} width={cardW * 0.85} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
 
@@ -219,6 +243,8 @@ function ProductRail({ title, query, width, onMore }: { title: string; query: Re
 }
 
 const styles = StyleSheet.create({
+  season: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  onColor: { color: '#fff' },
   flex: { flex: 1 },
   header: { paddingHorizontal: 16, paddingBottom: 10, gap: 12 },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Info, Star } from 'lucide-react-native';
+import { Info, Star, Truck } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -12,7 +13,7 @@ import { OrderTimeline } from '@/features/orders/timeline';
 import { formatDate } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Card, Chip, ErrorState, Screen, Sheet, Skeleton, StatusPill, Text, TextField, toast } from '@/ui';
+import { AppBar, Banner, Button, Card, Chip, ErrorState, Screen, Sheet, Skeleton, StatusPill, Text, TextField, toast, Icon } from '@/ui';
 
 const CANCEL_REASONS = ['غيّرت رأيي', 'طلبت بالغلط', 'لقيته بسعر أقل', 'التوصيل هياخد وقت طويل'];
 
@@ -75,6 +76,23 @@ export default function OrderScreen() {
             <StatusPill status={o.status} />
           </Card>
 
+          {o.shipment && (
+            <Card style={styles.track}>
+              <Icon as={Truck} color="accent" />
+              <View style={styles.flex}>
+                <Text variant="ui" weight="bold">
+                  مع {o.shipment.carrier}
+                </Text>
+                <Text variant="meta" color="ink2" selectable>
+                  رقم الشحنة {o.shipment.trackingNumber}
+                </Text>
+              </View>
+              {o.shipment.trackingUrl && (
+                <Button label="تتبع" size="sm" variant="soft" block={false} onPress={() => WebBrowser.openBrowserAsync(o.shipment!.trackingUrl!).catch(() => undefined)} />
+              )}
+            </Card>
+          )}
+
           <View style={styles.gap}>
             <Text variant="section">حالة الطلب</Text>
             <Card>
@@ -135,6 +153,7 @@ export default function OrderScreen() {
 }
 
 const styles = StyleSheet.create({
+  track: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   footerRow: { flexDirection: 'row', gap: 10 },
   flex: { flex: 1 },
   gap: { gap: 10 },

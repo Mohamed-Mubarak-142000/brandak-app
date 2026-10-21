@@ -60,6 +60,6 @@ export function OtpInput({ value, onChange, error, length = 6 }: { value: string
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', direction: 'ltr', justifyContent: 'center', gap: 8 },
   box: { width: 48, height: 58, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  digit: { fontFamily: 'IBMPlexSansArabic_600SemiBold' },
+  digit: { fontFamily: 'Cairo_600SemiBold' },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
 });

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Banknote, CircleAlert, MapPin, Plus, ShieldCheck } from 'lucide-react-native';
+import { Banknote, CircleAlert, MapPin, Plus, ShieldCheck, TicketPercent } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -27,6 +27,9 @@ export default function Checkout() {
   const [pickOpen, setPickOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [notes, setNotes] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [priceChanged, setPriceChanged] = useState<number | null>(null);
   // One key per checkout attempt: a retried tap (or a flaky network) never creates two orders.
   const idemKey = useRef(Crypto.randomUUID());
@@ -36,8 +39,8 @@ export default function Checkout() {
 
   const address = addresses.data?.find((a) => a.id === addressId);
   const quote = useQuery({
-    queryKey: ['quote', brandId, addressId],
-    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { addressId }),
+    queryKey: ['quote', brandId, addressId, coupon],
+    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { addressId, couponCode: coupon ?? undefined }),
     enabled: !!addressId,
     retry: false,
     staleTime: 0,
@@ -47,7 +50,7 @@ export default function Checkout() {
     mutationFn: () =>
       api.post<OrderDetail>(
         `/checkout/${brandId}/orders`,
-        { addressId, paymentMethod: 'COD', notes: notes.trim() || undefined, expectedTotal: quote.data?.grandTotal },
+        { addressId, paymentMethod: 'COD', notes: notes.trim() || undefined, expectedTotal: quote.data?.grandTotal, couponCode: coupon ?? undefined },
         { 'Idempotency-Key': idemKey.current },
       ),
     onSuccess: (order) => {
@@ -66,6 +69,21 @@ export default function Checkout() {
         const fresh = await quote.refetch();
         setPriceChanged(fresh.data?.grandTotal ?? null);
       }
+    },
+  });
+
+  // Checked against the server before it's applied, so the error shows next to the field.
+  const checkCoupon = useMutation({
+    mutationFn: (code: string) => api.post<Quote>(`/checkout/${brandId}/quote`, { addressId, couponCode: code }),
+    onSuccess: (res, code) => {
+      haptic.success();
+      qc.setQueryData(['quote', brandId, addressId, code], res);
+      setCoupon(code);
+      setCouponInput('');
+    },
+    onError: (e) => {
+      haptic.error();
+      setCouponError(errorMessage(e));
     },
   });
 
@@ -154,7 +172,7 @@ export default function Checkout() {
               <>
                 <Row label="المنتجات" value={formatMoney(q.subtotal)} />
                 <Row label="الشحن" value={q.shippingFee ? formatMoney(q.shippingFee) : 'مجاني'} highlight={!q.shippingFee} />
-                {q.discountTotal > 0 && <Row label="الخصم" value={`- ${formatMoney(q.discountTotal)}`} highlight />}
+                {q.discountTotal > 0 && <Row label={q.coupon ? `خصم الكود ${q.coupon.code}` : 'الخصم'} value={`- ${formatMoney(q.discountTotal)}`} highlight />}
                 <Divider />
                 <Row label="الإجمالي" value={formatMoney(q.grandTotal)} strong />
               </>
@@ -166,6 +184,39 @@ export default function Checkout() {
               </Text>
             )}
           </Card>
+        )}
+        {addressId && (
+          <View style={styles.couponRow}>
+            {coupon ? (
+              <View style={[styles.couponApplied, { backgroundColor: t.c.successSoft, borderRadius: t.radius.md }]}>
+                <Icon as={TicketPercent} color="success" size={20} />
+                <Text variant="ui" weight="semibold" color="success" style={styles.flex}>
+                  الكود {coupon} اتطبق
+                </Text>
+                <Tap onPress={() => setCoupon(null)} hitSlop={8} pressScale={1} accessibilityLabel="شيل الكود">
+                  <Text variant="ui" color="ink2">
+                    شيل
+                  </Text>
+                </Tap>
+              </View>
+            ) : (
+              <>
+                <View style={styles.flex}>
+                  <TextField label="كود خصم" optional value={couponInput} onChangeText={(v) => { setCouponInput(v); setCouponError(null); }} autoCapitalize="characters" ltr placeholder="SAVE10" error={couponError ?? undefined} />
+                </View>
+                <Button
+                  label="تطبيق"
+                  size="md"
+                  variant="secondary"
+                  block={false}
+                  loading={checkCoupon.isPending}
+                  disabled={couponInput.trim().length < 3}
+                  onPress={() => checkCoupon.mutate(couponInput.trim())}
+                  style={styles.couponBtn}
+                />
+              </>
+            )}
+          </View>
         )}
       </Step>
 
@@ -285,6 +336,9 @@ function Row({ label, value, strong, highlight }: { label: string; value: string
 }
 
 const styles = StyleSheet.create({
+  couponRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
+  couponBtn: { marginBottom: 2 },
+  couponApplied: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   flex: { flex: 1 },
   gap: { gap: 10 },
   mb: { marginBottom: 10 },

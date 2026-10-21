@@ -89,11 +89,18 @@ export interface BrandMini {
   slug?: string;
   logoUrl?: string | null;
 }
+/** A running sale on a product card; price is already the sale price. */
+export interface ActiveSale {
+  percent: number;
+  endsAt: ISODate;
+  campaignId: string | null;
+}
 export interface ProductCard {
   id: string;
   title: string;
   price: number;
   compareAtPrice: number | null;
+  sale?: ActiveSale | null;
   imageUrl: string | null;
   inStock: boolean;
   ratingAvg: number;
@@ -177,6 +184,7 @@ export interface Quote {
   shippingFee: number;
   discountTotal: number;
   grandTotal: number;
+  coupon?: { code: string; discount: number } | null;
   currency: 'EGP';
   paymentMethods: ['COD'];
 }
@@ -237,6 +245,8 @@ export interface OrderDetail extends Omit<OrderSummary, 'previewImageUrl'> {
   deliveredAt: ISODate | null;
   history: { status: OrderStatus; at: ISODate; actor: 'CUSTOMER' | 'BRAND' | 'ADMIN' | 'SYSTEM'; note: string | null }[];
   allowedNextStatuses: OrderStatus[];
+  coupon?: { code: string; discount: number; fundedBy: 'BRAND' | 'PLATFORM' } | null;
+  shipment?: { carrier: string; trackingNumber: string; trackingUrl: string | null; shippedAt: ISODate } | null;
   /** Store view only: the platform's 5% once delivered. */
   commission?: { rate: number; base: number; amount: number } | null;
   /** Store view only: the customer's delivery record across all stores. */
@@ -247,6 +257,32 @@ export interface CustomerTrust {
   delivered: number;
   refused: number;
   level: 'NEW' | 'GOOD' | 'RISKY';
+}
+
+// ---------- Promotions ----------
+export interface Campaign {
+  _id: string;
+  nameAr: string;
+  slug: string;
+  descriptionAr: string;
+  startsAt: ISODate;
+  endsAt: ISODate;
+  minPercent: number;
+  color: string;
+}
+export interface Coupon {
+  _id: string;
+  code: string;
+  type: 'PERCENT' | 'FIXED';
+  value: number;
+  maxDiscount: number | null;
+  minSubtotal: number;
+  maxUses: number | null;
+  usedCount: number;
+  perUserLimit: number;
+  startsAt: ISODate;
+  endsAt: ISODate;
+  isActive: boolean;
 }
 
 // ---------- Commission ----------
@@ -420,6 +456,7 @@ export interface BrandProduct {
   images: { fileId: string; url: string; color?: string | null }[];
   price: number;
   compareAtPrice: number | null;
+  sale?: { percent: number; startsAt: ISODate; endsAt: ISODate; campaignId: string | null } | null;
   variants: { _id: string; sku?: string; size?: string; color?: string; price: number | null; stock: number }[];
   status: ProductStatus;
   tags: string[];
