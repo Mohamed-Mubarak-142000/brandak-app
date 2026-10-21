@@ -3,16 +3,17 @@ import * as Crypto from 'expo-crypto';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Banknote, CircleAlert, MapPin, Plus, ShieldCheck, Store, TicketPercent, Truck } from 'lucide-react-native';
+import { Banknote, CircleAlert, Coins, Gift, HandCoins, MapPin, Plus, ShieldCheck, Store, TicketPercent, Truck, User } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useAddresses, useBrand, useCart } from '@/api/queries';
+import { qk, useAddresses, useBrand, useCart, useResellerMe } from '@/api/queries';
 import type { OrderDetail, Quote } from '@/api/types';
 import { AddressCard } from '@/features/checkout/address-card';
 import { AddressForm } from '@/features/checkout/address-form';
 import { formatMoney } from '@/lib/format';
+import { latinDigits } from '@/lib/validation';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { AppBar, Banner, Button, Card, Chip, Divider, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField } from '@/ui';
@@ -44,11 +45,28 @@ export default function Checkout() {
   const pickup = brand.data?.shipping.pickup;
   const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const isPickup = fulfillment === 'PICKUP' && !!pickup?.enabled;
-  const where = isPickup ? { fulfillment: 'PICKUP' as const } : { addressId };
-  const ready = isPickup || !!addressId;
+  // Points (Fatrina pays the discount), gifts, and resellers selling to their own customers.
+  const [usePoints, setUsePoints] = useState(false);
+  const [gift, setGift] = useState(false);
+  const [giftMsg, setGiftMsg] = useState('');
+  const reseller = useResellerMe();
+  const canResell = !!reseller.data?.joined && reseller.data.status === 'ACTIVE' && !!brand.data?.shipping.allowResellers;
+  const [resaleMode, setResaleMode] = useState(false);
+  const resaleOn = canResell && resaleMode;
+  const [resaleName, setResaleName] = useState('');
+  const [resalePhone, setResalePhone] = useState('');
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [pricesOpen, setPricesOpen] = useState(false);
+  const [draftPrices, setDraftPrices] = useState<Record<string, string>>({});
+  const resale = resaleOn
+    ? { customerName: resaleName.trim() || 'العميل', customerPhone: latinDigits(resalePhone).replace(/\s/g, '') || '01000000000', prices: Object.entries(prices).map(([variantId, price]) => ({ variantId, price })) }
+    : undefined;
+  const where = isPickup && !resaleOn ? { fulfillment: 'PICKUP' as const } : { addressId };
+  const extra = resaleOn ? { resale } : { usePoints: usePoints || undefined, couponCode: coupon ?? undefined };
+  const ready = (isPickup && !resaleOn) || !!addressId;
   const quote = useQuery({
-    queryKey: ['quote', brandId, isPickup ? 'pickup' : addressId, coupon],
-    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, couponCode: coupon ?? undefined }),
+    queryKey: ['quote', brandId, isPickup && !resaleOn ? 'pickup' : addressId, coupon, usePoints, resaleOn, prices],
+    queryFn: () => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, ...extra }),
     enabled: ready,
     retry: false,
     staleTime: 0,
@@ -58,7 +76,14 @@ export default function Checkout() {
     mutationFn: () =>
       api.post<OrderDetail>(
         `/checkout/${brandId}/orders`,
-        { ...where, paymentMethod: 'COD', notes: notes.trim() || undefined, expectedTotal: quote.data?.grandTotal, couponCode: coupon ?? undefined },
+        {
+          ...where,
+          ...extra,
+          paymentMethod: 'COD',
+          notes: notes.trim() || undefined,
+          expectedTotal: quote.data?.grandTotal,
+          gift: gift && !resaleOn ? { message: giftMsg.trim() || undefined, hidePrices: true } : undefined,
+        },
         { 'Idempotency-Key': idemKey.current },
       ),
     onSuccess: (order) => {
@@ -82,10 +107,10 @@ export default function Checkout() {
 
   // Checked against the server before it's applied, so the error shows next to the field.
   const checkCoupon = useMutation({
-    mutationFn: (code: string) => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, couponCode: code }),
+    mutationFn: (code: string) => api.post<Quote>(`/checkout/${brandId}/quote`, { ...where, usePoints: usePoints || undefined, couponCode: code }),
     onSuccess: (res, code) => {
       haptic.success();
-      qc.setQueryData(['quote', brandId, isPickup ? 'pickup' : addressId, code], res);
+      qc.setQueryData(['quote', brandId, isPickup && !resaleOn ? 'pickup' : addressId, code, usePoints, resaleOn, prices], res);
       setCoupon(code);
       setCouponInput('');
     },
@@ -112,7 +137,7 @@ export default function Checkout() {
           <Button
             label="تأكيد الطلب"
             style={styles.flex}
-            disabled={!q || !ready}
+            disabled={!q || !ready || (resaleOn && (resaleName.trim().length < 2 || latinDigits(resalePhone).replace(/\D/g, '').length < 10))}
             loading={place.isPending}
             onPress={() => place.mutate()}
             accessibilityHint="الدفع كاش عند الاستلام"
@@ -122,13 +147,31 @@ export default function Checkout() {
     >
       {/* 1. Address (or pickup from the store) */}
       <Step n={1} title={isPickup ? 'الاستلام من' : 'التوصيل لـ'}>
-        {pickup?.enabled && (
+        {canResell && (
+          <View style={styles.choice}>
+            <Chip label="طلب ليا" icon={User} selected={!resaleOn} onPress={() => setResaleMode(false)} />
+            <Chip label="بيع لعميل (مسوّق)" icon={HandCoins} selected={resaleOn} onPress={() => setResaleMode(true)} />
+          </View>
+        )}
+        {resaleOn && (
+          <Card style={styles.gap}>
+            <Text variant="ui" color="ink2">
+              بيانات عميلك: المتجر هيشحنله ويحصّل منه بسعرك، وربحك بيوصلك من فاترينة بعد التوصيل.
+            </Text>
+            <TextField label="اسم العميل" value={resaleName} onChangeText={setResaleName} maxLength={80} />
+            <TextField label="موبايل العميل" value={resalePhone} onChangeText={setResalePhone} keyboardType="phone-pad" ltr placeholder="01xxxxxxxxx" />
+            <Text variant="meta" color="ink3">
+              اختار تحت عنوان العميل (أو ضيف عنوان جديد باسمه).
+            </Text>
+          </Card>
+        )}
+        {pickup?.enabled && !resaleOn && (
           <View style={styles.choice}>
             <Chip label="توصيل لعنواني" icon={Truck} selected={!isPickup} onPress={() => setFulfillment('DELIVERY')} />
             <Chip label="هستلم من المتجر" icon={Store} selected={isPickup} onPress={() => setFulfillment('PICKUP')} />
           </View>
         )}
-        {isPickup ? (
+        {isPickup && !resaleOn ? (
           <Card style={styles.gap}>
             <View style={styles.line}>
               <Icon as={Store} color="accent" />
@@ -206,7 +249,10 @@ export default function Checkout() {
               <>
                 <Row label="المنتجات" value={formatMoney(q.subtotal)} />
                 <Row label="الشحن" value={q.shippingFee ? formatMoney(q.shippingFee) : 'مجاني'} highlight={!q.shippingFee} />
-                {q.discountTotal > 0 && <Row label={q.coupon ? `خصم الكود ${q.coupon.code}` : 'الخصم'} value={`- ${formatMoney(q.discountTotal)}`} highlight />}
+                {!!q.coupon?.discount && <Row label={`خصم الكود ${q.coupon.code}`} value={`- ${formatMoney(q.coupon.discount)}`} highlight />}
+                {!!q.points?.discount && <Row label={`خصم ${q.points.used} نقطة`} value={`- ${formatMoney(q.points.discount)}`} highlight />}
+                {!q.coupon && !q.points?.discount && q.discountTotal > 0 && <Row label="الخصم" value={`- ${formatMoney(q.discountTotal)}`} highlight />}
+                {q.resale && <Row label="ربحك من الطلب" value={formatMoney(q.resale.margin)} highlight />}
                 <Divider />
                 <Row label="الإجمالي" value={formatMoney(q.grandTotal)} strong />
               </>
@@ -219,7 +265,39 @@ export default function Checkout() {
             )}
           </Card>
         )}
-        {ready && (
+        {resaleOn && (
+          <Button
+            label="أسعار البيع لعميلك"
+            icon={HandCoins}
+            variant="soft"
+            onPress={() => {
+              setDraftPrices(Object.fromEntries((cart.data?.items ?? []).map((l) => [l.variantId, String(prices[l.variantId] ?? l.unitPrice)])));
+              setPricesOpen(true);
+            }}
+          />
+        )}
+        {ready && !resaleOn && !!q?.points?.balance && (
+          <View style={[styles.pointsRow, { borderColor: t.c.line, borderRadius: t.radius.md, backgroundColor: t.c.surface }]}>
+            <Icon as={Coins} color="accent" />
+            <View style={styles.flex}>
+              <Text variant="ui" weight="semibold">
+                معاك {q.points.balance} نقطة
+              </Text>
+              <Text variant="meta" color="ink3">
+                {q.points.usable ? `استخدم ${q.points.usable} نقطة واخصم ${formatMoney(q.points.usableDiscount)}` : 'تقدر تستخدم النقاط من 100 نقطة'}
+              </Text>
+            </View>
+            <Switch
+              value={usePoints && !!q.points.usable}
+              disabled={!q.points.usable}
+              onValueChange={setUsePoints}
+              trackColor={{ true: t.c.accent, false: t.c.lineStrong }}
+              thumbColor="#fff"
+              accessibilityLabel="استخدام النقاط"
+            />
+          </View>
+        )}
+        {ready && !resaleOn && (
           <View style={styles.couponRow}>
             {coupon ? (
               <View style={[styles.couponApplied, { backgroundColor: t.c.successSoft, borderRadius: t.radius.md }]}>
@@ -275,6 +353,21 @@ export default function Checkout() {
       {/* 4. Notes */}
       <Step n={4} title="ملاحظات للمتجر">
         <TextField label="ملاحظات" optional multiline value={notes} onChangeText={setNotes} maxLength={300} placeholder="مثلاً: اتصل قبل ما توصل" />
+        {!resaleOn && (
+          <View style={[styles.pointsRow, { borderColor: gift ? t.c.brand : t.c.line, borderRadius: t.radius.md, backgroundColor: t.c.surface }]}>
+            <Icon as={Gift} color="accent" />
+            <View style={styles.flex}>
+              <Text variant="ui" weight="semibold">
+                ده هدية
+              </Text>
+              <Text variant="meta" color="ink3">
+                كارت بكلامك، ومن غير فاتورة بالسعر جوه الطرد. اختار عنوان اللي هتهاديه.
+              </Text>
+            </View>
+            <Switch value={gift} onValueChange={setGift} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="ده هدية" />
+          </View>
+        )}
+        {gift && !resaleOn && <TextField label="كلام الكارت" optional multiline value={giftMsg} onChangeText={setGiftMsg} maxLength={300} placeholder="كل سنة وانت طيب ❤️" />}
       </Step>
 
       {place.error && !(place.error instanceof ApiError && place.error.code === 'PRICE_CHANGED') && <Banner icon={CircleAlert} tone="danger" title={errorMessage(place.error)} />}
@@ -316,6 +409,44 @@ export default function Checkout() {
             setAddOpen(false);
           }}
         />
+      </Sheet>
+      <Sheet
+        open={pricesOpen}
+        onClose={() => setPricesOpen(false)}
+        title="أسعار البيع"
+        footer={
+          <Button
+            label="تطبيق الأسعار"
+            onPress={() => {
+              const next: Record<string, number> = {};
+              for (const [v, s] of Object.entries(draftPrices)) {
+                const n = Number(latinDigits(s));
+                if (Number.isFinite(n) && n > 0) next[v] = n;
+              }
+              setPrices(next);
+              setPricesOpen(false);
+            }}
+          />
+        }
+      >
+        <Text variant="meta" color="ink3">
+          سعر القطعة لعميلك: من سعر المتجر لحد الضعف. الفرق ربحك.
+        </Text>
+        {(cart.data?.items ?? []).map((l) => (
+          <View key={l.variantId} style={styles.line}>
+            <View style={styles.flex}>
+              <Text variant="ui" numberOfLines={1}>
+                {l.title}
+              </Text>
+              <Text variant="meta" color="ink3">
+                سعر المتجر {formatMoney(l.unitPrice)} · × {l.quantity}
+              </Text>
+            </View>
+            <View style={styles.priceField}>
+              <TextField label="سعرك" value={draftPrices[l.variantId] ?? ''} onChangeText={(s) => setDraftPrices((d) => ({ ...d, [l.variantId]: s }))} keyboardType="decimal-pad" ltr />
+            </View>
+          </View>
+        ))}
       </Sheet>
       <Sheet open={priceChanged !== null} onClose={() => setPriceChanged(null)} title="الأسعار اتغيرت">
         <Text variant="body" color="ink2">
@@ -371,6 +502,8 @@ function Row({ label, value, strong, highlight }: { label: string; value: string
 
 const styles = StyleSheet.create({
   choice: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  pointsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1, marginTop: 10 },
+  priceField: { width: 110 },
   couponRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
   couponBtn: { marginBottom: 2 },
   couponApplied: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },

@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import {
   Bell,
   BellRing,
+  Coins,
+  HandCoins,
   UserCheck,
   Briefcase,
   ChevronLeft,
@@ -135,6 +137,8 @@ export default function Account() {
       {authed && (
         <MenuGroup title="التسوق">
           <MenuRow icon={Heart} label="المفضلة" onPress={() => router.push('/wishlist')} />
+          <MenuRow icon={Coins} label="نقاطي" onPress={() => router.push('/points')} />
+          <MenuRow icon={HandCoins} label="بيع واكسب (مسوّق)" onPress={() => router.push('/reseller')} />
           <MenuRow icon={UserCheck} label="متاجر بتابعها" onPress={() => router.push('/following')} />
           <MenuRow icon={BellRing} label="تنبيهات الأسعار والمقاسات" onPress={() => router.push('/alerts')} />
           <MenuRow icon={MapPin} label="عناويني" onPress={() => router.push('/addresses')} />

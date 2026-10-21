@@ -301,3 +301,53 @@ export const useFollowedBrands = () =>
 /** Newest products from the stores the customer follows. */
 export const useFollowingFeed = (enabled = true, limit = 20) =>
   usePaged<ProductCard>(['following', 'products', limit], '/following/products', {}, useAuthed() && enabled, limit);
+
+// ---------- Points & resellers ----------
+export interface PointsSummary {
+  balance: number;
+  value: number;
+  pointValue: number;
+  earnPerEgp: number;
+  minRedeem: number;
+  maxRedeemShare: number;
+}
+export interface PointsEntry {
+  _id: string;
+  type: 'EARN' | 'REDEEM' | 'REFUND' | 'REVERSAL' | 'ADJUSTMENT';
+  points: number;
+  orderNumber?: string;
+  createdAt: string;
+}
+export const usePoints = () => useQuery({ queryKey: ['points'], queryFn: () => api.get<PointsSummary>('/points/me'), enabled: useAuthed() });
+export const usePointsHistory = () => usePaged<PointsEntry>(['points', 'history'], '/points/me/history', {}, useAuthed());
+
+export type ResellerMe =
+  | { joined: false }
+  | {
+      joined: true;
+      status: 'ACTIVE' | 'SUSPENDED';
+      payoutAddress: string;
+      payoutName: string;
+      wallet: { pending: number; available: number; requested: number; paid: number; orders: number };
+      minPayout: number;
+      maxMarkup: number;
+    };
+export interface ResellerEarning {
+  _id: string;
+  orderNumber: string;
+  amount: number;
+  status: 'PENDING' | 'AVAILABLE' | 'REQUESTED' | 'PAID' | 'CANCELLED';
+  createdAt: string;
+}
+export interface ResellerPayout {
+  _id: string;
+  amount: number;
+  payoutAddress: string;
+  status: 'REQUESTED' | 'PAID' | 'REJECTED';
+  reference: string | null;
+  rejectReason: string | null;
+  createdAt: string;
+}
+export const useResellerMe = () => useQuery({ queryKey: ['reseller', 'me'], queryFn: () => api.get<ResellerMe>('/reseller/me'), enabled: useAuthed() });
+export const useResellerEarnings = () => usePaged<ResellerEarning>(['reseller', 'earnings'], '/reseller/earnings', {}, useAuthed());
+export const useResellerPayouts = () => usePaged<ResellerPayout>(['reseller', 'payouts'], '/reseller/payouts', {}, useAuthed());

@@ -19,6 +19,7 @@ const TYPE_AR: Record<LedgerEntry['type'], string> = {
   REVERSAL: 'عمولة مرتجعة',
   PAYMENT: 'سداد',
   ADJUSTMENT: 'تسوية',
+  RESELLER_MARGIN: 'ربح مسوّق',
 };
 
 /**

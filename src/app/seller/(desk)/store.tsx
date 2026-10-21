@@ -69,6 +69,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const [returnPolicy, setReturnPolicy] = useState(s0.returnPolicy ?? '');
   const [returnDays, setReturnDays] = useState(s0.returnDays ?? 14);
   const [pickupOn, setPickupOn] = useState(!!s0.pickup?.enabled);
+  const [allowResellers, setAllowResellers] = useState(!!s0.allowResellers);
   const [pickupAddress, setPickupAddress] = useState(s0.pickup?.address ?? '');
   const [pickupHours, setPickupHours] = useState(s0.pickup?.hours ?? '');
   const [pickupMap, setPickupMap] = useState(s0.pickup?.mapUrl ?? '');
@@ -109,6 +110,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
             hours: pickupHours.trim(),
             mapUrl: /^https?:\/\//.test(pickupMap.trim()) ? pickupMap.trim() : undefined,
           },
+          allowResellers,
           acceptsOrders: accepts,
         },
       }),
@@ -246,6 +248,17 @@ function StoreForm({ b }: { b: OwnerBrand }) {
               <TextField label="لينك الخريطة" optional placeholder="https://maps.app.goo.gl/..." value={pickupMap} onChangeText={setPickupMap} autoCapitalize="none" ltr />
             </>
           )}
+          <View style={styles.pickupRow}>
+            <View style={styles.flex}>
+              <Text variant="ui" weight="semibold">
+                البيع عن طريق المسوّقين
+              </Text>
+              <Text variant="meta" color="ink3">
+                مسوّقين يبيعوا منتجاتك بسعرهم لمتابعينهم. انت بتشحن وتحصّل، وبتاخد سعرك كامل.
+              </Text>
+            </View>
+            <Switch value={allowResellers} onValueChange={setAllowResellers} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="البيع عن طريق المسوّقين" />
+          </View>
           <Text variant="ui" color="ink2">
             مدة الإرجاع بعد الاستلام
           </Text>

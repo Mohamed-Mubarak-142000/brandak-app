@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { Ban, CircleCheck, PackageCheck, PackageX, ShieldAlert, ShieldCheck, Truck, User } from 'lucide-react-native';
+import { Ban, CircleCheck, Gift, HandCoins, PackageCheck, PackageX, ShieldAlert, ShieldCheck, Truck, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -12,7 +12,7 @@ import { OrderTimeline } from '@/features/orders/timeline';
 import { formatDateTime, formatMoney, formatPhone } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Tap, Text, TextField, toast } from '@/ui';
+import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Tap, Text, TextField, toast, Banner } from '@/ui';
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { label: string; icon: typeof Truck }>> = {
   CONFIRMED: { label: 'تأكيد الطلب', icon: CircleCheck },
@@ -178,6 +178,28 @@ export default function SellerOrder() {
               </Text>
             </Card>
           )}
+          {o.gift && (
+            <Banner
+              icon={Gift}
+              title="الطلب ده هدية"
+              body={`${o.gift.hidePrices ? 'متحطش فاتورة بالسعر جوه الطرد. ' : ''}${o.gift.message ? `اطبع على الكارت: «${o.gift.message}»` : ''}`}
+            />
+          )}
+          {o.resale && (
+            <Banner
+              icon={HandCoins}
+              title="طلب مسوّق"
+              body={`العميل هيدفع ${formatMoney(o.grandTotal)} (بسعر المسوّق). سعرك ${formatMoney(o.subtotal - o.resale.margin)}، وربح المسوّق ${formatMoney(o.resale.margin)} بيتضاف على حسابك مع فاترينة وبيتحوّله.`}
+            />
+          )}
+          {o.points?.discount ? (
+            <Card style={styles.commission}>
+              <Text variant="ui" color="ink2" style={styles.flex}>
+                خصم نقاط فاترينة (هيترد لك)
+              </Text>
+              <Text variant="bodyStrong">- {formatMoney(o.points.discount)}</Text>
+            </Card>
+          ) : null}
           {o.coupon && (
             <Card style={styles.commission}>
               <Text variant="ui" color="ink2" style={styles.flex}>

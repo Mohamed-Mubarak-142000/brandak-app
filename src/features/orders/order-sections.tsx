@@ -31,7 +31,9 @@ export function OrderItems({ order }: { order: OrderDetail }) {
       <Divider />
       <Row label="المنتجات" value={formatMoney(order.subtotal)} />
       <Row label="الشحن" value={order.shippingFee ? formatMoney(order.shippingFee) : 'مجاني'} />
-      {order.discountTotal > 0 && <Row label="الخصم" value={`- ${formatMoney(order.discountTotal)}`} />}
+      {!!order.coupon?.discount && <Row label={`كود ${order.coupon.code}`} value={`- ${formatMoney(order.coupon.discount)}`} />}
+      {!!order.points?.discount && <Row label={`خصم ${order.points.used} نقطة`} value={`- ${formatMoney(order.points.discount)}`} />}
+      {!order.coupon && !order.points?.discount && order.discountTotal > 0 && <Row label="الخصم" value={`- ${formatMoney(order.discountTotal)}`} />}
       <Divider />
       <Row label={order.paymentStatus === 'PAID' ? 'اتدفع' : 'هيتدفع عند الاستلام'} value={formatMoney(order.grandTotal)} strong />
     </Card>

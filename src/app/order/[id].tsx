@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Info, LifeBuoy, Star, Truck, Undo2 } from 'lucide-react-native';
+import { Coins, Gift, Info, LifeBuoy, Star, Truck, Undo2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -112,6 +112,8 @@ export default function OrderScreen() {
             />
           )}
           {o.status === 'PENDING' && <Banner icon={Info} title="تقدر تلغي الطلب مجاناً" body="الإلغاء متاح لحد ما المتجر يأكد الطلب." />}
+          {o.gift && <Banner icon={Gift} title="طلب هدية" body={o.gift.message ? `الكارت: «${o.gift.message}»` : 'من غير فاتورة بالسعر جوه الطرد.'} />}
+          {!!o.points?.earned && <Banner icon={Coins} tone="success" title={`كسبت ${o.points.earned} نقطة من الطلب ده`} body="تقدر تستخدمها كخصم في أي متجر." />}
 
           <View style={styles.gap}>
             <Text variant="section">المنتجات</Text>

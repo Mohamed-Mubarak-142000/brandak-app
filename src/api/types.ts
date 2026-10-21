@@ -82,6 +82,7 @@ export interface PublicBrand {
     returnDays?: number;
     /** Collect from the store; missing on old API versions. */
     pickup?: { enabled: boolean; address?: string; governorate?: string | null; hours?: string; mapUrl?: string | null };
+    allowResellers?: boolean;
     acceptsOrders: boolean;
   };
   ratingAvg: number;
@@ -203,6 +204,9 @@ export interface Quote {
   coupon?: { code: string; discount: number } | null;
   currency: 'EGP';
   paymentMethods: ['COD'];
+  points?: { balance: number; usable: number; usableDiscount: number; used: number; discount: number } | null;
+  resale?: { margin: number; storeSubtotal: number } | null;
+  fulfillment?: 'DELIVERY' | 'PICKUP';
 }
 
 // ---------- Orders ----------
@@ -255,6 +259,9 @@ export interface OrderDetail extends Omit<OrderSummary, 'previewImageUrl'> {
   /** null for orders collected from the store. */
   address: Address | null;
   fulfillment?: 'DELIVERY' | 'PICKUP';
+  points?: { used: number; discount: number; earned: number } | null;
+  gift?: { message: string; hidePrices: boolean } | null;
+  resale?: { margin: number } | null;
   pickup?: { address: string; governorate: string | null; hours: string; mapUrl: string } | null;
   subtotal: number;
   shippingFee: number;
@@ -319,7 +326,7 @@ export interface CommissionStatus extends CommissionTerms {
 }
 export interface LedgerEntry {
   _id: string;
-  type: 'COMMISSION' | 'REVERSAL' | 'PAYMENT' | 'ADJUSTMENT';
+  type: 'COMMISSION' | 'REVERSAL' | 'PAYMENT' | 'ADJUSTMENT' | 'RESELLER_MARGIN';
   amount: number;
   orderId?: string;
   orderNumber?: string;
@@ -447,6 +454,7 @@ export interface BrandSettings {
   returnPolicy: string;
   returnDays?: number;
   pickup?: { enabled: boolean; address: string; governorate: string | null; hours: string; mapUrl: string };
+  allowResellers?: boolean;
   acceptsOrders: boolean;
 }
 export interface OwnerBrand {
