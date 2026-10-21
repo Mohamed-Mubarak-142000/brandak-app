@@ -1,18 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as Clipboard from 'expo-clipboard';
-import { CircleAlert, Clock, Copy, Percent, Receipt, Wallet } from 'lucide-react-native';
+import { CircleAlert, Clock, Percent, Receipt, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
-import { qk, useCommission, useCommissionLedger, useInstructions } from '@/api/queries';
+import { qk, useCommission, useCommissionLedger } from '@/api/queries';
 import type { LedgerEntry, Settlement } from '@/api/types';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
+import { InstapayCard } from '@/features/seller/instapay-card';
 import { formatDate, formatMoney } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Card, Divider, ErrorState, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField, toast } from '@/ui';
+import { AppBar, Banner, Button, Card, Divider, ErrorState, Icon, Screen, Sheet, Skeleton, Text, TextField, toast } from '@/ui';
 
 const TYPE_AR: Record<LedgerEntry['type'], string> = {
   COMMISSION: 'عمولة طلب',
@@ -30,7 +30,6 @@ export default function Balance() {
   const qc = useQueryClient();
   const status = useCommission();
   const ledger = useCommissionLedger();
-  const ins = useInstructions();
   const [payOpen, setPayOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [proof, setProof] = useState<UploadedImage | null>(null);
@@ -74,12 +73,6 @@ export default function Balance() {
     if (r.length < 4 || r.length > 64) e.ref = 'رقم العملية من 4 لـ 64 حرف';
     setErrors(e);
     if (!Object.keys(e).length) pay.mutate();
-  };
-
-  const copy = async (value: string, label: string) => {
-    await Clipboard.setStringAsync(value);
-    haptic.light();
-    toast.success(`اتنسخ ${label}`);
   };
 
   return (
@@ -194,30 +187,7 @@ export default function Balance() {
         title="سداد المستحق"
         footer={<Button label="إرسال الإيصال" loading={pay.isPending} onPress={send} />}
       >
-        {ins.data && (
-          <Card style={styles.gap}>
-            <Text variant="bodyStrong">حوّل على</Text>
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <Text variant="meta" color="ink3">
-                  عنوان InstaPay
-                </Text>
-                <Text variant="bodyStrong" selectable>
-                  {ins.data.receiver}
-                </Text>
-              </View>
-              <Tap onPress={() => copy(ins.data!.receiver, 'العنوان')} style={styles.copy} accessibilityLabel="نسخ العنوان">
-                <Icon as={Copy} size={18} color="accent" />
-                <Text variant="ui" color="accent">
-                  نسخ
-                </Text>
-              </Tap>
-            </View>
-            <Text variant="meta" color="ink2">
-              باسم {ins.data.receiverName}
-            </Text>
-          </Card>
-        )}
+        <InstapayCard />
         <TextField label="المبلغ اللي حوّلته (ج.م)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" ltr error={errors.amount} />
         <ImageSlot label="صورة إيصال التحويل" purpose="PAYMENT_PROOF" value={proof} onChange={setProof} width="100%" height={170} />
         {errors.proof && (
@@ -238,5 +208,4 @@ const styles = StyleSheet.create({
   summary: { alignItems: 'center', gap: 4, paddingVertical: 20 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  copy: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, paddingHorizontal: 8 },
 });

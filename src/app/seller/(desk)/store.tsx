@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { signOut } from '@/auth/use-auth';
 import { MenuGroup, MenuRow } from '@/features/account/menu-row';
-import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, MessageCircle, Phone, Plus, Settings, Trash2, TicketPercent } from 'lucide-react-native';
+import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, Megaphone, MessageCircle, MessageCircleQuestion, Phone, Plus, Settings, ShieldAlert, Star, Trash2, TicketPercent, Undo2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -67,6 +67,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
   const [days, setDays] = useState(String(s0.processingDays ?? 2));
   const [shippingPolicy, setShippingPolicy] = useState(s0.shippingPolicy ?? '');
   const [returnPolicy, setReturnPolicy] = useState(s0.returnPolicy ?? '');
+  const [returnDays, setReturnDays] = useState(s0.returnDays ?? 14);
   const [accepts, setAccepts] = useState(s0.acceptsOrders);
   const [zoneOpen, setZoneOpen] = useState(false);
   const [zoneGov, setZoneGov] = useState('');
@@ -97,6 +98,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           processingDays: Math.round(num(days) ?? 2),
           shippingPolicy: shippingPolicy.trim(),
           returnPolicy: returnPolicy.trim(),
+          returnDays,
           acceptsOrders: accepts,
         },
       }),
@@ -216,13 +218,28 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           <TextField label="أيام التجهيز" placeholder="مثال: 2" value={days} onChangeText={setDays} keyboardType="number-pad" ltr />
           <TextField label="سياسة الشحن" placeholder="مثال: بنشحن خلال يومين، والتوصيل من 2 لـ 5 أيام حسب المحافظة." optional multiline value={shippingPolicy} onChangeText={setShippingPolicy} maxLength={2000} />
           <TextField label="سياسة الاسترجاع" placeholder="مثال: الاسترجاع خلال 14 يوم والمنتج بحالته الأصلية." optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
+          <Text variant="ui" color="ink2">
+            مدة الإرجاع بعد الاستلام
+          </Text>
+          <View style={styles.wrap}>
+            {[0, 7, 14, 30].map((d) => (
+              <Chip key={d} label={d === 0 ? 'مفيش إرجاع' : `${d} يوم`} selected={returnDays === d} onPress={() => setReturnDays(d)} />
+            ))}
+          </View>
         </Section>
 
         <Button label="حسابي مع فاترينة" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/balance')} />
         <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (cats.length ? save.mutate() : toast.error('اختار قسم واحد على الأقل للمتجر'))} />
 
         <MenuGroup title="التسويق">
-          <MenuRow icon={TicketPercent} label="كوبونات الخصم" onPress={() => router.push('/seller/coupons')} last />
+          <MenuRow icon={TicketPercent} label="كوبونات الخصم" onPress={() => router.push('/seller/coupons')} />
+          <MenuRow icon={Megaphone} label="إعلانات مميزة" onPress={() => router.push('/seller/ads')} last />
+        </MenuGroup>
+        <MenuGroup title="العملاء">
+          <MenuRow icon={MessageCircleQuestion} label="أسئلة العملاء" onPress={() => router.push('/seller/questions')} />
+          <MenuRow icon={Star} label="التقييمات والردود" onPress={() => router.push('/seller/reviews')} />
+          <MenuRow icon={Undo2} label="المرتجعات" onPress={() => router.push('/seller/returns')} />
+          <MenuRow icon={ShieldAlert} label="شكاوى العملاء" onPress={() => router.push('/seller/complaints')} last />
         </MenuGroup>
         <MenuGroup title="الحساب">
           <MenuRow icon={Bell} label="الإشعارات" onPress={() => router.push('/notifications')} />

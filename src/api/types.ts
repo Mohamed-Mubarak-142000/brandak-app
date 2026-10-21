@@ -13,7 +13,7 @@ export type StoreType = 'BRAND' | 'SHOWROOM' | 'WAREHOUSE' | 'SHOP';
 export type BillingPeriod = 'MONTHLY' | 'YEARLY';
 export type PaymentStatus = 'AWAITING_PROOF' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
-export type UploadPurpose = 'PRODUCT_IMAGE' | 'BRAND_LOGO' | 'BRAND_COVER' | 'PAYMENT_PROOF';
+export type UploadPurpose = 'PRODUCT_IMAGE' | 'BRAND_LOGO' | 'BRAND_COVER' | 'PAYMENT_PROOF' | 'REVIEW_IMAGE' | 'CLAIM_IMAGE';
 export type ReportTarget = 'REVIEW' | 'PRODUCT' | 'BRAND';
 export type ReportReason = 'SPAM' | 'OFFENSIVE' | 'FAKE' | 'PROHIBITED_PRODUCT' | 'FRAUD' | 'OTHER';
 
@@ -78,6 +78,8 @@ export interface PublicBrand {
     processingDays: number;
     shippingPolicy: string;
     returnPolicy: string;
+    /** Days after delivery to ask for a return; 0 = no returns. Missing on old API versions. */
+    returnDays?: number;
     acceptsOrders: boolean;
   };
   ratingAvg: number;
@@ -106,6 +108,9 @@ export interface ProductCard {
   ratingAvg: number;
   ratingCount: number;
   brand: BrandMini;
+  /** Paid placement (shown with a "مُموَّل" tag). */
+  sponsored?: boolean;
+  adId?: string;
 }
 export interface Variant {
   id: string;
@@ -130,8 +135,13 @@ export interface Review {
   userName: string;
   rating: number;
   comment: string;
+  images?: string[];
+  reply?: { text: string; at: ISODate } | null;
   verifiedPurchase: true;
   createdAt: ISODate;
+}
+export interface BrandReview extends Review {
+  productTitle: string;
 }
 export interface MyReview extends Review {
   status: 'VISIBLE' | 'HIDDEN';
@@ -426,6 +436,7 @@ export interface BrandSettings {
   processingDays: number;
   shippingPolicy: string;
   returnPolicy: string;
+  returnDays?: number;
   acceptsOrders: boolean;
 }
 export interface OwnerBrand {
@@ -511,4 +522,114 @@ export interface UploadResult {
   url: string | null;
   mime: string;
   size: number;
+}
+
+// ---------- Questions ----------
+export interface Question {
+  id: string;
+  productId: string;
+  userName: string;
+  text: string;
+  answer: string | null;
+  answeredAt: ISODate | null;
+  /** Asked by the signed-in viewer (shown even before it is answered). */
+  mine: boolean;
+  createdAt: ISODate;
+}
+export interface BrandQuestion extends Question {
+  productTitle: string;
+}
+
+// ---------- Returns ----------
+export type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'RECEIVED' | 'REFUNDED' | 'CANCELLED';
+export type ReturnReason = 'WRONG_SIZE' | 'DAMAGED' | 'NOT_AS_DESCRIBED' | 'WRONG_ITEM' | 'CHANGED_MIND' | 'OTHER';
+export interface ReturnItem {
+  productId: string;
+  variantId: string;
+  title: string;
+  imageUrl?: string;
+  size?: string;
+  color?: string;
+  unitPrice: number;
+  quantity: number;
+}
+export interface ReturnRequest {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  brandId: string;
+  customerName: string;
+  items: ReturnItem[];
+  reason: ReturnReason;
+  note: string;
+  images: string[];
+  refundAmount: number;
+  status: ReturnStatus;
+  history: { status: ReturnStatus; at: ISODate; actor: 'CUSTOMER' | 'BRAND' | 'ADMIN'; note?: string }[];
+  commissionReversed: number;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+export interface ReturnEligibility {
+  returnDays: number;
+  until: ISODate | null;
+  open: boolean;
+  items: { variantId: string; title: string; imageUrl?: string; size?: string; color?: string; unitPrice: number; returnable: number }[];
+}
+
+// ---------- Support ----------
+export type TicketType = 'NOT_RECEIVED' | 'NOT_AS_DESCRIBED' | 'ORDER_PROBLEM' | 'PAYMENT' | 'ACCOUNT' | 'OTHER';
+export type TicketStatus = 'WAITING_STORE' | 'OPEN' | 'ESCALATED' | 'RESOLVED' | 'CLOSED';
+export interface TicketMessage {
+  id?: string;
+  author: 'CUSTOMER' | 'BRAND' | 'ADMIN';
+  text: string;
+  images: string[];
+  at: ISODate;
+}
+export interface Ticket {
+  id: string;
+  number: string;
+  userName: string;
+  type: TicketType;
+  subject: string;
+  orderId: string | null;
+  orderNumber: string | null;
+  brandId: string | null;
+  brandName: string | null;
+  protection: boolean;
+  storeDeadline: ISODate | null;
+  status: TicketStatus;
+  escalatedAt: ISODate | null;
+  resolution: { outcome: 'CUSTOMER' | 'STORE' | 'NEUTRAL'; note: string; at: ISODate } | null;
+  /** Only on the detail endpoint. */
+  messages?: TicketMessage[];
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+
+// ---------- Ads ----------
+export type AdPlacement = 'SEARCH_TOP' | 'CATEGORY_TOP' | 'HOME_BANNER';
+export interface AdPrice {
+  placement: AdPlacement;
+  name: string;
+  weekPrice: number;
+  slots: number;
+}
+export interface Ad {
+  id: string;
+  productId: string;
+  productTitle: string;
+  placement: AdPlacement;
+  placementName: string;
+  weeks: number;
+  price: number;
+  transactionReference: string;
+  status: 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'EXPIRED';
+  startsAt: ISODate | null;
+  endsAt: ISODate | null;
+  rejectReason: string | null;
+  impressions: number;
+  clicks: number;
+  createdAt: ISODate;
 }

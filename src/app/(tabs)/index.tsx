@@ -6,7 +6,8 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, 
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { flatPages, useBrands, useCampaigns, useCategories, useProducts, useUnreadCount } from '@/api/queries';
+import { flatPages, useBrands, useCampaigns, useCategories, useFeatured, useProducts, useUnreadCount } from '@/api/queries';
+import type { ProductCard as ProductCardData } from '@/api/types';
 import { Countdown } from '@/features/catalog/countdown';
 import { useMe } from '@/auth/use-auth';
 import { BrandBubble } from '@/features/catalog/brand-card';
@@ -42,6 +43,7 @@ export default function Home() {
   const latest = useProducts({ sort: 'newest' }, 10);
   const deals = useProducts({ onSale: true, sort: 'discount' }, 10);
   const campaigns = useCampaigns();
+  const sponsored = useFeatured();
   const [now] = useState(() => Date.now());
   const season = campaigns.data?.find((c) => new Date(c.startsAt).getTime() <= now + 7 * 86_400_000);
   const [refreshing, setRefreshing] = useState(false);
@@ -176,6 +178,7 @@ export default function Home() {
             <ProductRail title="مختارات على ذوقك" query={forYou} width={cardW * 0.85} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
           )}
 
+          {!!sponsored.data?.length && <FeaturedRail items={sponsored.data} width={cardW * 0.85} />}
           {flatPages(deals.data).length > 0 && <ProductRail title="عروض النهارده" query={deals} width={cardW * 0.85} onMore={() => router.push('/offers')} />}
 
           <ProductRail title="الأكثر مبيعاً" query={popular} width={cardW * 0.85} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
@@ -211,6 +214,25 @@ export default function Home() {
           <ProductRail title="وصل حديثاً" query={latest} width={cardW * 0.85} onMore={() => router.push({ pathname: '/explore', params: { sort: 'newest' } })} />
         </ScrollView>
       )}
+    </View>
+  );
+}
+
+/** Paid home placements, labelled «مُموَّل» on each card. */
+function FeaturedRail({ items, width }: { items: ProductCardData[]; width: number }) {
+  return (
+    <View style={styles.gap}>
+      <View style={styles.mx}>
+        <SectionHeader title="مميز" />
+      </View>
+      <FlatList
+        horizontal
+        data={items}
+        keyExtractor={(p) => p.id}
+        renderItem={({ item }) => <ProductCard product={item} width={width} />}
+        contentContainerStyle={styles.rail}
+        showsHorizontalScrollIndicator={false}
+      />
     </View>
   );
 }

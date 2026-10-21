@@ -5,6 +5,7 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 
+import { api } from '@/api/client';
 import { useToggleWishlist, useWishlistIds } from '@/api/queries';
 import type { ProductCard as Product } from '@/api/types';
 import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
@@ -61,7 +62,11 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
   const off = product.compareAtPrice && product.compareAtPrice > product.price;
   return (
     <Tap
-      onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
+      onPress={() => {
+        // Paid placements count clicks for the store's stats.
+        if (product.adId) api.post(`/ads/${product.adId}/click`).catch(() => undefined);
+        router.push({ pathname: '/product/[id]', params: { id: product.id } });
+      }}
       style={[styles.card, { width }]}
       pressScale={0.98}
       accessibilityLabel={`${product.title}، ${product.brand.name ?? ''}`}
@@ -94,8 +99,10 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
         )}
       </View>
       <View style={styles.meta}>
-        {product.brand.name && (
+        {(product.brand.name || product.sponsored) && (
           <Text variant="meta" color="ink3" numberOfLines={1}>
+            {product.sponsored ? 'مُموَّل' : ''}
+            {product.sponsored && product.brand.name ? ' · ' : ''}
             {product.brand.name}
           </Text>
         )}

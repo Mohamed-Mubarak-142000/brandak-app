@@ -8,6 +8,8 @@ import {
   Heart,
   KeyRound,
   LayoutDashboard,
+  LifeBuoy,
+  Undo2,
   LogOut,
   MapPin,
   MessageSquareText,
@@ -133,7 +135,8 @@ export default function Account() {
           <MenuRow icon={Heart} label="المفضلة" onPress={() => router.push('/wishlist')} />
           <MenuRow icon={MapPin} label="عناويني" onPress={() => router.push('/addresses')} />
           <MenuRow icon={Bell} label="الإشعارات" value={unread.data ? `${unread.data} جديد` : undefined} onPress={() => router.push('/notifications')} />
-          <MenuRow icon={MessageSquareText} label="تقييماتي" onPress={() => router.push('/my-reviews')} last />
+          <MenuRow icon={MessageSquareText} label="تقييماتي" onPress={() => router.push('/my-reviews')} />
+          <MenuRow icon={Undo2} label="مرتجعاتي" onPress={() => router.push('/returns')} last />
         </MenuGroup>
       )}
 
@@ -144,6 +147,7 @@ export default function Account() {
       </MenuGroup>
 
       <MenuGroup title="المساعدة">
+        {authed && <MenuRow icon={LifeBuoy} label="الدعم والشكاوى" onPress={() => router.push('/support')} />}
         <MenuRow icon={CircleHelp} label="الأسئلة الشائعة" onPress={() => router.push('/faq')} />
         <MenuRow icon={Info} label="من نحن" onPress={() => router.push('/about')} />
         <MenuRow icon={FileText} label="الشروط والأحكام" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })} />

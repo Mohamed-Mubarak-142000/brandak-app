@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShoppingBag, Truck, Undo2, Wallet, Zap } from 'lucide-react-native';
+import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShieldCheck, ShoppingBag, Truck, Undo2, Wallet, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { BrandLogo } from '@/features/catalog/brand-card';
 import { Countdown } from '@/features/catalog/countdown';
 import { Gallery } from '@/features/catalog/gallery';
 import { WishlistHeart } from '@/features/catalog/product-card';
+import { QuestionsSection } from '@/features/catalog/questions';
 import { ReportSheet } from '@/features/catalog/report-sheet';
 import { ReviewItem } from '@/features/catalog/review-item';
 import { imagesForColor, useVariantSelection, VariantPicker } from '@/features/catalog/variant-picker';
@@ -210,12 +211,18 @@ export default function ProductScreen() {
                   : 'هيتحسب في صفحة إتمام الطلب'
               }
             />
-            {!!shipping?.returnPolicy && (
+            {shipping && (
               <>
                 <Divider />
-                <InfoRow icon={Undo2} title="سياسة الاسترجاع" body={shipping.returnPolicy} />
+                <InfoRow
+                  icon={Undo2}
+                  title={shipping.returnDays === 0 ? 'المتجر مش بيقبل مرتجعات' : `إرجاع خلال ${shipping.returnDays ?? 14} يوم من الاستلام`}
+                  body={shipping.returnPolicy || (shipping.returnDays === 0 ? 'اتأكد من المقاس والتفاصيل قبل الطلب' : 'من صفحة الطلب، بالصور والسبب')}
+                />
               </>
             )}
+            <Divider />
+            <InfoRow icon={ShieldCheck} title="حماية فاترينة" body="لو الطلب موصلش أو طلع مختلف عن الصور، افتح شكوى وإحنا نحلها" />
           </Card>
 
           {/* Reviews */}
@@ -240,6 +247,8 @@ export default function ProductScreen() {
               </Text>
             )}
           </View>
+
+          <QuestionsSection productId={p.id} canAsk={!seller} />
 
           <Tap onPress={() => requireAuth('سجّل عشان تبلّغ.', () => setReportOpen(true))} style={styles.report} pressScale={1}>
             <Icon as={Flag} size={16} color="ink3" />

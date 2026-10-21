@@ -25,7 +25,8 @@ import type {
   PublicBrand,
   StoreType,
   Review,
-  WishlistItem, CommissionStatus, CommissionTerms, LedgerEntry, Campaign, Coupon } from './types';
+  WishlistItem, CommissionStatus, CommissionTerms, LedgerEntry, Campaign, Coupon,
+  Ad, AdPrice, BrandQuestion, BrandReview, Question, ReturnEligibility, ReturnRequest, ReturnStatus, Ticket } from './types';
 
 export const qk = {
   categories: ['categories'] as const,
@@ -58,6 +59,21 @@ export const qk = {
   sellerOrders: (q: Query) => ['seller', 'orders', q] as const,
   sellerOrder: (id: string) => ['seller', 'order', id] as const,
   customers: ['seller', 'customers'] as const,
+  questions: (productId: string) => ['questions', productId] as const,
+  sellerQuestions: (unanswered: boolean) => ['seller', 'questions', unanswered] as const,
+  sellerReviews: (unanswered: boolean) => ['seller', 'reviews', unanswered] as const,
+  returns: ['returns'] as const,
+  returnOne: (id: string) => ['returns', 'one', id] as const,
+  eligibility: (orderId: string) => ['returns', 'eligibility', orderId] as const,
+  sellerReturns: (status?: string) => ['seller', 'returns', status ?? 'all'] as const,
+  sellerReturn: (id: string) => ['seller', 'returns', 'one', id] as const,
+  tickets: ['tickets'] as const,
+  ticket: (id: string) => ['tickets', 'one', id] as const,
+  sellerTickets: ['seller', 'tickets'] as const,
+  sellerTicket: (id: string) => ['seller', 'tickets', 'one', id] as const,
+  adPrices: ['ads', 'prices'] as const,
+  sellerAds: ['seller', 'ads'] as const,
+  featured: ['products', 'featured'] as const,
 };
 
 const useAuthed = () => useSession((s) => s.status === 'authed');
@@ -223,3 +239,31 @@ export const useSellerProduct = (id?: string) =>
 export const useSellerOrders = (q: Query) => usePaged<OrderSummary>(qk.sellerOrders(q), '/brand/orders', q);
 export const useSellerOrder = (id: string) => useQuery({ queryKey: qk.sellerOrder(id), queryFn: () => api.get<OrderDetail>(`/brand/orders/${id}`) });
 export const useCustomers = () => usePaged<BrandCustomer>(qk.customers, '/brand/customers');
+
+// ---------- Questions & reviews ----------
+/** Answered questions, plus the viewer's own ones still waiting. */
+export const useQuestions = (productId: string) => usePaged<Question>(qk.questions(productId), `/products/${productId}/questions`, {}, true, 10);
+export const useSellerQuestions = (unanswered: boolean) =>
+  usePaged<BrandQuestion>(qk.sellerQuestions(unanswered), '/brand/questions', unanswered ? { unanswered: true } : {});
+export const useSellerReviews = (unanswered: boolean) =>
+  usePaged<BrandReview>(qk.sellerReviews(unanswered), '/brand/reviews', unanswered ? { unanswered: true } : {});
+
+// ---------- Returns ----------
+export const useMyReturns = () => usePaged<ReturnRequest>(qk.returns, '/returns/me', {}, useAuthed());
+export const useMyReturn = (id: string) => useQuery({ queryKey: qk.returnOne(id), queryFn: () => api.get<ReturnRequest>(`/returns/me/${id}`) });
+export const useReturnEligibility = (orderId: string, enabled = true) =>
+  useQuery({ queryKey: qk.eligibility(orderId), queryFn: () => api.get<ReturnEligibility>(`/orders/me/${orderId}/returns/eligibility`), enabled });
+export const useSellerReturns = (status?: ReturnStatus) => usePaged<ReturnRequest>(qk.sellerReturns(status), '/brand/returns', { status });
+export const useSellerReturn = (id: string) => useQuery({ queryKey: qk.sellerReturn(id), queryFn: () => api.get<ReturnRequest>(`/brand/returns/${id}`) });
+
+// ---------- Support ----------
+export const useMyTickets = () => usePaged<Ticket>(qk.tickets, '/support/tickets', {}, useAuthed());
+export const useMyTicket = (id: string) => useQuery({ queryKey: qk.ticket(id), queryFn: () => api.get<Ticket>(`/support/tickets/${id}`) });
+export const useSellerTickets = () => usePaged<Ticket>(qk.sellerTickets, '/brand/tickets');
+export const useSellerTicket = (id: string) => useQuery({ queryKey: qk.sellerTicket(id), queryFn: () => api.get<Ticket>(`/brand/tickets/${id}`) });
+
+// ---------- Ads ----------
+export const useAdPrices = () => useQuery({ queryKey: qk.adPrices, queryFn: () => api.get<AdPrice[]>('/ads/prices'), staleTime: 10 * 60_000 });
+export const useSellerAds = () => usePaged<Ad>(qk.sellerAds, '/brand/ads');
+/** Paid "featured" products for the home screen. */
+export const useFeatured = () => useQuery({ queryKey: qk.featured, queryFn: () => api.get<ProductCard[]>('/products/featured'), staleTime: 5 * 60_000 });

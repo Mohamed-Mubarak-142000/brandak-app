@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Info, Star, Truck } from 'lucide-react-native';
+import { Info, LifeBuoy, Star, Truck, Undo2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
-import { qk, useOrder } from '@/api/queries';
+import { qk, useOrder, useReturnEligibility } from '@/api/queries';
 import type { OrderDetail } from '@/api/types';
 import { ContactButtons, OrderAddress, OrderItems } from '@/features/orders/order-sections';
 import { OrderTimeline } from '@/features/orders/timeline';
@@ -24,6 +24,7 @@ export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const q = useOrder(id);
   const o = q.data;
+  const returns = useReturnEligibility(id, o?.status === 'DELIVERED');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState('');
 
@@ -123,6 +124,17 @@ export default function OrderScreen() {
           <View style={styles.gap}>
             <Text variant="section">محتاج مساعدة؟</Text>
             <ContactButtons phone={o.brand.phone} label="المتجر" />
+            {o.status === 'DELIVERED' && returns.data?.open && (
+              <Button
+                label={`إرجاع منتجات (لحد ${formatDate(returns.data.until!)})`}
+                icon={Undo2}
+                variant="secondary"
+                onPress={() => router.push({ pathname: '/returns/new', params: { orderId: o.id } })}
+              />
+            )}
+            {o.status !== 'AWAITING_CONFIRMATION' && (
+              <Button label="عندي مشكلة في الطلب" icon={LifeBuoy} variant="secondary" onPress={() => router.push({ pathname: '/support/new', params: { orderId: o.id } })} />
+            )}
           </View>
         </>
       )}

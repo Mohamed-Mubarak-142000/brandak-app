@@ -8,6 +8,8 @@ import { StyleSheet, View } from 'react-native';
 import { api, ApiError, errorMessage } from '@/api/client';
 import { qk, useOrder } from '@/api/queries';
 import type { OrderItem } from '@/api/types';
+import { PhotoRow } from '@/features/media/photo-row';
+import type { UploadedImage } from '@/features/seller/image-slot';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { AppBar, Button, Card, ErrorState, Icon, Screen, Skeleton, StarInput, Text, TextField, toast } from '@/ui';
@@ -37,10 +39,11 @@ function ReviewCard({ item, orderId }: { item: OrderItem; orderId: string }) {
   const qc = useQueryClient();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [photos, setPhotos] = useState<UploadedImage[]>([]);
   const [done, setDone] = useState(false);
 
   const submit = useMutation({
-    mutationFn: () => api.post(`/products/${item.productId}/reviews`, { orderId, rating, comment: comment.trim() || undefined }),
+    mutationFn: () => api.post(`/products/${item.productId}/reviews`, { orderId, rating, comment: comment.trim() || undefined, imageFileIds: photos.length ? photos.map((p) => p.fileId) : undefined }),
     onSuccess: () => {
       haptic.success();
       setDone(true);
@@ -83,6 +86,10 @@ function ReviewCard({ item, orderId }: { item: OrderItem; orderId: string }) {
           {rating > 0 && (
             <>
               <TextField label="اكتب رأيك" optional multiline value={comment} onChangeText={setComment} maxLength={1000} placeholder="الخامة، المقاس، التغليف..." />
+              <Text variant="ui" color="ink2">
+                صوّر المنتج وهو عليك (اختياري)
+              </Text>
+              <PhotoRow purpose="REVIEW_IMAGE" value={photos} onChange={setPhotos} max={3} />
               <Button label="نشر التقييم" loading={submit.isPending} onPress={() => submit.mutate()} />
             </>
           )}

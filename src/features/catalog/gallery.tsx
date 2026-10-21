@@ -91,7 +91,8 @@ export function Gallery({ images, width, height, children }: { images: string[];
   );
 }
 
-function ZoomViewer({ images, start, onClose }: { images: string[]; start: number | null; onClose: () => void }) {
+/** Full-screen pinch-to-zoom viewer for a set of photos. */
+export function ZoomViewer({ images, start, onClose }: { images: string[]; start: number | null; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   if (start === null) return null;
