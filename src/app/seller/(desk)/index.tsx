@@ -1,10 +1,10 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { CreditCard, PackageX, Plus, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
+import { CircleAlert, PackageX, Plus, TrendingDown, TrendingUp, Users, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useMyBrand, useMySubscriptions, useOverview } from '@/api/queries';
+import { useCommission, useMyBrand, useOverview } from '@/api/queries';
 import { DeskHeader } from '@/features/seller/desk-header';
 import { SalesChart } from '@/features/seller/sales-chart';
 import { formatDate, formatMoney } from '@/lib/format';
@@ -17,15 +17,13 @@ export default function Overview() {
   const t = useTheme();
   const router = useRouter();
   const brand = useMyBrand();
-  const subs = useMySubscriptions();
+  const commission = useCommission();
   const [days, setDays] = useState(30);
   const q = useOverview(days);
   const o = q.data;
 
+  const c = commission.data;
   const [now] = useState(() => Date.now());
-  const daysLeft = brand.data?.subscriptionEndsAt ? Math.ceil((new Date(brand.data.subscriptionEndsAt).getTime() - now) / 86_400_000) : null;
-  const needsPlan = subs.isSuccess && !subs.data.current;
-  const pendingPay = subs.data?.pending?.payment;
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
@@ -41,29 +39,32 @@ export default function Overview() {
             refreshing={q.isRefetching}
             onRefresh={() => {
               q.refetch();
-              subs.refetch();
+              commission.refetch();
             }}
             tintColor={t.c.brand}
             colors={[t.c.brand]}
           />
         }
       >
-        {/* Subscription state comes first: nothing sells without it. */}
-        {pendingPay?.status === 'PENDING_REVIEW' ? (
-          <Banner icon={CreditCard} title="الدفع تحت المراجعة" body="هنفعّل اشتراكك أول ما نتأكد من التحويل." action="التفاصيل" onAction={() => router.push('/seller/plans')} />
-        ) : pendingPay?.status === 'AWAITING_PROOF' || pendingPay?.status === 'REJECTED' ? (
+        {/* A store that owes too much commission (or for too long) stops receiving orders. */}
+        {c?.blocked ? (
           <Banner
-            icon={CreditCard}
-            tone={pendingPay.status === 'REJECTED' ? 'danger' : 'warning'}
-            title={pendingPay.status === 'REJECTED' ? 'إثبات الدفع اترفض' : 'كمّل الدفع عشان تبدأ تبيع'}
-            body={pendingPay.rejectionReason ?? 'ارفع صورة تحويل InstaPay'}
+            icon={CircleAlert}
+            tone="danger"
+            title="متجرك واقف عن استقبال الطلبات"
+            body={`عليك ${formatMoney(c.balance)} لفاترينة. ادفعهم بـ InstaPay وهيرجع يستقبل طلبات.`}
             action="ادفع"
-            onAction={() => router.push({ pathname: '/seller/pay/[subscriptionId]', params: { subscriptionId: subs.data!.pending!._id } })}
+            onAction={() => router.push('/seller/balance')}
           />
-        ) : needsPlan ? (
-          <Banner icon={CreditCard} tone="warning" title="محتاج اشتراك عشان منتجاتك تظهر" body="اختار باقة وادفع بـ InstaPay في دقيقة." action="الباقات" onAction={() => router.push('/seller/plans')} />
-        ) : daysLeft != null && daysLeft <= 7 ? (
-          <Banner icon={CreditCard} tone="warning" title={`الاشتراك بيخلص خلال ${Math.max(0, daysLeft)} يوم`} body={`ينتهي ${formatDate(brand.data!.subscriptionEndsAt)}`} action="جدّد" onAction={() => router.push('/seller/plans')} />
+        ) : c && c.balance > 0 && c.dueBy && !c.pendingSettlement && new Date(c.dueBy).getTime() - now < 3 * 86_400_000 ? (
+          <Banner
+            icon={Wallet}
+            tone="warning"
+            title={`ادفع ${formatMoney(c.balance)} قبل ${formatDate(c.dueBy)}`}
+            body="عشان المتجر يفضل يستقبل طلبات."
+            action="ادفع"
+            onAction={() => router.push('/seller/balance')}
+          />
         ) : null}
 
         <View style={styles.ranges}>
@@ -101,21 +102,25 @@ export default function Overview() {
               )}
             </Card>
 
-            {o.plan && (
-              <Card style={styles.gapSm}>
-                <View style={styles.between}>
-                  <Text variant="bodyStrong">باقة {o.plan.name}</Text>
-                  <Text variant="meta" color="ink3">
-                    لحد {formatDate(o.plan.endsAt)}
+            {c && (
+              <Tap onPress={() => router.push('/seller/balance')} pressScale={0.99} accessibilityLabel="حسابي مع فاترينة">
+                <Card style={styles.gapSm}>
+                  <View style={styles.between}>
+                    <Text variant="bodyStrong">حسابك مع فاترينة</Text>
+                    <Text variant="meta" color="ink3">
+                      {Math.round(c.commissionRate * 1000) / 10}% على الطلبات المستلمة
+                    </Text>
+                  </View>
+                  <Text variant="section" color={c.balance > 0 ? (c.blocked ? 'danger' : 'accent') : 'success'}>
+                    {c.balance > 0 ? `مستحق ${formatMoney(c.balance)}` : 'مفيش مستحقات'}
                   </Text>
-                </View>
-                <Text variant="meta" color="ink2">
-                  {o.plan.activeProducts} من {o.plan.maxActiveProducts} منتج منشور
-                </Text>
-                <View style={[styles.track, { backgroundColor: t.c.line }]}>
-                  <View style={[styles.fill, { width: `${Math.min(100, (o.plan.activeProducts / Math.max(1, o.plan.maxActiveProducts)) * 100)}%`, backgroundColor: t.c.brand }]} />
-                </View>
-              </Card>
+                  {c.balance > 0 && c.dueBy && (
+                    <Text variant="meta" color="ink2">
+                      آخر ميعاد {formatDate(c.dueBy)}
+                    </Text>
+                  )}
+                </Card>
+              </Tap>
             )}
 
             {o.topProducts.length > 0 && (

@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { AtSign, CircleAlert, CreditCard, Eye, Globe, Mail, MessageCircle, Phone, Plus, Trash2 } from 'lucide-react-native';
+import { signOut } from '@/auth/use-auth';
+import { MenuGroup, MenuRow } from '@/features/account/menu-row';
+import { AtSign, Ban, Bell, CircleAlert, CircleHelp, CreditCard, Eye, FileText, Globe, KeyRound, LogOut, Mail, MessageCircle, Phone, Plus, Settings, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories, useGovernorates, useMyBrand } from '@/api/queries';
@@ -216,8 +218,33 @@ function StoreForm({ b }: { b: OwnerBrand }) {
           <TextField label="سياسة الاسترجاع" placeholder="مثال: الاسترجاع خلال 14 يوم والمنتج بحالته الأصلية." optional multiline value={returnPolicy} onChangeText={setReturnPolicy} maxLength={2000} />
         </Section>
 
-        <Button label="الاشتراك والدفع" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/plans')} />
+        <Button label="حسابي مع فاترينة" icon={CreditCard} variant="secondary" onPress={() => router.push('/seller/balance')} />
         <Button label="حفظ التغييرات" loading={save.isPending} onPress={() => (cats.length ? save.mutate() : toast.error('اختار قسم واحد على الأقل للمتجر'))} />
+
+        <MenuGroup title="الحساب">
+          <MenuRow icon={Bell} label="الإشعارات" onPress={() => router.push('/notifications')} />
+          <MenuRow icon={Ban} label="العملاء المحظورين" onPress={() => router.push('/seller/blocks')} />
+          <MenuRow icon={KeyRound} label="تغيير كلمة السر" onPress={() => router.push('/change-password')} />
+          <MenuRow icon={Settings} label="الإعدادات والمظهر" onPress={() => router.push('/settings')} last />
+        </MenuGroup>
+        <MenuGroup title="المساعدة">
+          <MenuRow icon={CircleHelp} label="الأسئلة الشائعة" onPress={() => router.push('/faq')} />
+          <MenuRow icon={FileText} label="الشروط والأحكام" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })} last />
+        </MenuGroup>
+        <MenuGroup>
+          <MenuRow
+            icon={LogOut}
+            label="تسجيل الخروج"
+            tone="danger"
+            onPress={() =>
+              Alert.alert('تسجيل الخروج؟', 'هتحتاج تسجل دخول تاني عشان تدير متجرك.', [
+                { text: 'إلغاء', style: 'cancel' },
+                { text: 'خروج', style: 'destructive', onPress: () => signOut().then(() => router.replace('/(tabs)')) },
+              ])
+            }
+            last
+          />
+        </MenuGroup>
       </ScrollView>
 
       <Sheet

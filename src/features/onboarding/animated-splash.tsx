@@ -7,7 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useTheme } from '@/theme';
 
 /**
- * Presents the approved Dakakeen logo before the splash overlay fades away.
+ * Presents the app logo before the splash overlay fades away.
  */
 export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () => void }) {
   const t = useTheme();
@@ -42,7 +42,7 @@ export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () =
   return (
     <Animated.View pointerEvents={ready ? 'none' : 'auto'} style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: t.c.ground }, overlayStyle]}>
       <Animated.View style={markStyle}>
-        <Image source={require('../../../assets/brand/dakakeen-logo.png')} style={styles.logo} contentFit="contain" accessibilityLabel="Dakakeen" />
+        <Image source={require('../../../assets/brand/fatrina-logo.png')} style={styles.logo} contentFit="contain" accessibilityLabel="فاترينة" />
       </Animated.View>
     </Animated.View>
   );

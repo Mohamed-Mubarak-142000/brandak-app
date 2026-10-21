@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { errorMessage } from '@/api/client';
 import { flatPages, useBrand, useCartMutations, useProduct, useReviews } from '@/api/queries';
-import { useRequireAuth } from '@/auth/use-auth';
+import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
 import { Gallery } from '@/features/catalog/gallery';
 import { WishlistHeart } from '@/features/catalog/product-card';
@@ -31,6 +31,8 @@ export default function ProductScreen() {
   const reviews = useReviews(id);
   const cart = useCartMutations(p?.brand.id ?? '');
   const requireAuth = useRequireAuth();
+  // Store accounts only preview products; they cannot buy.
+  const seller = useIsSeller();
 
   const [size, setSize] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export default function ProductScreen() {
     });
 
   const share = () =>
-    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على دكاكين\ndakakeen://product/${p.id}` }).catch(() => undefined);
+    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على فاترينة\nfatrina://product/${p.id}` }).catch(() => undefined);
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
@@ -255,7 +257,11 @@ export default function ProductScreen() {
             {formatMoney(total)}
           </Text>
         </View>
-        {soldOut ? (
+        {seller ? (
+          <Text variant="ui" color="ink3" align="center">
+            دي معاينة للمنتج زي ما العميل بيشوفه
+          </Text>
+        ) : soldOut ? (
           <Button label="نفدت الكمية" disabled />
         ) : (
           <View style={styles.actions}>

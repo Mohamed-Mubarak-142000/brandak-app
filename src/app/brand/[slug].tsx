@@ -79,7 +79,7 @@ export default function BrandScreen() {
             icon={Share2}
             label="مشاركة المتجر"
             background="surface"
-            onPress={() => Share.share({ message: `اكتشف ${b.name} على دكاكين\ndakakeen://brand/${b.slug}` }).catch(() => undefined)}
+            onPress={() => Share.share({ message: `اكتشف ${b.name} على فاترينة\nfatrina://brand/${b.slug}` }).catch(() => undefined)}
           />
         )}
       </View>

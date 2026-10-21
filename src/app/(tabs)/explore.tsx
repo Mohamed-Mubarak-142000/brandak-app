@@ -75,7 +75,7 @@ export default function Explore() {
           >
             <Icon as={Search} size={20} color="ink3" />
             <Text variant="body" color="ink3" numberOfLines={1}>
-              ابحث في دكاكين...
+              ابحث في فاترينة...
             </Text>
           </Tap>
           <FilterButton

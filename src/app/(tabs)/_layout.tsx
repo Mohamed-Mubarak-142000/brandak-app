@@ -1,7 +1,9 @@
+import { Redirect } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { House, Package, Search, ShoppingBag, UserRound } from 'lucide-react-native';
 
 import { useCarts } from '@/api/queries';
+import { useIsSeller } from '@/auth/use-auth';
 import { TabBar, type TabSpec } from '@/ui';
 
 const TABS: TabSpec[] = [
@@ -13,6 +15,8 @@ const TABS: TabSpec[] = [
 ];
 
 export default function TabsLayout() {
+  // One app, two experiences: store accounts never see the shopping tabs.
+  if (useIsSeller()) return <Redirect href="/seller" />;
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomerTabBar {...props} />}>
       {TABS.map((tab) => (

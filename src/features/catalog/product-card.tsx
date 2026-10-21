@@ -7,7 +7,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } 
 
 import { useToggleWishlist, useWishlistIds } from '@/api/queries';
 import type { ProductCard as Product } from '@/api/types';
-import { useRequireAuth } from '@/auth/use-auth';
+import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { Badge, PriceTag, Rating, Tap, Text } from '@/ui';
@@ -21,10 +21,12 @@ export function WishlistHeart({ productId, size = 36, floating = true }: { produ
   const ids = useWishlistIds();
   const toggle = useToggleWishlist();
   const requireAuth = useRequireAuth();
+  const seller = useIsSeller();
   const on = !!ids.data?.includes(productId);
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
+  if (seller) return null;
   return (
     <Tap
       pressScale={1}

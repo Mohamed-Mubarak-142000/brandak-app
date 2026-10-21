@@ -27,7 +27,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
     PENDING_REVIEW: {
       art: 'pending' as const,
       title: 'طلبك تحت المراجعة',
-      body: `فريق دكاكين بيراجع "${brand.name}" دلوقتي. عادةً بنرد خلال يوم عمل، وهيوصلك إشعار أول ما نخلص.`,
+      body: `فريق فاترينة بيراجع "${brand.name}" دلوقتي. عادةً بنرد خلال يوم عمل، وهيوصلك إشعار أول ما نخلص.`,
     },
     REJECTED: {
       art: 'error' as const,
@@ -37,7 +37,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
     SUSPENDED: {
       art: 'error' as const,
       title: 'المتجر موقوف مؤقتاً',
-      body: 'المتجر مش ظاهر للعملاء حالياً. تواصل مع فريق دكاكين لمعرفة التفاصيل.',
+      body: 'المتجر مش ظاهر للعملاء حالياً. تواصل مع فريق فاترينة لمعرفة التفاصيل.',
     },
     ACTIVE: { art: 'success' as const, title: '', body: '' },
   }[brand.status];

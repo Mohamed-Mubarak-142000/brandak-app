@@ -71,21 +71,25 @@ export function Badge({ label, tone = 'brand' }: { label: string; tone?: 'brand'
 }
 
 const STATUS_TONE: Record<OrderStatus, 'brand' | 'success' | 'warning' | 'danger' | 'neutral'> = {
+  AWAITING_CONFIRMATION: 'warning',
   PENDING: 'warning',
   CONFIRMED: 'brand',
   PROCESSING: 'brand',
   SHIPPED: 'brand',
   DELIVERED: 'success',
   CANCELLED: 'danger',
+  REFUSED: 'danger',
 };
 
 export const ORDER_STATUS_AR: Record<OrderStatus, string> = {
+  AWAITING_CONFIRMATION: 'مستني تأكيدك بالكود',
   PENDING: 'في انتظار التأكيد',
   CONFIRMED: 'تم التأكيد',
   PROCESSING: 'جاري التجهيز',
   SHIPPED: 'في الطريق',
   DELIVERED: 'تم التوصيل',
   CANCELLED: 'ملغي',
+  REFUSED: 'رفض الاستلام',
 };
 
 export function StatusPill({ status }: { status: OrderStatus }) {

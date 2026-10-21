@@ -25,8 +25,7 @@ import type {
   PublicBrand,
   StoreType,
   Review,
-  WishlistItem,
-} from './types';
+  WishlistItem, CommissionStatus, CommissionTerms, LedgerEntry } from './types';
 
 export const qk = {
   categories: ['categories'] as const,
@@ -50,6 +49,9 @@ export const qk = {
   plans: ['plans'] as const,
   instructions: ['payment-instructions'] as const,
   mySubs: ['seller', 'subscriptions'] as const,
+  commission: ['seller', 'commission'] as const,
+  commissionLedger: ['seller', 'commission', 'ledger'] as const,
+  terms: ['platform', 'terms'] as const,
   overview: (days: number) => ['seller', 'overview', days] as const,
   sellerProducts: (q: Query) => ['seller', 'products', q] as const,
   sellerProduct: (id: string) => ['seller', 'product', id] as const,
@@ -196,6 +198,13 @@ export const useMyBrand = (enabled = true) =>
 export const usePlans = () => useQuery({ queryKey: qk.plans, queryFn: () => api.get<Plan[]>('/subscription-plans'), staleTime: 10 * 60_000 });
 export const useInstructions = () =>
   useQuery({ queryKey: qk.instructions, queryFn: () => api.get<PaymentInstructions>('/payment-instructions'), staleTime: 10 * 60_000 });
+/** What the store owes the platform, and whether it is paused for not paying. */
+export const useCommission = (enabled = true) =>
+  useQuery({ queryKey: qk.commission, queryFn: () => api.get<CommissionStatus>('/brand/commissions'), enabled: useAuthed() && enabled });
+export const useCommissionLedger = () =>
+  useQuery({ queryKey: qk.commissionLedger, queryFn: () => api.page<LedgerEntry>('/brand/commissions/ledger', { limit: 50 }) });
+export const usePlatformTerms = () =>
+  useQuery({ queryKey: qk.terms, queryFn: () => api.get<CommissionTerms>('/platform/terms'), staleTime: 10 * 60_000 });
 export const useMySubscriptions = () => useQuery({ queryKey: qk.mySubs, queryFn: () => api.get<MySubscriptions>('/brand/subscriptions/me') });
 export function useOverview(days: number) {
   const to = new Date();

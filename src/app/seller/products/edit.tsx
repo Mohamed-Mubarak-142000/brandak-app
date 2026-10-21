@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useCategories, useMyBrand, useMySubscriptions, useSellerProduct } from '@/api/queries';
+import { qk, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
 import type { BrandProduct } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
 import { swatchFor } from '@/features/catalog/variant-picker';
@@ -87,8 +87,7 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   );
   const [colorFor, setColorFor] = useState<number | null>(null);
   const colorOptions = [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))];
-  const subs = useMySubscriptions();
-  const maxImages = subs.data?.current?.planSnapshot.limits.maxImagesPerProduct ?? 10;
+  const maxImages = 10;
   const [tags, setTags] = useState(p?.tags.join('، ') ?? '');
   const [publish, setPublish] = useState(p ? p.status === 'ACTIVE' : true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -204,9 +203,6 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
           icon={CircleAlert}
           tone="danger"
           title={saveErr.message}
-          body={saveErr.code === 'SUBSCRIPTION_REQUIRED' || saveErr.code === 'PRODUCT_LIMIT' ? 'احفظه كمسودة دلوقتي، أو حدّث باقتك.' : undefined}
-          action={saveErr.code === 'SUBSCRIPTION_REQUIRED' || saveErr.code === 'PRODUCT_LIMIT' ? 'الباقات' : undefined}
-          onAction={() => router.push('/seller/plans')}
         />
       )}
 

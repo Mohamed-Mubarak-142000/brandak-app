@@ -58,7 +58,7 @@ export default function Account() {
         <View style={[styles.guest, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.lg }]}>
           <BrandMark size={44} />
           <Text variant="section" align="center">
-            أهلاً بيك في دكاكين
+            أهلاً بيك في فاترينة
           </Text>
           <Text variant="ui" color="ink2" align="center">
             اعمل حساب مشتري عشان تطلب وتتابع طلباتك، أو حساب بيزنس لو عندك معرض أو مخزن أو محل أو براند.
@@ -110,7 +110,7 @@ export default function Account() {
             : router.push({ pathname: '/(auth)/register', params: { intent: 'seller' } })
         }
         pressScale={0.99}
-        accessibilityLabel={u?.brand ? 'لوحة المتجر' : 'افتح متجرك على دكاكين'}
+        accessibilityLabel={u?.brand ? 'لوحة المتجر' : 'افتح متجرك على فاترينة'}
       >
         <LinearGradient colors={[t.c.brand, t.c.accent]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={[styles.seller, { borderRadius: t.radius.lg }]}>
           <View style={styles.sellerIcon}>
@@ -118,7 +118,7 @@ export default function Account() {
           </View>
           <View style={styles.flex}>
             <Text variant="bodyStrong" style={styles.white}>
-              {u?.brand ? 'لوحة المتجر' : 'عندك متجر؟ افتحه على دكاكين'}
+              {u?.brand ? 'لوحة المتجر' : 'عندك متجر؟ افتحه على فاترينة'}
             </Text>
             <Text variant="meta" style={styles.whiteSoft}>
               {u?.brand ? 'منتجاتك، طلباتك، وإحصائياتك' : 'وصّل لعملاء في كل مصر بخطوات بسيطة'}
@@ -156,7 +156,7 @@ export default function Account() {
         </MenuGroup>
       )}
       <Text variant="meta" color="ink3" align="center">
-        دكاكين · الإصدار 1.0.0
+        فاترينة · الإصدار 1.0.0
       </Text>
     </Screen>
   );

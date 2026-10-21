@@ -6,7 +6,7 @@
 
 type ISODate = string;
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'AWAITING_CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUSED';
 export type BrandStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
 /** Kind of business behind a store. Labels and icons live in features/catalog/store-types.ts. */
 export type StoreType = 'BRAND' | 'SHOWROOM' | 'WAREHOUSE' | 'SHOP';
@@ -237,6 +237,55 @@ export interface OrderDetail extends Omit<OrderSummary, 'previewImageUrl'> {
   deliveredAt: ISODate | null;
   history: { status: OrderStatus; at: ISODate; actor: 'CUSTOMER' | 'BRAND' | 'ADMIN' | 'SYSTEM'; note: string | null }[];
   allowedNextStatuses: OrderStatus[];
+  /** Store view only: the platform's 5% once delivered. */
+  commission?: { rate: number; base: number; amount: number } | null;
+  /** Store view only: the customer's delivery record across all stores. */
+  customerTrust?: CustomerTrust;
+}
+
+export interface CustomerTrust {
+  delivered: number;
+  refused: number;
+  level: 'NEW' | 'GOOD' | 'RISKY';
+}
+
+// ---------- Commission ----------
+export interface CommissionTerms {
+  commissionRate: number;
+  settlementDays: number;
+  maxUnpaidBalance: number;
+}
+export interface CommissionStatus extends CommissionTerms {
+  balance: number;
+  dueSince: ISODate | null;
+  dueBy: ISODate | null;
+  blocked: boolean;
+  pendingSettlement: { id: string; amount: number; createdAt: ISODate } | null;
+}
+export interface LedgerEntry {
+  _id: string;
+  type: 'COMMISSION' | 'REVERSAL' | 'PAYMENT' | 'ADJUSTMENT';
+  amount: number;
+  orderId?: string;
+  orderNumber?: string;
+  rate?: number;
+  base?: number;
+  note?: string;
+  createdAt: ISODate;
+}
+export interface Settlement {
+  _id: string;
+  amount: number;
+  transactionReference: string;
+  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  createdAt: ISODate;
+}
+export interface BlockedCustomer {
+  id: string;
+  customer: { name: string; phone: string };
+  note: string;
+  createdAt: ISODate;
 }
 
 // ---------- Notifications ----------
@@ -392,6 +441,8 @@ export interface BrandCustomer {
   lastOrderAt: ISODate;
 }
 export interface BrandOverview {
+  /** What the store owes the platform (commission model). */
+  commission?: { rate: number; balance: number; dueBy: ISODate | null; blocked: boolean; pendingSettlement: boolean };
   range: { from: ISODate; to: ISODate };
   orders: { count: number; changePct: number | null; pendingNow: number; byStatus: Record<OrderStatus, number> };
   salesValue: number;

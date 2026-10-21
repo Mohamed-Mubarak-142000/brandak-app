@@ -1,24 +1,29 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { CircleCheck, PackageCheck, Truck, User } from 'lucide-react-native';
+import { Ban, CircleCheck, PackageCheck, PackageX, ShieldAlert, ShieldCheck, Truck, User } from 'lucide-react-native';
 import { useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useSellerOrder } from '@/api/queries';
 import type { OrderDetail, OrderStatus } from '@/api/types';
 import { ContactButtons, OrderAddress, OrderItems } from '@/features/orders/order-sections';
 import { OrderTimeline } from '@/features/orders/timeline';
-import { formatDateTime, formatPhone } from '@/lib/format';
+import { formatDateTime, formatMoney, formatPhone } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Text, TextField, toast } from '@/ui';
+import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Tap, Text, TextField, toast } from '@/ui';
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { label: string; icon: typeof Truck }>> = {
   CONFIRMED: { label: 'تأكيد الطلب', icon: CircleCheck },
   PROCESSING: { label: 'بدء التجهيز', icon: PackageCheck },
   SHIPPED: { label: 'تم الشحن', icon: Truck },
   DELIVERED: { label: 'تم التوصيل', icon: CircleCheck },
+};
+const TRUST_COPY = {
+  NEW: { title: 'عميل جديد', body: 'أول طلب ليه على فاترينة، وأكّده بكود على الإيميل.', tone: 'ink2' as const },
+  GOOD: { title: 'عميل موثوق', body: 'بيستلم طلباته.', tone: 'success' as const },
+  RISKY: { title: 'انتبه: رفض استلام قبل كده', body: 'اتأكد منه بالتليفون قبل ما تشحن.', tone: 'danger' as const },
 };
 const CANCEL_REASONS = ['المنتج خلص', 'العميل مش بيرد', 'العنوان خارج التغطية', 'طلب مكرر'];
 
@@ -47,17 +52,42 @@ export default function SellerOrder() {
     },
   });
 
-  const next = o?.allowedNextStatuses.find((s) => s !== 'CANCELLED');
+  const next = o?.allowedNextStatuses.find((s) => s !== 'CANCELLED' && s !== 'REFUSED');
   const canCancel = o?.allowedNextStatuses.includes('CANCELLED');
+  const canRefuse = o?.allowedNextStatuses.includes('REFUSED');
+
+  const block = useMutation({
+    mutationFn: () => api.post(`/brand/orders/${id}/block-customer`, { note: 'من شاشة الطلب' }),
+    onSuccess: () => {
+      haptic.success();
+      toast.success('العميل ده مش هيقدر يطلب من متجرك تاني');
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
 
   return (
     <Screen
       header={<AppBar title={o ? `طلب #${o.orderNumber}` : 'الطلب'} />}
       refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={t.c.brand} colors={[t.c.brand]} />}
       footer={
-        o && (next || canCancel) ? (
+        o && (next || canCancel || canRefuse) ? (
           <View style={styles.footer}>
             {canCancel && <Button label="إلغاء" variant="secondary" block={false} onPress={() => setCancelOpen(true)} />}
+            {canRefuse && (
+              <Button
+                label="رفض الاستلام"
+                icon={PackageX}
+                variant="secondary"
+                block={false}
+                loading={move.isPending}
+                onPress={() =>
+                  Alert.alert('العميل رفض الاستلام؟', 'المخزون هيرجع، ومفيش عمولة على الطلب ده، وده هيتسجل في سجل العميل.', [
+                    { text: 'رجوع', style: 'cancel' },
+                    { text: 'أيوه، رفض', style: 'destructive', onPress: () => move.mutate({ status: 'REFUSED' }) },
+                  ])
+                }
+              />
+            )}
             {next && NEXT_LABEL[next] && (
               <Button label={NEXT_LABEL[next]!.label} icon={NEXT_LABEL[next]!.icon} loading={move.isPending && !cancelOpen} onPress={() => move.mutate({ status: next })} style={styles.flex} />
             )}
@@ -93,7 +123,47 @@ export default function SellerOrder() {
               {formatPhone(o.customer?.phone)}
             </Text>
             <ContactButtons phone={o.customer?.phone} label="العميل" />
+            {o.customerTrust && (
+              <View style={[styles.trust, { backgroundColor: o.customerTrust.level === 'RISKY' ? t.c.dangerSoft : t.c.sunken, borderRadius: t.radius.md }]}>
+                <Icon as={o.customerTrust.level === 'RISKY' ? ShieldAlert : ShieldCheck} color={TRUST_COPY[o.customerTrust.level].tone === 'ink2' ? 'ink2' : TRUST_COPY[o.customerTrust.level].tone} />
+                <View style={styles.flex}>
+                  <Text variant="ui" weight="bold" color={TRUST_COPY[o.customerTrust.level].tone}>
+                    {TRUST_COPY[o.customerTrust.level].title}
+                  </Text>
+                  <Text variant="meta" color="ink2">
+                    {o.customerTrust.delivered + o.customerTrust.refused > 0
+                      ? `استلم ${o.customerTrust.delivered} من ${o.customerTrust.delivered + o.customerTrust.refused} طلب من كل المتاجر. `
+                      : ''}
+                    {TRUST_COPY[o.customerTrust.level].body}
+                  </Text>
+                </View>
+              </View>
+            )}
+            <Tap
+              pressScale={1}
+              hitSlop={8}
+              style={styles.blockRow}
+              onPress={() =>
+                Alert.alert('حظر العميل ده؟', 'مش هيقدر يطلب من متجرك تاني. تقدر تلغي الحظر من إعدادات المتجر.', [
+                  { text: 'رجوع', style: 'cancel' },
+                  { text: 'حظر', style: 'destructive', onPress: () => block.mutate() },
+                ])
+              }
+            >
+              <Icon as={Ban} size={16} color="ink3" />
+              <Text variant="meta" color="ink3">
+                حظر العميل
+              </Text>
+            </Tap>
           </Card>
+          {o.commission && (
+            <Card style={styles.commission}>
+              <Text variant="ui" color="ink2" style={styles.flex}>
+                عمولة فاترينة ({Math.round(o.commission.rate * 1000) / 10}% من {formatMoney(o.commission.base)})
+              </Text>
+              <Text variant="bodyStrong">{formatMoney(o.commission.amount)}</Text>
+            </Card>
+          )}
 
           <View style={styles.gap}>
             <Text variant="section">المنتجات</Text>
@@ -147,4 +217,7 @@ const styles = StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   footer: { flexDirection: 'row', gap: 10 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  trust: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  blockRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 32 },
+  commission: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 });

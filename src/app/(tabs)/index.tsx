@@ -71,7 +71,7 @@ export default function Home() {
                 {firstName ? `، ${firstName}` : ''}
               </Text>
               <Text variant="section" color="brand" style={styles.logoText}>
-                Dakakeen
+                Fatrina
               </Text>
             </View>
           </View>
@@ -178,7 +178,7 @@ export default function Home() {
                 ) : fresh.isError ? (
                   <InlineEmpty art="error" title="تعذّر تحميل المتاجر" body="اسحب لتحت عشان تحدّث الصفحة." width={width - 32} />
                 ) : (
-                  <InlineEmpty art="store" title="لسه مفيش متاجر جديدة" body="أول ما متجر جديد ينضم لدكاكين هيظهر هنا." width={width - 32} />
+                  <InlineEmpty art="store" title="لسه مفيش متاجر جديدة" body="أول ما متجر جديد ينضم لفاترينة هيظهر هنا." width={width - 32} />
                 )
               }
             />

@@ -7,7 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { errorMessage } from '@/api/client';
 import { useCartMutations, useProduct } from '@/api/queries';
 import type { ProductCard } from '@/api/types';
-import { useRequireAuth } from '@/auth/use-auth';
+import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { Button, PriceTag, QuantityStepper, Sheet, Skeleton, Text, toast } from '@/ui';
@@ -17,6 +17,7 @@ import { imagesForColor, useVariantSelection, VariantPicker } from './variant-pi
 export function QuickAddButton({ product }: { product: ProductCard }) {
   const requireAuth = useRequireAuth();
   const [open, setOpen] = useState(false);
+  if (useIsSeller()) return null;
   return (
     <>
       <Button

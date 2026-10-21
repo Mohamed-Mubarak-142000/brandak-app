@@ -43,7 +43,12 @@ export default function OrderScreen() {
       header={<AppBar title={o ? `طلب #${o.orderNumber}` : 'تفاصيل الطلب'} />}
       refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={t.c.brand} colors={[t.c.brand]} />}
       footer={
-        o?.status === 'DELIVERED' ? (
+        o?.status === 'AWAITING_CONFIRMATION' ? (
+          <View style={styles.footerRow}>
+            <Button label="إلغاء" variant="secondary" block={false} onPress={() => setCancelOpen(true)} />
+            <Button label="أكّد الطلب بالكود" onPress={() => router.push({ pathname: '/order/confirm', params: { id: o.id } })} style={styles.flex} />
+          </View>
+        ) : o?.status === 'DELIVERED' ? (
           <Button label="قيّم المنتجات" icon={Star} onPress={() => router.push({ pathname: '/review/[orderId]', params: { orderId: o.id } })} />
         ) : o?.status === 'PENDING' ? (
           <Button label="إلغاء الطلب" variant="secondary" onPress={() => setCancelOpen(true)} />
@@ -77,6 +82,16 @@ export default function OrderScreen() {
             </Card>
           </View>
 
+          {o.status === 'AWAITING_CONFIRMATION' && (
+            <Banner
+              icon={Info}
+              tone="warning"
+              title="طلبك مستني تأكيدك"
+              body="بعتنالك كود على الإيميل. أكّده عشان الطلب يوصل للمتجر، وإلا هيتلغي بعد 24 ساعة."
+              action="أكّد"
+              onAction={() => router.push({ pathname: '/order/confirm', params: { id: o.id } })}
+            />
+          )}
           {o.status === 'PENDING' && <Banner icon={Info} title="تقدر تلغي الطلب مجاناً" body="الإلغاء متاح لحد ما المتجر يأكد الطلب." />}
 
           <View style={styles.gap}>
@@ -120,6 +135,7 @@ export default function OrderScreen() {
 }
 
 const styles = StyleSheet.create({
+  footerRow: { flexDirection: 'row', gap: 10 },
   flex: { flex: 1 },
   gap: { gap: 10 },
   headCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },

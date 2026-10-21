@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Dakakeen",
+    "name": "Fatrina",
     "slug": "brandak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/dakakeen-logo.png",
-    "scheme": "dakakeen",
+    "icon": "./assets/brand/fatrina-icon.png",
+    "scheme": "fatrina",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FEFCF7",
     "ios": {
       "bundleIdentifier": "app.dakakeen",
       "supportsTablet": false,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "دكاكين محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
-        "NSCameraUsageDescription": "دكاكين محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
+        "NSPhotoLibraryUsageDescription": "فاترينة محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
+        "NSCameraUsageDescription": "فاترينة محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
         "CFBundleDevelopmentRegion": "ar",
         "ExpoLocalization_forcesRTL": true,
         "CFBundleLocalizations": [
@@ -25,8 +25,8 @@
       "package": "app.dakakeen",
       "adaptiveIcon": {
         "backgroundColor": "#FEFCF7",
-        "foregroundImage": "./assets/brand/dakakeen-mark.png",
-        "monochromeImage": "./assets/brand/dakakeen-mark.png"
+        "foregroundImage": "./assets/brand/fatrina-mark.png",
+        "monochromeImage": "./assets/brand/fatrina-mark.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -35,7 +35,7 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/brand/dakakeen-mark.png"
+      "favicon": "./assets/brand/fatrina-mark.png"
     },
     "plugins": [
       "expo-router",
@@ -43,11 +43,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FEFCF7",
-          "image": "./assets/brand/dakakeen-mark.png",
+          "image": "./assets/brand/fatrina-mark.png",
           "imageWidth": 150,
           "dark": {
             "backgroundColor": "#17110D",
-            "image": "./assets/brand/dakakeen-mark.png"
+            "image": "./assets/brand/fatrina-mark.png"
           }
         }
       ],
@@ -65,8 +65,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "دكاكين محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
-          "cameraPermission": "دكاكين محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
+          "photosPermission": "فاترينة محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
+          "cameraPermission": "فاترينة محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
         }
       ]
     ],

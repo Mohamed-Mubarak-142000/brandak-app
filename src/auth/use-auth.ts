@@ -9,6 +9,14 @@ import { useSession } from './session';
 
 export const meKey = ['me'] as const;
 
+/**
+ * Store accounts manage their store only: the app opens on the store dashboard and hides
+ * shopping (cart, checkout, wishlist). The API refuses those for them too.
+ */
+export function useIsSeller() {
+  return !!useMe().data?.brand;
+}
+
 /** The signed-in profile (with `brand` when the user manages one). Disabled for guests. */
 export function useMe() {
   const authed = useSession((s) => s.status === 'authed');

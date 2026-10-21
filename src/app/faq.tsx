@@ -24,7 +24,7 @@ export default function FaqScreen() {
 
   return (
     <Screen header={<AppBar title="الأسئلة الشائعة" />}>
-      <TextField label="بحث" icon={Search} value={query} onChangeText={setQuery} placeholder="مثال: الدفع، الشحن، الباقات" returnKeyType="search" />
+      <TextField label="بحث" icon={Search} value={query} onChangeText={setQuery} placeholder="مثال: الدفع، الشحن، العمولة" returnKeyType="search" />
       <View style={styles.wrap}>
         <Chip label="الكل" selected={!group} onPress={() => setGroup(null)} />
         {FAQ.map((g) => (

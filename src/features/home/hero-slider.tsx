@@ -22,7 +22,7 @@ interface Slide {
 const PROMOS: Slide[] = [
   {
     key: 'discover',
-    eyebrow: 'دكاكين',
+    eyebrow: 'فاترينة',
     title: 'معارض ومخازن ومحلات\nوبراندات في مكان واحد',
     cta: 'اكتشف المتاجر',
     href: { pathname: '/explore', params: { tab: 'brands' } },

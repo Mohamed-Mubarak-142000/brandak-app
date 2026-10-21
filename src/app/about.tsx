@@ -17,7 +17,7 @@ export default function AboutScreen() {
       <View style={styles.hero}>
         <Illustration name="store" size={170} />
         <Text variant="page" align="center">
-          دكاكين
+          فاترينة
         </Text>
         <Text variant="lead" color="ink2" align="center">
           {ABOUT.lead}

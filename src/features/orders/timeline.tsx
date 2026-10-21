@@ -19,17 +19,18 @@ const HINT: Partial<Record<OrderStatus, string>> = {
 export function OrderTimeline({ order }: { order: OrderDetail }) {
   const t = useTheme();
   const at = (s: OrderStatus) => order.history.filter((h) => h.status === s).at(-1);
-  const cancelled = order.status === 'CANCELLED';
-  const reached = cancelled ? FLOW.filter((s) => at(s)) : FLOW.slice(0, FLOW.indexOf(order.status) + 1);
-  const steps: OrderStatus[] = cancelled ? [...reached, 'CANCELLED'] : FLOW;
+  // Cancelled and refused orders end early: the steps they reached, then how they ended.
+  const ended = order.status === 'CANCELLED' || order.status === 'REFUSED';
+  const reached = ended ? FLOW.filter((s) => at(s)) : FLOW.slice(0, FLOW.indexOf(order.status) + 1);
+  const steps: OrderStatus[] = ended ? [...reached, order.status] : FLOW;
 
   return (
     <View accessibilityRole="list">
       {steps.map((s, i) => {
-        const done = reached.includes(s) || s === 'CANCELLED';
+        const done = reached.includes(s) || (ended && s === order.status);
         const current = s === order.status;
         const last = i === steps.length - 1;
-        const isCancel = s === 'CANCELLED';
+        const isCancel = s === 'CANCELLED' || s === 'REFUSED';
         const entry = at(s);
         const color = isCancel ? t.c.danger : done ? t.c.success : t.c.lineStrong;
         return (
@@ -44,7 +45,7 @@ export function OrderTimeline({ order }: { order: OrderDetail }) {
               >
                 {done && (isCancel ? <X size={14} color="#fff" strokeWidth={3} /> : <Check size={14} color="#fff" strokeWidth={3} />)}
               </View>
-              {!last && <View style={[styles.line, { backgroundColor: reached.includes(steps[i + 1]) || steps[i + 1] === 'CANCELLED' ? color : t.c.line }]} />}
+              {!last && <View style={[styles.line, { backgroundColor: reached.includes(steps[i + 1]) || (ended && steps[i + 1] === order.status) ? color : t.c.line }]} />}
             </View>
             <View style={[styles.copy, !last && styles.copyGap]}>
               <Text variant="ui" weight={current ? 'bold' : 'semibold'} color={done ? 'ink' : 'ink3'}>

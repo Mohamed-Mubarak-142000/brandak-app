@@ -55,7 +55,9 @@ export default function Checkout() {
       qc.removeQueries({ queryKey: qk.cart(brandId) });
       qc.invalidateQueries({ queryKey: qk.carts });
       qc.invalidateQueries({ queryKey: ['orders'] });
-      router.replace({ pathname: '/order/success', params: { id: order.id, number: order.orderNumber, brand: order.brand.name, total: String(order.grandTotal) } });
+      // New customers confirm the order with an emailed code before the store sees it.
+      if (order.status === 'AWAITING_CONFIRMATION') router.replace({ pathname: '/order/confirm', params: { id: order.id } });
+      else router.replace({ pathname: '/order/success', params: { id: order.id, number: order.orderNumber, brand: order.brand.name, total: String(order.grandTotal) } });
     },
     onError: async (e) => {
       haptic.error();

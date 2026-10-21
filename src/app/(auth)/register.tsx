@@ -300,7 +300,7 @@ export default function Register() {
             </>
           )}
           <Text variant="meta" color="ink3">
-            فريق دكاكين بيراجع المتجر خلال يوم عمل. اللوجو والصور والسوشيال تقدر تضيفهم بعدين من لوحة المتجر.
+            فريق فاترينة بيراجع المتجر خلال يوم عمل. اللوجو والصور والسوشيال تقدر تضيفهم بعدين من لوحة المتجر.
           </Text>
         </Animated.View>
       )}
@@ -314,7 +314,7 @@ export default function Register() {
         <Text variant="meta" color="accent" weight="semibold" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacy' } })}>
           سياسة الخصوصية
         </Text>{' '}
-        الخاصة بدكاكين.
+        الخاصة بفاترينة.
       </Text>
       <Button label={business ? 'إنشاء الحساب والمتجر' : 'إنشاء الحساب'} loading={register.isPending} onPress={() => submit()} />
       <View style={styles.row}>

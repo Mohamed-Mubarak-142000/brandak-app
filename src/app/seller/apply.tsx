@@ -1,16 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import { ArrowLeft, AtSign, Check, CircleAlert, Copy, Globe, Mail, MessageCircle, Phone, Receipt, Store } from 'lucide-react-native';
+import { ArrowLeft, AtSign, BadgePercent, Check, CircleAlert, Globe, Mail, MessageCircle, Phone, Store } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInLeft, FadeOutRight, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { api, errorMessage } from '@/api/client';
-import { qk, useCategories, useInstructions, usePlans } from '@/api/queries';
-import type { BillingPeriod, OwnerBrand, PaymentView, StoreType, SubscriptionRequestResult } from '@/api/types';
-import { planLimitsText } from '@/features/seller/plan-limits';
-import { BILLING_LABEL, formatMoney } from '@/lib/format';
+import { qk, useCategories, usePlatformTerms } from '@/api/queries';
+import type { OwnerBrand, StoreType } from '@/api/types';
+import { formatMoney } from '@/lib/format';
 import { meKey, useMe } from '@/auth/use-auth';
 import { StoreTypePicker } from '@/features/catalog/store-type-ui';
 import { storeTypeInfo } from '@/features/catalog/store-types';
@@ -19,11 +17,11 @@ import { normalizeSocial } from '@/features/seller/links';
 import { haptic } from '@/lib/haptics';
 import { EG_MOBILE, latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
-import { AppBar, Badge, Banner, Button, Card, Divider, Icon, Illustration, MultiSelect, Screen, Skeleton, Tap, Text, TextField, toast } from '@/ui';
+import { AppBar, Banner, Button, Card, Icon, Illustration, MultiSelect, Screen, Tap, Text, TextField } from '@/ui';
 
-const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور', 'الباقة', 'الدفع'];
-const PLAN_STEP = 5;
-const PAY_STEP = 6;
+const STEPS = ['النوع', 'البيانات', 'الأقسام', 'التواصل', 'الصور', 'العمولة'];
+/** Last step: how the platform earns (a commission per delivered order), agreed before sending. */
+const TERMS_STEP = 5;
 
 export default function Apply() {
   const t = useTheme();
@@ -48,65 +46,23 @@ export default function Apply() {
   const [logo, setLogo] = useState<UploadedImage | null>(null);
   const [cover, setCover] = useState<UploadedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const plans = usePlans();
-  const instructions = useInstructions();
-  const [period, setPeriod] = useState<BillingPeriod>('MONTHLY');
-  const [planId, setPlanId] = useState<string | null>(null);
-  const [proof, setProof] = useState<UploadedImage | null>(null);
-  const [reference, setReference] = useState('');
-  // Kept across retries: a failed payment step must not re-create the store (BRAND_EXISTS).
-  const [created, setCreated] = useState<OwnerBrand | null>(null);
-  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const terms = usePlatformTerms();
+  const [agreed, setAgreed] = useState(false);
+  const pct = terms.data ? Math.round(terms.data.commissionRate * 1000) / 10 : 5;
 
-  const planList = (plans.data ?? []).filter((p) => p.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
-  const plan = planList.find((p) => p._id === planId);
-  const amount = plan ? (period === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly) : 0;
-  // A free plan needs no payment step: the store is sent for review right from the plan step.
-  const isFree = !!plan && amount === 0;
-  const lastStep = isFree ? PLAN_STEP : PAY_STEP;
-
-  /**
-   * One button does the whole flow: create the store, request the chosen plan, and send the
-   * transfer receipt if there is one. Each step is remembered so a retry continues where it failed.
-   */
   const submit = useMutation({
-    mutationFn: async () => {
-      // The store and its plan are created together; a store can't exist without a plan.
-      let brand = created;
-      let subId = subscriptionId;
-      if (!brand) {
-        const res = await applyRequest();
-        brand = res;
-        subId = res.subscription?.subscription._id ?? null;
-        setCreated(res);
-        setSubscriptionId(subId);
-        qc.setQueryData(qk.myBrand, res);
-        if (res.subscription?.subscription.status === 'ACTIVE') return { brand, subscriptionId: null, paid: false };
-      }
-      if (!subId || !proof) return { brand, subscriptionId: subId, paid: false };
-      await api.post<PaymentView>(`/brand/subscriptions/${subId}/payment-proofs`, {
-        proofFileId: proof.fileId,
-        transactionReference: latinDigits(reference).trim(),
-        paidAt: new Date().toISOString(),
-      });
-      return { brand, subscriptionId: subId, paid: true };
-    },
-    onSuccess: async ({ subscriptionId: subId, paid }) => {
+    mutationFn: () => applyRequest(),
+    onSuccess: async (brand) => {
       haptic.success();
-      qc.invalidateQueries({ queryKey: qk.mySubs });
+      qc.setQueryData(qk.myBrand, brand);
       await qc.invalidateQueries({ queryKey: meKey });
-      if (paid) toast.success('اتبعت طلب المتجر وإثبات الدفع للمراجعة');
-      // No receipt yet: open the payment screen so the transfer details stay in front of them.
-      if (subId && !paid) router.replace({ pathname: '/seller/pay/[subscriptionId]', params: { subscriptionId: subId } });
-      else router.replace('/seller');
+      router.replace('/seller');
     },
     onError: () => haptic.error(),
   });
 
   const applyRequest = () =>
-      api.post<OwnerBrand & { subscription?: SubscriptionRequestResult }>('/brand-applications', {
-        planId,
-        billingPeriod: period,
+      api.post<OwnerBrand>('/brand-applications', {
         storeType,
         name: name.trim(),
         description: description.trim() || undefined,
@@ -125,12 +81,6 @@ export default function Apply() {
         coverFileId: cover?.fileId,
       });
 
-  const copy = async (value: string, label: string) => {
-    await Clipboard.setStringAsync(value);
-    haptic.light();
-    toast.success(`اتنسخ ${label}`);
-  };
-
   const validate = () => {
     const e: Record<string, string> = {};
     if (step === 0 && !storeType) e.storeType = 'اختار نوع نشاطك';
@@ -141,11 +91,7 @@ export default function Apply() {
       if (whatsapp && !EG_MOBILE.test(latinDigits(whatsapp).replace(/\s/g, ''))) e.whatsapp = 'رقم واتساب غير صحيح';
       if (email && !/^\S+@\S+\.\S+$/.test(email.trim())) e.email = 'بريد إلكتروني غير صحيح';
     }
-    if (step === PLAN_STEP && !planId) e.plan = 'اختار باقة لمتجرك';
-    if (step === PAY_STEP && proof) {
-      const r = latinDigits(reference).trim();
-      if (r.length < 4 || r.length > 64) e.ref = 'رقم العملية من 4 لـ 64 حرف';
-    }
+    if (step === TERMS_STEP && !agreed) e.terms = 'وافق على نظام العمولة عشان تبعت الطلب';
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -153,7 +99,7 @@ export default function Apply() {
   const next = () => {
     if (!validate()) return haptic.warning();
     haptic.tap();
-    if (step === lastStep) submit.mutate();
+    if (step === TERMS_STEP) submit.mutate();
     else setStep((s) => s + 1);
   };
 
@@ -163,7 +109,7 @@ export default function Apply() {
         <View style={styles.intro}>
           <Illustration name="store" size={200} />
           <Text variant="page" align="center">
-            متجرك على دكاكين
+            متجرك على فاترينة
           </Text>
           <Text variant="body" color="ink2" align="center">
             عندك معرض أو مخزن أو محل أو براند؟ وصّل منتجاتك لعملاء في كل محافظات مصر، والدفع كاش عند الاستلام.
@@ -171,8 +117,8 @@ export default function Apply() {
         </View>
         {[
           ['قدّم بيانات نشاطك', 'الاسم والأقسام وطرق التواصل والصور'],
-          ['اختار باقتك وادفع بـ InstaPay', 'هتشوف المبلغ وبيانات التحويل، وترفع الإيصال في نفس الخطوات'],
-          ['فريقنا يراجع الطلب والتحويل', 'عادةً خلال يوم عمل، وهيوصلك إشعار'],
+          ['فريقنا يراجع الطلب', 'عادةً خلال يوم عمل، وهيوصلك إشعار'],
+          [`ادفع ${pct}% بس لما تبيع`, 'مفيش اشتراك ولا رسوم فتح متجر'],
           ['ابدأ تبيع', 'ضيف منتجاتك واستقبل الطلبات من موبايلك'],
         ].map(([title, body], i) => (
           <View key={title} style={styles.howRow}>
@@ -202,8 +148,8 @@ export default function Apply() {
         <View style={styles.footer}>
           {step > 0 && <Button label="رجوع" variant="secondary" block={false} onPress={() => setStep((s) => s - 1)} />}
           <Button
-            label={step === lastStep ? (proof ? 'إرسال الطلب والإيصال' : 'إرسال الطلب') : 'التالي'}
-            iconEnd={step === lastStep ? Check : ArrowLeft}
+            label={step === TERMS_STEP ? 'إرسال الطلب للمراجعة' : 'التالي'}
+            iconEnd={step === TERMS_STEP ? Check : ArrowLeft}
             loading={submit.isPending}
             onPress={next}
             style={styles.flex}
@@ -293,146 +239,67 @@ export default function Apply() {
             </View>
           </>
         )}
-        {step === PLAN_STEP && (
+        {step === TERMS_STEP && (
           <>
-            <Text variant="section">اختار باقتك</Text>
-            <Text variant="ui" color="ink2">
-              الباقة بتحدد عدد المنتجات اللي تقدر تنشرها. الدفع بـ InstaPay في الخطوة الجاية.
-            </Text>
-            <View style={[styles.toggle, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]} accessibilityRole="tablist">
-              {(['MONTHLY', 'YEARLY'] as BillingPeriod[]).map((p) => (
-                <Tap
-                  key={p}
-                  onPress={() => setPeriod(p)}
-                  pressScale={1}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: period === p }}
-                  style={[styles.toggleItem, { borderRadius: t.radius.sm + 2 }, period === p && { backgroundColor: t.c.surface }]}
-                >
-                  <Text variant="ui" weight={period === p ? 'bold' : 'medium'} color={period === p ? 'ink' : 'ink3'}>
-                    {BILLING_LABEL[p]}
+            <Text variant="section">إزاي فاترينة بتكسب</Text>
+            <Card style={styles.termsCard}>
+              <Icon as={BadgePercent} size={40} color="accent" />
+              <Text variant="display" color="accent">
+                {pct}%
+              </Text>
+              <Text variant="bodyStrong" align="center">
+                بس من كل طلب يتسلّم للعميل
+              </Text>
+              <Text variant="ui" color="ink2" align="center">
+                مفيش اشتراك، ومفيش رسوم فتح متجر. لو مبعتش، مش بتدفع حاجة.
+              </Text>
+            </Card>
+            <View style={styles.gapSm}>
+              {[
+                `العمولة على قيمة المنتجات بس، من غير الشحن. مثلاً طلب بـ 500 ج.م = ${formatMoney((500 * pct) / 100)}.`,
+                'الطلب الملغي أو اللي العميل رفض استلامه مفيش عليه عمولة.',
+                `بتسدد المستحق كل ${terms.data?.settlementDays ?? 14} يوم بتحويل InstaPay من لوحة المتجر.`,
+                `لو المستحق عدّى ${formatMoney(terms.data?.maxUnpaidBalance ?? 2000)} أو عدّى ميعاد السداد، المتجر بيقف عن استقبال طلبات جديدة لحد ما تسدد.`,
+                'بنحميك من الطلبات الوهمية: العميل الجديد بيأكد طلبه بكود قبل ما يوصلك، وبتشوف سجل استلامه.',
+              ].map((line) => (
+                <View key={line} style={styles.point}>
+                  <Icon as={Check} size={18} color="success" />
+                  <Text variant="ui" color="ink2" style={styles.flex}>
+                    {line}
                   </Text>
-                </Tap>
+                </View>
               ))}
             </View>
-            {plans.isLoading ? (
-              <>
-                <Skeleton height={110} />
-                <Skeleton height={110} />
-              </>
-            ) : (
-              planList.map((p) => {
-                const on = planId === p._id;
-                const price = period === 'MONTHLY' ? p.priceMonthly : p.priceYearly;
-                return (
-                  <Tap
-                    key={p._id}
-                    onPress={() => {
-                      haptic.tap();
-                      setPlanId(p._id);
-                      setErrors({});
-                    }}
-                    pressScale={0.99}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: on }}
-                    style={[styles.planOpt, { borderRadius: t.radius.lg, borderColor: on ? t.c.brand : t.c.line, borderWidth: on ? 2 : 1, backgroundColor: on ? t.c.accentSoft : t.c.surface }]}
-                  >
-                    <View style={[styles.radio, { borderColor: on ? t.c.accent : t.c.lineStrong }]}>{on && <View style={[styles.radioDot, { backgroundColor: t.c.accent }]} />}</View>
-                    <View style={styles.flex}>
-                      <Text variant="bodyStrong">{p.nameAr}</Text>
-                      <Text variant="meta" color="ink2">
-                        {planLimitsText(p.limits)}
-                      </Text>
-                    </View>
-                    <View style={styles.planPrice}>
-                      {price === 0 ? (
-                        <Badge label="مجانية" tone="success" />
-                      ) : (
-                        <>
-                          <Text variant="bodyStrong">{formatMoney(price)}</Text>
-                          <Text variant="meta" color="ink3">
-                            / {period === 'MONTHLY' ? 'شهر' : 'سنة'}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                  </Tap>
-                );
-              })
-            )}
-            {errors.plan && (
-              <Text variant="meta" color="danger">
-                {errors.plan}
-              </Text>
-            )}
-            {isFree && (
-              <Text variant="meta" color="ink3">
-                الباقة المجانية بتتفعل من غير دفع. تقدر تطوّرها في أي وقت من لوحة المتجر.
-              </Text>
-            )}
-          </>
-        )}
-        {step === PAY_STEP && (
-          <>
-            <Text variant="section">الدفع بـ InstaPay</Text>
-            <Card style={styles.payRow}>
-              <View style={styles.flex}>
-                <Text variant="meta" color="ink3">
-                  المطلوب تحويله
-                </Text>
-                <Text variant="page" color="accent">
-                  {formatMoney(amount)}
-                </Text>
+            <Tap
+              onPress={() => {
+                haptic.tap();
+                setAgreed((a) => !a);
+                setErrors({});
+              }}
+              pressScale={1}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreed }}
+              style={[styles.agree, { borderColor: errors.terms ? t.c.danger : agreed ? t.c.brand : t.c.line, backgroundColor: agreed ? t.c.accentSoft : t.c.surface, borderRadius: t.radius.md }]}
+            >
+              <View style={[styles.box, { borderColor: agreed ? t.c.accent : t.c.lineStrong, backgroundColor: agreed ? t.c.accent : 'transparent' }]}>
+                {agreed && <Icon as={Check} size={14} color="onAccent" />}
               </View>
-              {plan && <Badge label={`${plan.nameAr} · ${BILLING_LABEL[period]}`} tone="neutral" />}
-            </Card>
-            {instructions.data ? (
-              <Card style={styles.gap}>
-                <Text variant="bodyStrong">حوّل على</Text>
-                <CopyRow label="عنوان InstaPay" value={instructions.data.receiver} onCopy={() => copy(instructions.data!.receiver, 'العنوان')} />
-                <Divider />
-                <CopyRow label="باسم" value={instructions.data.receiverName} />
-                <Divider />
-                <CopyRow label="المبلغ" value={String(amount)} onCopy={() => copy(String(amount), 'المبلغ')} />
-              </Card>
-            ) : (
-              <Skeleton height={160} />
+              <Text variant="ui" style={styles.flex}>
+                موافق على نظام العمولة و
+                <Text variant="ui" color="accent" weight="semibold" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}>
+                  الشروط والأحكام
+                </Text>
+              </Text>
+            </Tap>
+            {errors.terms && (
+              <Text variant="meta" color="danger">
+                {errors.terms}
+              </Text>
             )}
-            <Text variant="bodyStrong">حوّلت؟ ارفع الإيصال</Text>
-            <ImageSlot label="صورة إيصال التحويل" purpose="PAYMENT_PROOF" value={proof} onChange={setProof} width="100%" height={170} />
-            {proof && (
-              <TextField label="رقم العملية (Reference)" placeholder="مثال: 123456789012" icon={Receipt} value={reference} onChangeText={setReference} autoCapitalize="characters" ltr error={errors.ref} hint="موجود في رسالة تأكيد InstaPay" />
-            )}
-            <Text variant="meta" color="ink3">
-              لسه محوّلتش؟ ابعت الطلب دلوقتي، وهتلاقي بيانات التحويل ورفع الإيصال في الشاشة اللي بعدها وفي لوحة المتجر.
-            </Text>
           </>
         )}
       </Animated.View>
     </Screen>
-  );
-}
-
-function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy?: () => void }) {
-  return (
-    <View style={styles.payRow}>
-      <View style={styles.flex}>
-        <Text variant="meta" color="ink3">
-          {label}
-        </Text>
-        <Text variant="bodyStrong" selectable>
-          {value}
-        </Text>
-      </View>
-      {onCopy && (
-        <Tap onPress={onCopy} style={styles.copyBtn} accessibilityLabel={`نسخ ${label}`}>
-          <Icon as={Copy} size={18} color="accent" />
-          <Text variant="ui" color="accent">
-            نسخ
-          </Text>
-        </Tap>
-      )}
-    </View>
   );
 }
 
@@ -464,16 +331,12 @@ const styles = StyleSheet.create({
   howRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   howNum: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   footer: { flexDirection: 'row', gap: 10 },
+  termsCard: { alignItems: 'center', gap: 4, paddingVertical: 20 },
+  point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  agree: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1.5 },
+  box: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   labels: { flexDirection: 'row', justifyContent: 'space-between' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  toggle: { flexDirection: 'row', padding: 4 },
-  toggleItem: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
-  planOpt: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
-  planPrice: { alignItems: 'flex-end' },
-  payRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  copyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, paddingHorizontal: 8 },
 });

@@ -58,7 +58,7 @@ export const BrandCard = memo(function BrandCard({ brand, width }: { brand: Publ
         </View>
         <StoreTypeBadge type={brand.storeType} />
         <Text variant="meta" color="ink2" numberOfLines={2} style={styles.desc}>
-          {brand.description || 'متجر مصري على دكاكين'}
+          {brand.description || 'متجر مصري على فاترينة'}
         </Text>
         <View style={styles.row}>
           <Rating value={brand.ratingAvg} count={brand.ratingCount} size={12} />

@@ -88,7 +88,7 @@ export default function Onboarding() {
         <View style={styles.brandRow}>
           <BrandMark size={26} />
           <Text variant="section" color="brand">
-            Dakakeen
+            Fatrina
           </Text>
         </View>
         {!isLast && (

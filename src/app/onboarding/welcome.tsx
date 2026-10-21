@@ -52,7 +52,7 @@ export default function Welcome() {
       <Animated.View entering={FadeInDown.duration(320)} style={styles.head}>
         <BrandMark size={64} />
         <Text variant="page" align="center">
-          أهلاً بيك في دكاكين
+          أهلاً بيك في فاترينة
         </Text>
         <Text variant="body" color="ink2" align="center">
           كل المعارض والمخازن والمحلات والبراندات في مكان واحد. تحب تبدأ إزاي؟

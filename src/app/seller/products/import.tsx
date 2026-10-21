@@ -188,9 +188,7 @@ export default function ImportProducts() {
             icon={TriangleAlert}
             tone="warning"
             title={`${result.publishBlocked} منتج متنشرش`}
-            body="إما صوره محملتش أو باقتك وصلت للحد. تلاقيهم في المسودات."
-            action="الباقات"
-            onAction={() => router.push('/seller/plans')}
+            body="صوره محملتش. تلاقيهم في المسودات، ضيف الصور وانشرهم."
           />
         )}
         {commit.skipped.length > 0 && (
@@ -236,11 +234,7 @@ export default function ImportProducts() {
           <View style={styles.flex}>
             <Text variant="bodyStrong">انشر في المتجر</Text>
             <Text variant="meta" color="ink3">
-              {!canPublish
-                ? s.publishSlots == null
-                  ? 'محتاج باقة سارية عشان تنشر. هيتحفظوا مسودات.'
-                  : 'باقتك وصلت للحد. هيتحفظوا مسودات.'
-                : `باقتك تسمح بـ ${s.publishSlots} منتج كمان. المنتجات اللي من غير صور هتتحفظ مسودة.`}
+              {!canPublish ? 'وصلت لأقصى عدد منتجات منشورة. هيتحفظوا مسودات.' : 'المنتجات اللي من غير صور هتتحفظ مسودة لحد ما تضيفلها صور.'}
             </Text>
           </View>
           <Switch value={publish && canPublish} disabled={!canPublish} onValueChange={setPublish} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="انشر في المتجر" />

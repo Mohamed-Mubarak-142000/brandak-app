@@ -48,7 +48,7 @@ export default function SettingsScreen() {
         />
       </MenuGroup>
       <Text variant="meta" color="ink3" align="center">
-        دكاكين — معارض ومخازن ومحلات وبراندات في مكان واحد. صُنع بحب في مصر.
+        فاترينة — معارض ومخازن ومحلات وبراندات في مكان واحد. صُنع بحب في مصر.
       </Text>
     </Screen>
   );
