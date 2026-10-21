@@ -9,7 +9,8 @@ const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string =
 
 /**
  * Size × colour selection derived from the variant list. An option is struck through when no
- * in-stock variant matches it together with the other current choice.
+ * in-stock variant matches it together with the other current choice; it stays selectable so
+ * the customer can ask to be told when it's back.
  */
 export function useVariantSelection(variants: Variant[], size: string | null, color: string | null) {
   return useMemo(() => {
@@ -87,7 +88,7 @@ export function VariantPicker({
               allSwatches ? (
                 <Swatch key={c} name={c} hex={swatchFor(c)!} selected={color === c} disabled={!colorAvailable(c)} onPress={() => onColor(c)} />
               ) : (
-                <Chip key={c} label={c} selected={color === c} disabled={!colorAvailable(c)} onPress={() => onColor(c)} />
+                <Chip key={c} label={colorAvailable(c) ? c : `${c} · خلص`} selected={color === c} onPress={() => onColor(c)} />
               ),
             )}
           </View>
@@ -114,12 +115,11 @@ function Swatch({ name, hex, selected, disabled, onPress }: { name: string; hex:
   return (
     <Tap
       onPress={onPress}
-      disabled={disabled}
       pressScale={0.9}
       accessibilityRole="radio"
-      accessibilityLabel={disabled ? `${name}، غير متاح` : name}
+      accessibilityLabel={disabled ? `${name}، خلص` : name}
       accessibilityState={{ selected, disabled }}
-      style={[styles.ring, { borderColor: selected ? t.c.accent : 'transparent', opacity: disabled ? 0.35 : 1 }]}
+      style={[styles.ring, { borderColor: selected ? t.c.accent : 'transparent', opacity: disabled ? (selected ? 0.7 : 0.35) : 1 }]}
     >
       <View style={[styles.dot, { backgroundColor: hex, borderColor: t.c.lineStrong }]} />
       {disabled && <View style={[styles.strike, { backgroundColor: t.c.ink2 }]} />}
@@ -132,17 +132,16 @@ function SizePill({ label, selected, disabled, onPress }: { label: string; selec
   return (
     <Tap
       onPress={onPress}
-      disabled={disabled}
       pressScale={0.94}
       accessibilityRole="radio"
-      accessibilityLabel={disabled ? `مقاس ${label}، غير متاح` : `مقاس ${label}`}
+      accessibilityLabel={disabled ? `مقاس ${label}، خلص` : `مقاس ${label}`}
       accessibilityState={{ selected, disabled }}
       style={[
         styles.size,
         {
           backgroundColor: selected ? t.c.accent : t.c.surface,
           borderColor: selected ? t.c.accent : t.c.line,
-          opacity: disabled ? 0.4 : 1,
+          opacity: disabled ? (selected ? 0.75 : 0.4) : 1,
         },
       ]}
     >

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { RefreshControl } from 'react-native';
+import { Alert, RefreshControl } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useMyTicket } from '@/api/queries';
@@ -42,7 +42,19 @@ export default function TicketScreen() {
       ) : (
         <>
           <TicketThread ticket={ticket} me="CUSTOMER" replyPath={`/support/tickets/${id}/messages`} onUpdated={updated} />
-          {isActiveTicket(ticket) && <Button label="مشكلتي اتحلت، اقفل التذكرة" variant="secondary" loading={close.isPending} onPress={() => close.mutate()} />}
+          {isActiveTicket(ticket) && (
+            <Button
+              label="مشكلتي اتحلت، اقفل التذكرة"
+              variant="secondary"
+              loading={close.isPending}
+              onPress={() =>
+                Alert.alert('تقفل التذكرة؟', 'مش هتقدر ترد فيها تاني بعد ما تتقفل.', [
+                  { text: 'رجوع', style: 'cancel' },
+                  { text: 'اقفلها', onPress: () => close.mutate() },
+                ])
+              }
+            />
+          )}
         </>
       )}
     </Screen>

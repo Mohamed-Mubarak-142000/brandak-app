@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
-import { Info } from 'lucide-react-native';
-import { RefreshControl } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Info, LifeBuoy } from 'lucide-react-native';
+import { Alert, RefreshControl } from 'react-native';
 
 import { api, errorMessage } from '@/api/client';
 import { qk, useMyReturn } from '@/api/queries';
@@ -14,12 +14,13 @@ const NEXT_STEP: Partial<Record<ReturnRequest['status'], string>> = {
   REQUESTED: 'المتجر هيراجع طلبك ويرد عليك، وهيوصلك إشعار.',
   APPROVED: 'جهّز المنتجات بحالتها وتغليفها. المتجر هيتواصل معاك عشان يستلمها.',
   RECEIVED: 'المتجر استلم المنتجات، وهيرجعلك الفلوس قريب.',
-  REJECTED: 'لو شايف إن الرفض مش في محله، افتح شكوى من صفحة الطلب ودعم فاترينة هيراجعها.',
+  REJECTED: 'لو شايف إن الرفض مش في محله، افتح شكوى ودعم فاترينة هيراجعها.',
 };
 
 export default function ReturnScreen() {
   const t = useTheme();
   const qc = useQueryClient();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const q = useMyReturn(id);
   const r = q.data;
@@ -40,7 +41,19 @@ export default function ReturnScreen() {
       refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={t.c.brand} colors={[t.c.brand]} />}
       footer={
         r && (r.status === 'REQUESTED' || r.status === 'APPROVED') ? (
-          <Button label="إلغاء طلب الإرجاع" variant="secondary" loading={cancel.isPending} onPress={() => cancel.mutate()} />
+          <Button
+            label="إلغاء طلب الإرجاع"
+            variant="secondary"
+            loading={cancel.isPending}
+            onPress={() =>
+              Alert.alert('إلغاء طلب الإرجاع؟', 'هتحتاج تعمل طلب جديد لو غيّرت رأيك.', [
+                { text: 'رجوع', style: 'cancel' },
+                { text: 'إلغاء الطلب', style: 'destructive', onPress: () => cancel.mutate() },
+              ])
+            }
+          />
+        ) : r?.status === 'REJECTED' ? (
+          <Button label="افتح شكوى لدعم فاترينة" icon={LifeBuoy} variant="secondary" onPress={() => router.push({ pathname: '/support/new', params: { orderId: r.orderId } })} />
         ) : undefined
       }
     >

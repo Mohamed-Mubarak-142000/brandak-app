@@ -16,7 +16,7 @@ import { formatMoney } from '@/lib/format';
 import { latinDigits } from '@/lib/validation';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, Card, Chip, Divider, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField } from '@/ui';
+import { AppBar, Banner, Button, Card, Chip, Divider, Icon, Screen, Sheet, Skeleton, Tap, Text, TextField, toast } from '@/ui';
 
 export default function Checkout() {
   const t = useTheme();
@@ -34,7 +34,8 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [priceChanged, setPriceChanged] = useState<number | null>(null);
   // One key per checkout attempt: a retried tap (or a flaky network) never creates two orders.
-  const idemKey = useRef(Crypto.randomUUID());
+  const [firstKey] = useState(() => Crypto.randomUUID());
+  const idemKey = useRef(firstKey);
 
   const fallbackId = (addresses.data?.find((a) => a.isDefault) ?? addresses.data?.[0])?.id ?? null;
   const addressId = pickedId ?? fallbackId;
@@ -61,6 +62,10 @@ export default function Checkout() {
   const resale = resaleOn
     ? { customerName: resaleName.trim() || 'العميل', customerPhone: latinDigits(resalePhone).replace(/\s/g, '') || '01000000000', prices: Object.entries(prices).map(([variantId, price]) => ({ variantId, price })) }
     : undefined;
+  const openPrices = () => {
+    setDraftPrices(Object.fromEntries((cart.data?.items ?? []).map((l) => [l.variantId, String(prices[l.variantId] ?? l.unitPrice)])));
+    setPricesOpen(true);
+  };
   const where = isPickup && !resaleOn ? { fulfillment: 'PICKUP' as const } : { addressId };
   const extra = resaleOn ? { resale } : { usePoints: usePoints || undefined, couponCode: coupon ?? undefined };
   const ready = (isPickup && !resaleOn) || !!addressId;
@@ -82,7 +87,7 @@ export default function Checkout() {
           paymentMethod: 'COD',
           notes: notes.trim() || undefined,
           expectedTotal: quote.data?.grandTotal,
-          gift: gift && !resaleOn ? { message: giftMsg.trim() || undefined, hidePrices: true } : undefined,
+          gift: gift && !resaleOn && !isPickup ? { message: giftMsg.trim() || undefined, hidePrices: true } : undefined,
         },
         { 'Idempotency-Key': idemKey.current },
       ),
@@ -125,6 +130,7 @@ export default function Checkout() {
 
   return (
     <Screen
+      keyboard
       header={<AppBar title={cart.data ? `إتمام طلب ${cart.data.brand.name}` : 'إتمام الطلب'} />}
       footer={
         <View style={styles.footerRow}>
@@ -146,7 +152,7 @@ export default function Checkout() {
       }
     >
       {/* 1. Address (or pickup from the store) */}
-      <Step n={1} title={isPickup ? 'الاستلام من' : 'التوصيل لـ'}>
+      <Step n={1} title={isPickup && !resaleOn ? 'الاستلام من' : resaleOn ? 'التوصيل لعميلك' : 'التوصيل لـ'}>
         {canResell && (
           <View style={styles.choice}>
             <Chip label="طلب ليا" icon={User} selected={!resaleOn} onPress={() => setResaleMode(false)} />
@@ -223,8 +229,8 @@ export default function Checkout() {
             tone="danger"
             title={errorMessage(quote.error)}
             body={quote.error instanceof ApiError && quote.error.code === 'NOT_DELIVERABLE' ? 'اختار عنوان في محافظة تانية.' : undefined}
-            action="ارجع للسلة"
-            onAction={() => router.back()}
+            action={quote.error instanceof ApiError && quote.error.code.startsWith('RESALE') ? 'عدّل الأسعار' : 'ارجع للسلة'}
+            onAction={() => (quote.error instanceof ApiError && quote.error.code.startsWith('RESALE') ? openPrices() : router.back())}
           />
         ) : (
           <Card style={styles.gap}>
@@ -270,10 +276,7 @@ export default function Checkout() {
             label="أسعار البيع لعميلك"
             icon={HandCoins}
             variant="soft"
-            onPress={() => {
-              setDraftPrices(Object.fromEntries((cart.data?.items ?? []).map((l) => [l.variantId, String(prices[l.variantId] ?? l.unitPrice)])));
-              setPricesOpen(true);
-            }}
+            onPress={openPrices}
           />
         )}
         {ready && !resaleOn && !!q?.points?.balance && (
@@ -284,7 +287,11 @@ export default function Checkout() {
                 معاك {q.points.balance} نقطة
               </Text>
               <Text variant="meta" color="ink3">
-                {q.points.usable ? `استخدم ${q.points.usable} نقطة واخصم ${formatMoney(q.points.usableDiscount)}` : 'تقدر تستخدم النقاط من 100 نقطة'}
+                {q.points.usable
+                  ? `استخدم ${q.points.usable} نقطة واخصم ${formatMoney(q.points.usableDiscount)}`
+                  : q.points.balance >= 100
+                    ? 'الطلب صغير على استخدام النقاط (لحد 20% من قيمته)'
+                    : 'تقدر تستخدم النقاط من 100 نقطة'}
               </Text>
             </View>
             <Switch
@@ -353,7 +360,7 @@ export default function Checkout() {
       {/* 4. Notes */}
       <Step n={4} title="ملاحظات للمتجر">
         <TextField label="ملاحظات" optional multiline value={notes} onChangeText={setNotes} maxLength={300} placeholder="مثلاً: اتصل قبل ما توصل" />
-        {!resaleOn && (
+        {!resaleOn && !isPickup && (
           <View style={[styles.pointsRow, { borderColor: gift ? t.c.brand : t.c.line, borderRadius: t.radius.md, backgroundColor: t.c.surface }]}>
             <Icon as={Gift} color="accent" />
             <View style={styles.flex}>
@@ -367,7 +374,7 @@ export default function Checkout() {
             <Switch value={gift} onValueChange={setGift} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="ده هدية" />
           </View>
         )}
-        {gift && !resaleOn && <TextField label="كلام الكارت" optional multiline value={giftMsg} onChangeText={setGiftMsg} maxLength={300} placeholder="كل سنة وانت طيب ❤️" />}
+        {gift && !resaleOn && !isPickup && <TextField label="كلام الكارت" optional multiline value={giftMsg} onChangeText={setGiftMsg} maxLength={300} placeholder="كل سنة وانت طيب ❤️" />}
       </Step>
 
       {place.error && !(place.error instanceof ApiError && place.error.code === 'PRICE_CHANGED') && <Banner icon={CircleAlert} tone="danger" title={errorMessage(place.error)} />}
@@ -419,9 +426,15 @@ export default function Checkout() {
             label="تطبيق الأسعار"
             onPress={() => {
               const next: Record<string, number> = {};
-              for (const [v, s] of Object.entries(draftPrices)) {
-                const n = Number(latinDigits(s));
-                if (Number.isFinite(n) && n > 0) next[v] = n;
+              const markup = reseller.data?.joined ? reseller.data.maxMarkup : 1;
+              for (const l of cart.data?.items ?? []) {
+                const n = Number(latinDigits(draftPrices[l.variantId] ?? ''));
+                const max = Math.round(l.unitPrice * (1 + markup) * 100) / 100;
+                if (!Number.isFinite(n) || n < l.unitPrice || n > max) {
+                  toast.error(`سعر «${l.title}» لازم يكون بين ${formatMoney(l.unitPrice)} و${formatMoney(max)}`);
+                  return;
+                }
+                next[l.variantId] = n;
               }
               setPrices(next);
               setPricesOpen(false);

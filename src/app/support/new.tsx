@@ -53,7 +53,8 @@ export default function NewTicket() {
     },
   });
 
-  const valid = !!type && text.trim().length >= 5 && (!aboutOrder || !!orderId);
+  const subjectOk = !subject.trim() || subject.trim().length >= 3;
+  const valid = !!type && text.trim().length >= 5 && subjectOk && (!aboutOrder || !!orderId);
 
   return (
     <Screen header={<AppBar title="تذكرة جديدة" />} keyboard footer={<Button label="ابعت" disabled={!valid} loading={submit.isPending} onPress={() => submit.mutate()} />}>
@@ -85,7 +86,7 @@ export default function NewTicket() {
         </>
       )}
 
-      <TextField label="العنوان" optional value={subject} onChangeText={setSubject} maxLength={120} placeholder={type ? TICKET_TYPE_AR[type] : 'باختصار'} />
+      <TextField label="العنوان" optional value={subject} onChangeText={setSubject} maxLength={120} placeholder={type ? TICKET_TYPE_AR[type] : 'باختصار'} error={subjectOk ? undefined : '3 حروف على الأقل'} />
       <TextField label="احكيلنا اللي حصل" multiline value={text} onChangeText={setText} maxLength={2000} placeholder="كل ما التفاصيل أوضح، كل ما نحلها أسرع" />
       <Text variant="ui" color="ink2">
         صور (اختياري)

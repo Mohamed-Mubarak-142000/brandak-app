@@ -136,9 +136,14 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
         const [f] = await pickImages();
         if (!f) return null;
         setImages((xs) => [...xs, { url: f.uri, uploading: true }]);
-        const res = await uploadFile(f, 'PRODUCT_IMAGE');
-        setImages((xs) => xs.map((x) => (x.url === f.uri ? { fileId: res.id, url: res.url ?? f.uri } : x)));
-        fileId = res.id;
+        try {
+          const res = await uploadFile(f, 'PRODUCT_IMAGE');
+          setImages((xs) => xs.map((x) => (x.url === f.uri ? { fileId: res.id, url: res.url ?? f.uri } : x)));
+          fileId = res.id;
+        } catch (e) {
+          setImages((xs) => xs.filter((x) => x.url !== f.uri));
+          throw e;
+        }
       }
       return api.post<ProductDraft>('/brand/ai/product-draft', { imageFileId: fileId });
     },
@@ -234,7 +239,7 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     })),
     tags: tags
       .split(/[,،]/)
-      .map((x) => x.trim())
+      .map((x) => x.trim().slice(0, 30))
       .filter(Boolean)
       .slice(0, 20),
     status: publish ? 'ACTIVE' : 'DRAFT',
@@ -334,8 +339,8 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
                 </View>
               )}
               <View style={styles.imgActions}>
-                {i > 0 ? <IconButton icon={Star} label="اجعلها الغلاف" size={30} background="surface" onPress={() => makeCover(i)} /> : <View />}
-                <IconButton icon={X} label="حذف الصورة" size={30} background="surface" onPress={() => setImages((xs) => xs.filter((_, j) => j !== i))} />
+                {i > 0 ? <IconButton icon={Star} label="اجعلها الغلاف" size={36} background="surface" onPress={() => makeCover(i)} /> : <View />}
+                <IconButton icon={X} label="حذف الصورة" size={36} background="surface" onPress={() => setImages((xs) => xs.filter((_, j) => j !== i))} />
               </View>
               {i === 0 && (
                 <View style={[styles.coverTag, { backgroundColor: t.c.brand }]}>

@@ -61,6 +61,8 @@ export default function Points() {
       <Text variant="section">السجل</Text>
       {history.isLoading ? (
         <Skeleton height={80} />
+      ) : history.error ? (
+        <ErrorState error={history.error} onRetry={() => history.refetch()} />
       ) : !rows.length ? (
         <Text variant="ui" color="ink3">
           لسه مفيش حركة. أول طلب يتسلّم هيجيبلك نقاط.

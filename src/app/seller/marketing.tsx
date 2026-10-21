@@ -7,6 +7,7 @@ import { Share, StyleSheet, View } from 'react-native';
 import { api, API_BASE, errorMessage } from '@/api/client';
 import { useMyBrand } from '@/api/queries';
 import { haptic } from '@/lib/haptics';
+import { latinDigits } from '@/lib/validation';
 import { AppBar, Banner, Button, Card, Screen, Skeleton, Text, TextField, toast } from '@/ui';
 
 interface Tracking {
@@ -72,7 +73,7 @@ function PixelForm({ current, onSaved }: { current: Tracking; onSaved: (t: Track
   const save = useMutation({
     mutationFn: () =>
       api.put<Tracking>('/brand/tracking', {
-        metaPixelId: metaId.trim(),
+        metaPixelId: latinDigits(metaId).trim(),
         tiktokPixelId: ttId.trim(),
         // Empty token fields keep the saved token.
         metaAccessToken: metaToken.trim() || undefined,

@@ -1,11 +1,13 @@
 import { Redirect, Tabs, useSegments } from 'expo-router';
-import { LayoutDashboard, Package, ShoppingCart, Store } from 'lucide-react-native';
+import type { BottomTabBarProps } from 'expo-router/tabs';
+import { Inbox, LayoutDashboard, Package, ShoppingCart, Store } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { useMyBrand } from '@/api/queries';
 import { useMe } from '@/auth/use-auth';
 import { BrandStatusScreen } from '@/features/seller/brand-status';
+import { useSellerTodo } from '@/features/seller/todo-card';
 import { useTheme } from '@/theme';
 import { ErrorState, Skeleton, TabBar, type TabSpec } from '@/ui';
 
@@ -13,6 +15,7 @@ const TABS: TabSpec[] = [
   { name: 'index', label: 'نظرة عامة', icon: LayoutDashboard },
   { name: 'orders', label: 'الطلبات', icon: ShoppingCart },
   { name: 'products', label: 'المنتجات', icon: Package },
+  { name: 'inbox', label: 'العملاء', icon: Inbox },
   { name: 'store', label: 'المتجر', icon: Store },
 ];
 
@@ -38,12 +41,19 @@ export default function DeskLayout() {
   if (brand.data.status !== 'ACTIVE' && !onStore) return <BrandStatusScreen brand={brand.data} />;
 
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} tabs={TABS} />}>
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <DeskTabBar {...props} />}>
       {TABS.map((tab) => (
         <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.label }} />
       ))}
     </Tabs>
   );
+}
+
+/** Badges: new orders on «الطلبات», waiting complaints/returns/questions on «العملاء». */
+function DeskTabBar(props: BottomTabBarProps) {
+  const todo = useSellerTodo();
+  const d = todo.data;
+  return <TabBar {...props} tabs={TABS} badges={{ orders: d?.orders ?? 0, inbox: d ? d.complaints + d.returns + d.questions : 0 }} />;
 }
 
 const styles = StyleSheet.create({

@@ -1,11 +1,29 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { BadgeCheck, CircleX, CreditCard, Package, ShoppingBag, TriangleAlert, type LucideIcon } from 'lucide-react-native';
+import {
+  BadgeCheck,
+  BellRing,
+  CircleX,
+  Coins,
+  CreditCard,
+  HandCoins,
+  Megaphone,
+  MessageCircleQuestion,
+  Package,
+  ShieldAlert,
+  ShoppingBag,
+  Star,
+  TrendingDown,
+  TriangleAlert,
+  Undo2,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { api } from '@/api/client';
 import { flatPages, qk, useNotifications } from '@/api/queries';
 import type { AppNotification } from '@/api/types';
+import { useIsSeller } from '@/auth/use-auth';
 import { formatRelative } from '@/lib/format';
 import { useTheme, type Palette } from '@/theme';
 import { AppBar, EmptyState, ErrorState, Icon, Skeleton, Tap, Text } from '@/ui';
@@ -21,6 +39,26 @@ const ICON: Record<string, [LucideIcon, keyof Palette]> = {
   PAYMENT_REJECTED: [CreditCard, 'danger'],
   SUBSCRIPTION_EXPIRING: [TriangleAlert, 'warning'],
   SUBSCRIPTION_EXPIRED: [TriangleAlert, 'danger'],
+  PROTECTION_CASE: [ShieldAlert, 'danger'],
+  TICKET_ESCALATED: [ShieldAlert, 'warning'],
+  TICKET_REPLY: [ShieldAlert, 'accent'],
+  TICKET_RESOLVED: [ShieldAlert, 'success'],
+  RETURN_REQUESTED: [Undo2, 'warning'],
+  RETURN_UPDATED: [Undo2, 'accent'],
+  RETURN_CANCELLED: [Undo2, 'ink2'],
+  QUESTION_NEW: [MessageCircleQuestion, 'accent'],
+  QUESTION_ANSWERED: [MessageCircleQuestion, 'success'],
+  REVIEW_NEW: [Star, 'accent'],
+  REVIEW_REPLY: [Star, 'success'],
+  PRICE_DROP: [TrendingDown, 'success'],
+  BACK_IN_STOCK: [BellRing, 'success'],
+  FOLLOWED_NEW_PRODUCT: [ShoppingBag, 'accent'],
+  FOLLOWED_SALE: [ShoppingBag, 'danger'],
+  POINTS_EARNED: [Coins, 'success'],
+  RESELLER_PAID: [HandCoins, 'success'],
+  RESELLER_PAYOUT_REJECTED: [HandCoins, 'danger'],
+  AD_APPROVED: [Megaphone, 'success'],
+  AD_REJECTED: [Megaphone, 'danger'],
 };
 
 export default function Notifications() {
@@ -28,6 +66,7 @@ export default function Notifications() {
   const router = useRouter();
   const qc = useQueryClient();
   const q = useNotifications();
+  const seller = useIsSeller();
   const items = flatPages(q.data);
   const unread = q.data?.pages[0]?.meta.unread ?? 0;
 
@@ -42,6 +81,16 @@ export default function Notifications() {
     if (n.type === 'ORDER_PLACED' && d.orderId) router.push({ pathname: '/seller/orders/[id]', params: { id: d.orderId } });
     else if ((n.type === 'ORDER_STATUS_CHANGED' || n.type === 'ORDER_TRACKING') && d.orderId) router.push({ pathname: '/order/[id]', params: { id: d.orderId } });
     else if (n.type === 'CART_REMINDER') router.push('/(tabs)/cart');
+    // Tickets and returns reach both sides: the store's screens for store accounts.
+    else if (d.ticketId) router.push(seller ? { pathname: '/seller/complaints/[id]', params: { id: d.ticketId } } : { pathname: '/support/[id]', params: { id: d.ticketId } });
+    else if (d.returnId) router.push(seller ? { pathname: '/seller/returns/[id]', params: { id: d.returnId } } : { pathname: '/returns/[id]', params: { id: d.returnId } });
+    else if (n.type === 'QUESTION_NEW') router.push('/seller/questions');
+    else if (n.type === 'REVIEW_NEW') router.push('/seller/reviews');
+    else if (n.type.startsWith('AD_')) router.push('/seller/ads');
+    else if (n.type === 'WEEKLY_REPORT') router.push('/seller/insights');
+    else if (n.type.startsWith('POINTS')) router.push('/points');
+    else if (n.type.startsWith('RESELLER')) router.push('/reseller');
+    else if (d.productId) router.push({ pathname: '/product/[id]', params: { id: d.productId } });
     else if (n.type.startsWith('SETTLEMENT') || n.type.startsWith('PAYMENT') || n.type.startsWith('SUBSCRIPTION')) router.push('/seller/balance');
     else if (n.type.startsWith('BRAND')) router.push('/seller');
   };

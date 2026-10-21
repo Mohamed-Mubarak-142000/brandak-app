@@ -63,7 +63,7 @@ export default function NewReturn() {
       keyboard
       footer={
         elig.data?.open ? (
-          <Button label={picked.length ? `ابعت طلب الإرجاع · ${formatMoney(total)}` : 'اختار المنتجات'} disabled={!valid} loading={submit.isPending} onPress={() => submit.mutate()} />
+          <Button label={picked.length ? `ابعت طلب الإرجاع · منتجات بـ ${formatMoney(total)}` : 'اختار المنتجات'} disabled={!valid} loading={submit.isPending} onPress={() => submit.mutate()} />
         ) : undefined
       }
     >

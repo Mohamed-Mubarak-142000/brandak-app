@@ -226,14 +226,17 @@ export const usePlatformTerms = () =>
   useQuery({ queryKey: qk.terms, queryFn: () => api.get<CommissionTerms>('/platform/terms'), staleTime: 10 * 60_000 });
 export const useMySubscriptions = () => useQuery({ queryKey: qk.mySubs, queryFn: () => api.get<MySubscriptions>('/brand/subscriptions/me') });
 export function useOverview(days: number) {
-  const to = new Date();
-  const from = new Date(to.getTime() - days * 86_400_000);
   return useQuery({
     queryKey: qk.overview(days),
-    queryFn: () => api.get<BrandOverview>('/brand/analytics/overview', { from: from.toISOString(), to: to.toISOString() }),
+    // Dates are taken when fetching (not during render), so a refetch covers "now".
+    queryFn: () => {
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 86_400_000);
+      return api.get<BrandOverview>('/brand/analytics/overview', { from: from.toISOString(), to: to.toISOString() });
+    },
   });
 }
-export const useSellerProducts = (q: Query) => usePaged<BrandProduct>(qk.sellerProducts(q), '/brand/products', q);
+export const useSellerProducts = (q: Query, limit = 20) => usePaged<BrandProduct>(qk.sellerProducts({ ...q, limit }), '/brand/products', q, true, limit);
 export const useSellerProduct = (id?: string) =>
   useQuery({ queryKey: qk.sellerProduct(id ?? 'new'), queryFn: () => api.get<BrandProduct>(`/brand/products/${id}`), enabled: !!id });
 export const useSellerOrders = (q: Query) => usePaged<OrderSummary>(qk.sellerOrders(q), '/brand/orders', q);

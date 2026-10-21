@@ -48,6 +48,20 @@ export default function Explore() {
       setStores((s) => ({ ...s, storeType: params.storeType }));
     }
   }
+  // Same for links that pick a tab ("all stores") or a sort ("best sellers", "newest").
+  const [linkedTab, setLinkedTab] = useState(params.tab);
+  if (params.tab !== linkedTab) {
+    setLinkedTab(params.tab);
+    if (params.tab) setTab(params.tab);
+  }
+  const [linkedSort, setLinkedSort] = useState(params.sort);
+  if (params.sort !== linkedSort) {
+    setLinkedSort(params.sort);
+    if (params.sort) {
+      setTab('products');
+      setProducts((p) => ({ ...p, sort: params.sort }));
+    }
+  }
 
   const [open, setOpen] = useState(false);
   // A fresh key per opening resets each sheet's draft to the applied filters.

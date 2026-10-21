@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { Ban, CircleCheck, Gift, HandCoins, PackageCheck, PackageX, ShieldAlert, ShieldCheck, Truck, User } from 'lucide-react-native';
+import { Ban, CircleCheck, Gift, HandCoins, PackageCheck, ShieldAlert, ShieldCheck, Truck, User, MoreHorizontal } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -12,7 +12,7 @@ import { OrderTimeline } from '@/features/orders/timeline';
 import { formatDateTime, formatMoney, formatPhone } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
-import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Tap, Text, TextField, toast, Banner } from '@/ui';
+import { AppBar, Button, Card, Chip, ErrorState, Icon, Screen, Sheet, Skeleton, StatusPill, Tap, Text, TextField, toast, Banner, IconButton } from '@/ui';
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { label: string; icon: typeof Truck }>> = {
   CONFIRMED: { label: 'تأكيد الطلب', icon: CircleCheck },
@@ -78,18 +78,29 @@ export default function SellerOrder() {
       footer={
         o && (next || canCancel || canRefuse) ? (
           <View style={styles.footer}>
-            {canCancel && <Button label="إلغاء" variant="secondary" block={false} onPress={() => setCancelOpen(true)} />}
-            {canRefuse && (
-              <Button
-                label="رفض الاستلام"
-                icon={PackageX}
-                variant="secondary"
-                block={false}
-                loading={move.isPending}
+            {/* Rare actions live behind "⋯" so the next step keeps a full-width button. */}
+            {(canCancel || canRefuse) && (
+              <IconButton
+                icon={MoreHorizontal}
+                label="خيارات تانية"
+                background="surface"
                 onPress={() =>
-                  Alert.alert('العميل رفض الاستلام؟', 'المخزون هيرجع، ومفيش عمولة على الطلب ده، وده هيتسجل في سجل العميل.', [
-                    { text: 'رجوع', style: 'cancel' },
-                    { text: 'أيوه، رفض', style: 'destructive', onPress: () => move.mutate({ status: 'REFUSED' }) },
+                  Alert.alert('خيارات الطلب', undefined, [
+                    ...(canRefuse
+                      ? [
+                          {
+                            text: 'العميل رفض الاستلام',
+                            style: 'destructive' as const,
+                            onPress: () =>
+                              Alert.alert('العميل رفض الاستلام؟', 'المخزون هيرجع، ومفيش عمولة على الطلب ده، وده هيتسجل في سجل العميل.', [
+                                { text: 'رجوع', style: 'cancel' },
+                                { text: 'أيوه، رفض', style: 'destructive', onPress: () => move.mutate({ status: 'REFUSED' }) },
+                              ]),
+                          },
+                        ]
+                      : []),
+                    ...(canCancel ? [{ text: 'إلغاء الطلب', style: 'destructive' as const, onPress: () => setCancelOpen(true) }] : []),
+                    { text: 'رجوع', style: 'cancel' as const },
                   ])
                 }
               />
@@ -241,7 +252,7 @@ export default function SellerOrder() {
         title="شحن الطلب"
         footer={
           <View style={styles.footer}>
-            <Button label="من غير رقم شحنة" variant="secondary" block={false} onPress={() => move.mutate({ status: 'SHIPPED' })} />
+            <Button label="من غير رقم شحنة" variant="secondary" block={false} disabled={move.isPending} onPress={() => move.mutate({ status: 'SHIPPED' })} />
             <Button
               label="تم الشحن"
               icon={Truck}
@@ -279,7 +290,7 @@ export default function SellerOrder() {
           <Button
             label="تأكيد الإلغاء"
             variant="danger"
-            disabled={!note.trim()}
+            disabled={note.trim().length < 3}
             loading={move.isPending}
             onPress={() => move.mutate({ status: 'CANCELLED', note: note.trim() })}
           />

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { useUnreadCount } from '@/api/queries';
+import { usePoints, useUnreadCount } from '@/api/queries';
 import { useSession } from '@/auth/session';
 import { signOut, useMe } from '@/auth/use-auth';
 import { MenuGroup, MenuRow } from '@/features/account/menu-row';
@@ -45,6 +45,7 @@ export default function Account() {
   const authed = useSession((s) => s.status === 'authed');
   const me = useMe();
   const unread = useUnreadCount();
+  const points = usePoints();
   const mode = useThemeMode((s) => s.mode);
   const u = me.data;
 
@@ -135,17 +136,24 @@ export default function Account() {
       </Tap>
 
       {authed && (
-        <MenuGroup title="التسوق">
-          <MenuRow icon={Heart} label="المفضلة" onPress={() => router.push('/wishlist')} />
-          <MenuRow icon={Coins} label="نقاطي" onPress={() => router.push('/points')} />
-          <MenuRow icon={HandCoins} label="بيع واكسب (مسوّق)" onPress={() => router.push('/reseller')} />
-          <MenuRow icon={UserCheck} label="متاجر بتابعها" onPress={() => router.push('/following')} />
-          <MenuRow icon={BellRing} label="تنبيهات الأسعار والمقاسات" onPress={() => router.push('/alerts')} />
-          <MenuRow icon={MapPin} label="عناويني" onPress={() => router.push('/addresses')} />
-          <MenuRow icon={Bell} label="الإشعارات" value={unread.data ? `${unread.data} جديد` : undefined} onPress={() => router.push('/notifications')} />
-          <MenuRow icon={MessageSquareText} label="تقييماتي" onPress={() => router.push('/my-reviews')} />
-          <MenuRow icon={Undo2} label="مرتجعاتي" onPress={() => router.push('/returns')} last />
-        </MenuGroup>
+        <>
+          <MenuGroup title="طلباتي والمساعدة">
+            <MenuRow icon={Bell} label="الإشعارات" value={unread.data ? `${unread.data} جديد` : undefined} onPress={() => router.push('/notifications')} />
+            <MenuRow icon={Undo2} label="مرتجعاتي" onPress={() => router.push('/returns')} />
+            <MenuRow icon={LifeBuoy} label="الدعم والشكاوى" onPress={() => router.push('/support')} />
+            <MenuRow icon={MessageSquareText} label="تقييماتي" onPress={() => router.push('/my-reviews')} last />
+          </MenuGroup>
+          <MenuGroup title="حاجاتي">
+            <MenuRow icon={Heart} label="المفضلة" onPress={() => router.push('/wishlist')} />
+            <MenuRow icon={UserCheck} label="متاجر بتابعها" onPress={() => router.push('/following')} />
+            <MenuRow icon={BellRing} label="تنبيهات الأسعار والمقاسات" onPress={() => router.push('/alerts')} />
+            <MenuRow icon={MapPin} label="عناويني" onPress={() => router.push('/addresses')} last />
+          </MenuGroup>
+          <MenuGroup title="اكسب مع فاترينة">
+            <MenuRow icon={Coins} label="نقاطي" value={points.data?.balance ? `${points.data.balance} نقطة` : undefined} onPress={() => router.push('/points')} />
+            <MenuRow icon={HandCoins} label="بيع واكسب (مسوّق)" onPress={() => router.push('/reseller')} last />
+          </MenuGroup>
+        </>
       )}
 
       <MenuGroup title="الإعدادات">
@@ -155,7 +163,6 @@ export default function Account() {
       </MenuGroup>
 
       <MenuGroup title="المساعدة">
-        {authed && <MenuRow icon={LifeBuoy} label="الدعم والشكاوى" onPress={() => router.push('/support')} />}
         <MenuRow icon={CircleHelp} label="الأسئلة الشائعة" onPress={() => router.push('/faq')} />
         <MenuRow icon={Info} label="من نحن" onPress={() => router.push('/about')} />
         <MenuRow icon={FileText} label="الشروط والأحكام" onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })} />

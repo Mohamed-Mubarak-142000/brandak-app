@@ -73,7 +73,7 @@ export default function SellerReturn() {
         <>
           <Text variant="bodyStrong">{r.customerName}</Text>
           {r.status === 'REFUNDED' && r.commissionReversed > 0 && (
-            <Banner icon={Info} tone="success" title={`رجعلك ${formatMoney(r.commissionReversed)} من العمولة`} body="اتخصمت من حسابك مع فاترينة." />
+            <Banner icon={Info} tone="success" title={`رجعلك ${formatMoney(r.commissionReversed)} من العمولة`} body="اتخصمت من المستحق عليك لفاترينة." />
           )}
           <ReturnDetails r={r} />
           <Button label="فتح الطلب" variant="secondary" onPress={() => router.push({ pathname: '/seller/orders/[id]', params: { id: r.orderId } })} />
@@ -82,7 +82,10 @@ export default function SellerReturn() {
 
       <Sheet
         open={!!c}
-        onClose={() => setAction(null)}
+        onClose={() => {
+          setAction(null);
+          setNote('');
+        }}
         title={c?.title ?? ''}
         footer={
           <Button

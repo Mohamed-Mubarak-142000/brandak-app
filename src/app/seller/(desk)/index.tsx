@@ -7,6 +7,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useCommission, useMyBrand, useOverview } from '@/api/queries';
 import { DeskHeader } from '@/features/seller/desk-header';
 import { SalesChart } from '@/features/seller/sales-chart';
+import { TodoCard, useSellerTodo } from '@/features/seller/todo-card';
 import { formatDate, formatMoney } from '@/lib/format';
 import { useTheme } from '@/theme';
 import { Banner, Button, Card, Chip, ErrorState, Icon, IconButton, SectionHeader, Skeleton, Tap, Text } from '@/ui';
@@ -24,6 +25,7 @@ export default function Overview() {
 
   const c = commission.data;
   const [now] = useState(() => Date.now());
+  const todo = useSellerTodo();
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
@@ -40,6 +42,7 @@ export default function Overview() {
             onRefresh={() => {
               q.refetch();
               commission.refetch();
+              todo.refetch();
             }}
             tintColor={t.c.brand}
             colors={[t.c.brand]}
@@ -67,6 +70,8 @@ export default function Overview() {
           />
         ) : null}
 
+        <TodoCard />
+
         <View style={styles.ranges}>
           {RANGES.map((d) => (
             <Chip key={d} label={`آخر ${d} يوم`} selected={days === d} onPress={() => setDays(d)} />
@@ -87,7 +92,7 @@ export default function Overview() {
               <Kpi label="المبيعات" value={formatMoney(o.salesValue)} change={o.salesChangePct} />
               <Kpi label="الطلبات" value={String(o.orders.count)} change={o.orders.changePct} />
               <Kpi label="متوسط الطلب" value={formatMoney(o.averageOrderValue)} />
-              <Kpi label="محتاجة تأكيد" value={String(o.orders.pendingNow)} highlight={o.orders.pendingNow > 0} onPress={() => router.push('/seller/orders')} />
+              <Kpi label="محتاجة تأكيد" value={String(o.orders.pendingNow)} highlight={o.orders.pendingNow > 0} onPress={() => router.push({ pathname: '/seller/orders', params: { status: 'PENDING' } })} />
             </View>
 
             <Card>

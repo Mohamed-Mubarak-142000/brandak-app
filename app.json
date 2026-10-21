@@ -24,12 +24,13 @@
     "android": {
       "package": "app.dakakeen",
       "adaptiveIcon": {
-        "backgroundColor": "#FEFCF7",
-        "foregroundImage": "./assets/brand/fatrina-mark.png",
-        "monochromeImage": "./assets/brand/fatrina-mark.png"
+        "backgroundColor": "#F16B21",
+        "foregroundImage": "./assets/brand/fatrina-adaptive.png",
+        "monochromeImage": "./assets/brand/fatrina-adaptive.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
+      "permissions": [],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -66,7 +67,8 @@
         "expo-image-picker",
         {
           "photosPermission": "فاترينة محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
-          "cameraPermission": "فاترينة محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل."
+          "cameraPermission": "فاترينة محتاج الكاميرا عشان تصوّر المنتجات أو إيصال التحويل.",
+          "microphonePermission": false
         }
       ]
     ],

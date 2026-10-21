@@ -49,7 +49,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
         brand.status === 'REJECTED' ? (
           <View style={styles.gap}>
             <Button label="ابعت للمراجعة تاني" loading={resubmit.isPending} onPress={() => resubmit.mutate()} />
-            <Button label="تعديل بيانات المتجر" icon={Pencil} variant="secondary" onPress={() => router.push('/seller/store')} />
+            <Button label="تعديل بيانات المتجر" icon={Pencil} variant="secondary" onPress={() => router.push('/seller/store-settings')} />
           </View>
         ) : (
           <Button label="رجوع للتسوق" variant="secondary" onPress={() => router.replace('/(tabs)')} />
@@ -67,7 +67,7 @@ export function BrandStatusScreen({ brand }: { brand: OwnerBrand }) {
       </View>
       {brand.statusReason && brand.status !== 'PENDING_REVIEW' && <Banner icon={CircleAlert} tone="warning" title="ملاحظة فريق المراجعة" body={brand.statusReason} />}
       {brand.status === 'PENDING_REVIEW' && (
-        <Banner icon={Pencil} title="ممكن تجهّز وقتك" body="أثناء المراجعة تقدر تعدّل بيانات المتجر وإعدادات الشحن." action="تعديل" onAction={() => router.push('/seller/store')} />
+        <Banner icon={Pencil} title="ممكن تجهّز وقتك" body="أثناء المراجعة تقدر تعدّل بيانات المتجر وإعدادات الشحن." action="تعديل" onAction={() => router.push('/seller/store-settings')} />
       )}
     </Screen>
   );

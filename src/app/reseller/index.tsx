@@ -70,7 +70,7 @@ export default function Reseller() {
             title="بيع منتجات المتاجر بسعرك"
             body="اختار منتجات من متاجر بتشتغل مع المسوّقين، اعرضها على صفحتك بسعرك. لما عميلك يطلب، اطلبله من التطبيق بسعرك وعنوانه. المتجر بيشحن ويحصّل، وفاترينة بتحوّلك الفرق بعد التوصيل."
           />
-          <TextField label="عنوان InstaPay أو رقم المحفظة" value={address} onChangeText={setAddress} autoCapitalize="none" ltr placeholder="name@instapay" />
+          <TextField label="عنوان InstaPay أو رقم المحفظة" value={address} onChangeText={setAddress} autoCapitalize="none" ltr placeholder="name@instapay" maxLength={80} />
           <TextField label="الاسم على الحساب" value={name} onChangeText={setName} maxLength={80} />
           <Button label="ابدأ كمسوّق" loading={join.isPending} disabled={address.trim().length < 4 || name.trim().length < 2} onPress={() => join.mutate()} />
         </>

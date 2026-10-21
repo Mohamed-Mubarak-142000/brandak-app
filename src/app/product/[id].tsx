@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api, errorMessage } from '@/api/client';
-import { flatPages, useBrand, useCartMutations, useProduct, useReviews } from '@/api/queries';
+import { flatPages, useBrand, useCart, useCartMutations, useProduct, useReviews } from '@/api/queries';
 import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
 import { Countdown } from '@/features/catalog/countdown';
@@ -37,13 +37,15 @@ export default function ProductScreen() {
   const brand = useBrand(p?.brand.slug ?? '');
   const reviews = useReviews(id);
   const cart = useCartMutations(p?.brand.id ?? '');
+  const brandCart = useCart(p?.brand.id ?? '', !!p?.wholesale);
   const requireAuth = useRequireAuth();
   // Store accounts only preview products; they cannot buy.
   const seller = useIsSeller();
 
   const [size, setSize] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
-  const [qty, setQty] = useState(1);
+  // null until the customer touches the stepper (then a wholesale product starts at its minimum).
+  const [pickedQty, setQty] = useState<number | null>(null);
   const [missing, setMissing] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [allReviews, setAllReviews] = useState(false);
@@ -63,16 +65,20 @@ export default function ProductScreen() {
     );
 
   const minQty = p.wholesale?.minQty ?? 1;
+  // The minimum counts every size together, including what's already in the cart.
+  const inCart = (brandCart.data?.items ?? []).filter((i) => i.productId === p.id).reduce((n, i) => n + i.quantity, 0);
+  const stillNeeded = Math.max(0, minQty - inCart);
+  const qty = pickedQty ?? Math.max(1, stillNeeded);
   // Wholesale: the best tier the chosen quantity reaches (all sizes together at checkout).
-  const tier = [...(p.wholesale?.tiers ?? [])].reverse().find((x) => qty >= x.minQty);
+  const tier = [...(p.wholesale?.tiers ?? [])].reverse().find((x) => qty + inCart >= x.minQty);
   const regular = v?.price ?? p.price;
   const price = tier && tier.price < regular ? tier.price : regular;
-  const max = Math.max(minQty, Math.min(v?.available ?? 20, p.wholesale ? 1000 : 20));
+  const max = Math.max(1, Math.min(v?.available ?? 20, p.wholesale ? 1000 : 20));
   const shipping = brand.data?.shipping;
   const reviewItems = flatPages(reviews.data);
   const totalReviews = reviews.data?.pages[0]?.meta.total ?? 0;
 
-  const total = price * Math.max(minQty, Math.min(qty, max));
+  const total = price * Math.min(qty, max);
   // Picking a colour shows that colour's photos (the gallery restarts at its first one).
   const gallery = imagesForColor(p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : [], p.images.length ? p.imageColors : undefined, color);
   const soldOut = !p.inStock || (!!v && !v.inStock);
@@ -86,7 +92,7 @@ export default function ProductScreen() {
         return;
       }
       cart.add.mutate(
-        { productId: p.id, variantId: v.id, quantity: Math.max(minQty, Math.min(qty, max)) },
+        { productId: p.id, variantId: v.id, quantity: Math.min(qty, max) },
         {
           onSuccess: () => {
             haptic.success();
@@ -129,7 +135,7 @@ export default function ProductScreen() {
                 </Text>
                 <Rating value={p.ratingAvg} count={p.ratingCount} />
               </View>
-              {p.inStock && <QuantityStepper value={Math.max(minQty, Math.min(qty, max))} onChange={setQty} min={minQty} max={max} compact />}
+              {p.inStock && <QuantityStepper value={Math.min(qty, max)} onChange={setQty} min={1} max={max} compact />}
             </View>
 
             <View style={styles.priceRow}>
@@ -163,6 +169,13 @@ export default function ProductScreen() {
             />
 
             {p.wholesale && <WholesaleTable wholesale={p.wholesale} price={regular} />}
+            {p.wholesale && minQty > 1 && (
+              <Text variant="meta" color={inCart + qty >= minQty ? 'success' : 'warning'}>
+                {inCart + qty >= minQty
+                  ? `وصلت لأقل طلب (${minQty} قطعة)`
+                  : `أقل طلب ${minQty} قطعة من كل المقاسات مع بعض${inCart ? `، في سلتك ${inCart}` : ''}. ضيف ${minQty - inCart - qty} كمان.`}
+              </Text>
+            )}
             {!seller && <ProductAlerts productId={p.id} variantId={v?.id ?? null} soldOut={soldOut} />}
 
             {!!p.description && (

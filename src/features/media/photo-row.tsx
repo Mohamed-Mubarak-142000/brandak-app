@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { ImagePlus, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { errorMessage } from '@/api/client';
@@ -29,17 +29,23 @@ export function PhotoRow({
 }) {
   const t = useTheme();
   const [busy, setBusy] = useState(0);
+  // Photos removed while others upload must stay removed: merge into the latest value.
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
 
   const add = async () => {
-    const files = await pickImages({ multiple: true, limit: max - value.length });
+    const picked = await pickImages({ multiple: true, limit: max - value.length });
+    // Some Android pickers ignore the limit.
+    const files = picked.slice(0, max - value.length - busy);
     if (!files.length) return;
-    setBusy(files.length);
-    let next = value;
-    for (const file of files.slice(0, max - value.length)) {
+    setBusy((b) => b + files.length);
+    for (const file of files) {
       try {
         const res = await uploadFile(file, purpose);
-        next = [...next, { fileId: res.id, url: res.url, localUri: file.uri }];
-        onChange(next);
+        latest.current = [...latest.current, { fileId: res.id, url: res.url, localUri: file.uri }];
+        onChange(latest.current);
       } catch (e) {
         toast.error(errorMessage(e));
       } finally {

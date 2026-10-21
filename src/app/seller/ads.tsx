@@ -32,7 +32,8 @@ export default function SellerAds() {
   const qc = useQueryClient();
   const ads = useSellerAds();
   const prices = useAdPrices();
-  const products = useSellerProducts({ status: 'ACTIVE' });
+  // Up to 100 published products to choose from (the Select searches them).
+  const products = useSellerProducts({ status: 'ACTIVE' }, 100);
   const items = flatPages(ads.data);
   const productOptions = flatPages(products.data).map((p) => ({ value: p._id, label: p.title }));
 
@@ -108,7 +109,16 @@ export default function SellerAds() {
       )}
 
       <Sheet open={open} onClose={() => setOpen(false)} title="إعلان جديد" footer={<Button label={`إرسال الطلب · ${formatMoney(price)}`} loading={buy.isPending} onPress={submit} />}>
-        <Select label="المنتج" placeholder="اختار منتج منشور" value={productId} options={productOptions} onChange={setProductId} error={errors.product} />
+        {products.isSuccess && !productOptions.length ? (
+          <Banner icon={Megaphone} tone="warning" title="انشر منتج الأول" body="الإعلان بيكون لمنتج منشور في متجرك." />
+        ) : (
+          <Select label="المنتج" placeholder="اختار منتج منشور" value={productId} options={productOptions} onChange={setProductId} error={errors.product} />
+        )}
+        {!!price && (
+          <Text variant="meta" color="ink2">
+            {weeks} أسبوع × {formatMoney(price / weeks)} = {formatMoney(price)}
+          </Text>
+        )}
         <Text variant="ui" color="ink2">
           المكان
         </Text>

@@ -6,7 +6,7 @@ import { RefreshControl } from 'react-native';
 import { flatPages, useMyTickets } from '@/api/queries';
 import { TicketCard } from '@/features/support/ticket-view';
 import { useTheme } from '@/theme';
-import { AppBar, Banner, Button, EmptyState, ErrorState, IconButton, Screen, Skeleton } from '@/ui';
+import { AppBar, Banner, Button, EmptyState, ErrorState, Screen, Skeleton } from '@/ui';
 
 /** The customer's tickets with Fatrina support and buyer-protection cases. */
 export default function Support() {
@@ -18,7 +18,7 @@ export default function Support() {
 
   return (
     <Screen
-      header={<AppBar title="الدعم والشكاوى" end={<IconButton icon={LifeBuoy} label="تذكرة جديدة" background="accent" color="onAccent" onPress={() => router.push('/support/new')} />} />}
+      header={<AppBar title="الدعم والشكاوى" end={<Button label="تذكرة جديدة" icon={LifeBuoy} size="sm" block={false} onPress={() => router.push('/support/new')} />} />}
       refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={t.c.brand} colors={[t.c.brand]} />}
     >
       <Banner icon={ShieldCheck} title="حماية فاترينة" body="لو طلبك موصلش أو طلع مختلف عن الصور، افتح شكوى. المتجر قدامه 48 ساعة يرد، وبعدها إحنا بنحكم." />

@@ -46,6 +46,7 @@ export default function Insights() {
         />
       }
     >
+      {week.error && <ErrorState error={week.error} onRetry={() => week.refetch()} />}
       {w && (
         <Card style={styles.gap}>
           <Text variant="bodyStrong">آخر 7 أيام</Text>

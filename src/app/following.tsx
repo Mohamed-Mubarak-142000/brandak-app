@@ -49,7 +49,11 @@ export default function Following() {
         }}
         header={header}
         empty={
-          <EmptyState art="heart" title="لسه مش متابع متاجر" body="افتح أي متجر عجبك ودوس «تابع المتجر» عشان يوصلك جديده وعروضه." action="اكتشف المتاجر" onAction={() => router.push({ pathname: '/explore', params: { tab: 'brands' } })} />
+          brands.data?.length ? (
+            <EmptyState art="box" title="لسه مفيش منتجات جديدة" body="أول ما المتاجر اللي بتتابعها تنزّل منتجات، هتلاقيها هنا." />
+          ) : (
+            <EmptyState art="heart" title="لسه مش متابع متاجر" body="افتح أي متجر عجبك ودوس «تابع المتجر» عشان يوصلك جديده وعروضه." action="اكتشف المتاجر" onAction={() => router.push({ pathname: '/explore', params: { tab: 'brands' } })} />
+          )
         }
       />
     </View>
