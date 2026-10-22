@@ -118,41 +118,55 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const ai = useAiStatus(!id);
 
   /** Fills the form from the model's suggestion; the seller reviews before saving. */
+  /** Fills every field from the model's suggestion; the seller reviews before saving. */
   const applyDraft = (d: ProductDraft) => {
     if (d.title) setTitle(d.title);
     if (d.description) setDescription(d.description);
     if (d.categoryId) setCategoryId(d.categoryId);
     if (d.tags.length) setTags(d.tags.join('، '));
+    // A suggested market price only fills an empty price; the seller's own price wins.
+    if (d.suggestedPrice && !num(price)) setPrice(String(d.suggestedPrice));
     const sizes = d.sizes.length ? d.sizes : [''];
     const colors = d.colors.length ? d.colors : [''];
-    if (sizes.length * colors.length > 1 || sizes[0] || colors[0]) {
-      setVariants(sizes.flatMap((size) => colors.map((color) => ({ ...newVariant(), size, color }))).slice(0, 30));
-    }
+    setVariants((current) => {
+      // Keep stock the seller already typed for the same size/colour; start new ones at 10.
+      const known = new Map(current.map((v) => [`${v.size.trim()}|${v.color.trim()}`, v]));
+      return sizes
+        .flatMap((size) => colors.map((color) => known.get(`${size}|${color}`) ?? { ...newVariant(), size, color, stock: '10' }))
+        .slice(0, 30);
+    });
   };
   const draft = useMutation({
     mutationFn: async () => {
-      let fileId = images.find((i) => i.fileId)?.fileId;
-      if (!fileId) {
-        const [f] = await pickImages();
-        if (!f) return null;
-        setImages((xs) => [...xs, { url: f.uri, uploading: true }]);
-        try {
-          const res = await uploadFile(f, 'PRODUCT_IMAGE');
-          setImages((xs) => xs.map((x) => (x.url === f.uri ? { fileId: res.id, url: res.url ?? f.uri } : x)));
-          fileId = res.id;
-        } catch (e) {
-          setImages((xs) => xs.filter((x) => x.url !== f.uri));
-          throw e;
-        }
+      let fileIds = images.filter((i) => i.fileId).map((i) => i.fileId!);
+      if (!fileIds.length) {
+        // No photos yet: pick up to 3 of the same product (more angles = a better description).
+        const picked = await pickImages({ multiple: true, limit: 3 });
+        if (!picked.length) return null;
+        setImages((xs) => [...xs, ...picked.map((f) => ({ url: f.uri, uploading: true }))]);
+        const uploaded = await Promise.all(
+          picked.map(async (f) => {
+            try {
+              const res = await uploadFile(f, 'PRODUCT_IMAGE');
+              setImages((xs) => xs.map((x) => (x.url === f.uri ? { fileId: res.id, url: res.url ?? f.uri } : x)));
+              return res.id;
+            } catch {
+              setImages((xs) => xs.filter((x) => x.url !== f.uri));
+              return null;
+            }
+          }),
+        );
+        fileIds = uploaded.filter((x): x is string => !!x);
+        if (!fileIds.length) throw new ApiError(0, 'UPLOAD_FAILED', 'تعذّر رفع الصور. تأكد من الاتصال وجرّب تاني');
       }
-      return api.post<ProductDraft>('/brand/ai/product-draft', { imageFileId: fileId });
+      return api.post<ProductDraft>('/brand/ai/product-draft', { imageFileIds: fileIds.slice(0, 3) });
     },
     onSuccess: (d) => {
       if (!d) return;
       haptic.success();
       applyDraft(d);
       qc.invalidateQueries({ queryKey: ['seller', 'ai'] });
-      toast.success('البيانات جاهزة، راجعها واكتب السعر والمخزون');
+      toast.success(d.suggestedPrice ? 'كل البيانات اتملت، راجع السعر والمخزون قبل النشر' : 'البيانات اتملت، اكتب السعر وراجع المخزون');
     },
     onError: (e) => {
       haptic.error();
@@ -309,11 +323,22 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
             <View style={styles.flex}>
               <Text variant="bodyStrong">اعمل المنتج من صورة</Text>
               <Text variant="meta" color="ink3">
-                ارفع صورة والذكاء الاصطناعي يكتبلك الاسم والوصف والقسم والمقاسات. باقي النهارده {ai.data.remaining}.
+                صوّر المنتج (لحد 3 صور من زوايا مختلفة) والذكاء الاصطناعي يملالك كل البيانات: الاسم، الوصف، القسم، المقاسات والألوان، كلمات البحث، وسعر مقترح. انت بس تراجع. باقي النهارده {ai.data.remaining}.
               </Text>
             </View>
           </View>
-          <Button label={images.length ? 'املا البيانات من أول صورة' : 'اختار صورة'} icon={Sparkles} variant="soft" loading={draft.isPending} disabled={!ai.data.remaining || images.some((i) => i.uploading)} onPress={() => draft.mutate()} />
+          <Button
+            label={images.length ? 'املا كل البيانات من الصور' : 'اختار صور المنتج'}
+            icon={Sparkles}
+            loading={draft.isPending}
+            disabled={!ai.data.remaining || images.some((i) => i.uploading)}
+            onPress={() => draft.mutate()}
+          />
+          {draft.isPending && (
+            <Text variant="meta" color="ink3" align="center">
+              بنقرا الصور ونكتب البيانات... ممكن ياخد لحد نص دقيقة
+            </Text>
+          )}
         </Card>
       )}
 

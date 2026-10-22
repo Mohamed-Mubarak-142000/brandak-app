@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Fatrina",
+    "name": "فاترينة",
     "slug": "brandak",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FEFCF7",
     "ios": {
-      "bundleIdentifier": "app.dakakeen",
+      "bundleIdentifier": "app.fatrina",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "فاترينة محتاج يوصل لصورك عشان ترفع صور المنتجات ولوجو المتجر وإيصال التحويل.",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "app.dakakeen",
+      "package": "app.fatrina",
       "adaptiveIcon": {
         "backgroundColor": "#F16B21",
         "foregroundImage": "./assets/brand/fatrina-adaptive.png",

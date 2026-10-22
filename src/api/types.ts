@@ -488,6 +488,8 @@ export interface ProductDraft {
   colors: string[];
   sizes: string[];
   tags: string[];
+  /** Rough market price in EGP; null when the model couldn't tell. Missing on old API versions. */
+  suggestedPrice?: number | null;
 }
 export interface BrandProduct {
   _id: string;

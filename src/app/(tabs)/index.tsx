@@ -176,16 +176,16 @@ export default function Home() {
           </View>
 
           {interests.length > 0 && (
-            <ProductRail title="مختارات على ذوقك" query={forYou} width={cardW * 0.85} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
+            <ProductRail title="مختارات على ذوقك" query={forYou} width={cardW} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
           )}
 
           {flatPages(following.data).length > 0 && (
-            <ProductRail title="من متاجر بتتابعها" query={following} width={cardW * 0.85} onMore={() => router.push('/following')} />
+            <ProductRail title="من متاجر بتتابعها" query={following} width={cardW} onMore={() => router.push('/following')} />
           )}
-          {!!sponsored.data?.length && <FeaturedRail items={sponsored.data} width={cardW * 0.85} />}
-          {flatPages(deals.data).length > 0 && <ProductRail title="عروض النهارده" query={deals} width={cardW * 0.85} onMore={() => router.push('/offers')} />}
+          {!!sponsored.data?.length && <FeaturedRail items={sponsored.data} width={cardW} />}
+          {flatPages(deals.data).length > 0 && <ProductRail title="عروض النهارده" query={deals} width={cardW} onMore={() => router.push('/offers')} />}
 
-          <ProductRail title="الأكثر مبيعاً" query={popular} width={cardW * 0.85} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
+          <ProductRail title="الأكثر مبيعاً" query={popular} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
 
           {/* New brands */}
           <View style={styles.gap}>
@@ -215,7 +215,7 @@ export default function Home() {
             />
           </View>
 
-          <ProductRail title="وصل حديثاً" query={latest} width={cardW * 0.85} onMore={() => router.push({ pathname: '/explore', params: { sort: 'newest' } })} />
+          <ProductRail title="وصل حديثاً" query={latest} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'newest' } })} />
         </ScrollView>
       )}
     </View>
