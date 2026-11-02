@@ -27,7 +27,7 @@ const useToasts = create<{ current: ToastItem | null; show: (t: Omit<ToastItem, 
 export const toast = {
   success: (message: string, action?: ToastItem['action']) => useToasts.getState().show({ message, tone: 'success', action }),
   error: (message: string) => useToasts.getState().show({ message, tone: 'error' }),
-  info: (message: string) => useToasts.getState().show({ message, tone: 'info' }),
+  info: (message: string, action?: ToastItem['action']) => useToasts.getState().show({ message, tone: 'info', action }),
 };
 
 export function ToastHost() {

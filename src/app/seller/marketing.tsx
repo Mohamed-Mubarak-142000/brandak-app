@@ -4,7 +4,7 @@ import { Copy, Globe, Radar, Share2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 
-import { api, API_BASE, errorMessage } from '@/api/client';
+import { api, errorMessage, WEB_BASE } from '@/api/client';
 import { useMyBrand } from '@/api/queries';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
@@ -23,7 +23,7 @@ export default function Marketing() {
   const brand = useMyBrand();
   const tracking = useQuery({ queryKey: ['seller', 'tracking'], queryFn: () => api.get<Tracking>('/brand/tracking') });
   // The web page lives at the API host's root: https://host/s/<slug>.
-  const link = brand.data ? `${API_BASE.replace(/\/api\/v1$/, '')}/s/${brand.data.slug}` : '';
+  const link = brand.data ? `${WEB_BASE}/s/${brand.data.slug}` : '';
 
   return (
     <Screen header={<AppBar title="لينك المتجر والبيكسل" />} keyboard>

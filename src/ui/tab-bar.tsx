@@ -1,7 +1,8 @@
 import { type BottomTabBarProps } from 'expo-router/tabs';
 import { type LucideIcon } from 'lucide-react-native';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '@/lib/haptics';
@@ -84,18 +85,31 @@ function TabItem({
       <View style={styles.iconWrap}>
         <Animated.View style={[styles.pill, { backgroundColor: t.c.accentSoft }, pill]} />
         <Glyph size={22} color={focused ? t.c.accent : t.c.ink3} strokeWidth={focused ? 2.3 : 1.9} />
-        {badge > 0 && (
-          <View style={[styles.badge, { backgroundColor: t.c.brand, borderColor: t.c.surface }]}>
-            <Text variant="meta" color="onAccent" weight="bold" style={styles.badgeText}>
-              {badge > 99 ? '99+' : badge}
-            </Text>
-          </View>
-        )}
+        {badge > 0 && <CountBadge count={badge} />}
       </View>
       <Text variant="meta" weight={focused ? 'semibold' : 'regular'} color={focused ? 'accent' : 'ink3'}>
         {tab.label}
       </Text>
     </Tap>
+  );
+}
+
+/** Pops whenever the count goes up (e.g. something was just added to the cart). */
+function CountBadge({ count }: { count: number }) {
+  const t = useTheme();
+  const scale = useSharedValue(1);
+  const prev = useRef(count);
+  useEffect(() => {
+    if (count > prev.current) scale.set(withSequence(withSpring(1.45, { damping: 6, stiffness: 420 }), withSpring(1, { damping: 10 })));
+    prev.current = count;
+  }, [count, scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  return (
+    <Animated.View style={[styles.badge, { backgroundColor: t.c.brand, borderColor: t.c.surface }, style]}>
+      <Text variant="meta" color="onAccent" weight="bold" style={styles.badgeText} maxFontSizeMultiplier={1.1}>
+        {count > 99 ? '99+' : count}
+      </Text>
+    </Animated.View>
   );
 }
 

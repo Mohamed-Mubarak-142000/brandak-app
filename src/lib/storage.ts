@@ -34,4 +34,6 @@ export const PREF = {
   interests: 'onboarding.interests',
   themeMode: 'settings.theme',
   recentSearches: 'search.recent',
+  recentlyViewed: 'catalog.recentlyViewed',
+  appReviewAskedAt: 'app.reviewAskedAt',
 } as const;

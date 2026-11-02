@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Linking, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { WEB_BASE } from '@/api/client';
 import { flatPages, useBrand, useProducts } from '@/api/queries';
 import type { PublicBrand } from '@/api/types';
 import { useRequireAuth } from '@/auth/use-auth';
@@ -71,6 +72,11 @@ export default function BrandScreen() {
         onRetry={() => products.refetch()}
         onEndReached={() => products.hasNextPage && !products.isFetchingNextPage && products.fetchNextPage()}
         loadingMore={products.isFetchingNextPage}
+        refreshing={(brand.isRefetching || products.isRefetching) && !products.isFetchingNextPage}
+        onRefresh={() => {
+          void brand.refetch();
+          void products.refetch();
+        }}
         header={header}
       />
       <View style={[styles.topBar, { top: insets.top + 6 }]} pointerEvents="box-none">
@@ -80,7 +86,7 @@ export default function BrandScreen() {
             icon={Share2}
             label="مشاركة المتجر"
             background="surface"
-            onPress={() => Share.share({ message: `اكتشف ${b.name} على فاترينة\nfatrina://brand/${b.slug}` }).catch(() => undefined)}
+            onPress={() => Share.share({ message: `اكتشف ${b.name} على فاترينة\n${WEB_BASE}/s/${b.slug}` }).catch(() => undefined)}
           />
         )}
       </View>

@@ -1,9 +1,10 @@
 import { ArrowDownWideNarrow, SlidersHorizontal, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import type { Query } from '@/api/client';
 import { useCategories } from '@/api/queries';
+import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
 import { Button, Icon, IconButton, MultiSelect, Select, Sheet, Tap, Text, TextField } from '@/ui';
@@ -16,6 +17,7 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  onSale?: boolean;
 }
 
 export const SORT_LABEL: Record<ProductSort, string> = {
@@ -34,12 +36,24 @@ export function productQuery(f: ProductFilters): Query {
     minPrice: f.minPrice,
     maxPrice: f.maxPrice,
     inStock: f.inStock,
+    onSale: f.onSale,
   };
 }
 
 export function countFilters(f: ProductFilters, lockCategory?: boolean) {
-  return [f.sort && f.sort !== 'newest', !lockCategory && f.categoryIds?.length, f.minPrice != null, f.maxPrice != null, f.inStock].filter(Boolean).length;
+  return [f.sort && f.sort !== 'newest', !lockCategory && f.categoryIds?.length, f.minPrice != null, f.maxPrice != null, f.inStock, f.onSale].filter(Boolean).length;
 }
+
+/** One-tap filters shown as toggles next to the filter button. */
+const QUICK: { key: string; label: string; on: (f: ProductFilters) => boolean; toggle: (f: ProductFilters) => ProductFilters }[] = [
+  { key: 'sale', label: 'عليه خصم', on: (f) => !!f.onSale, toggle: (f) => ({ ...f, onSale: f.onSale ? undefined : true }) },
+  { key: 'stock', label: 'المتوفر بس', on: (f) => !!f.inStock, toggle: (f) => ({ ...f, inStock: f.inStock ? undefined : true }) },
+  { key: 'cheap', label: 'الأرخص', on: (f) => f.sort === 'price_asc', toggle: (f) => ({ ...f, sort: f.sort === 'price_asc' ? undefined : 'price_asc' }) },
+  { key: 'rating', label: 'الأعلى تقييماً', on: (f) => f.sort === 'rating', toggle: (f) => ({ ...f, sort: f.sort === 'rating' ? undefined : 'rating' }) },
+  { key: 'popular', label: 'الأكثر مبيعاً', on: (f) => f.sort === 'popular', toggle: (f) => ({ ...f, sort: f.sort === 'popular' ? undefined : 'popular' }) },
+];
+/** Active-chip keys the quick toggles already show. */
+const QUICK_CHIPS = (f: ProductFilters) => ['stock', 'sale', ...(f.sort === 'price_asc' || f.sort === 'rating' || f.sort === 'popular' ? ['sort'] : [])];
 
 /** Square filter button with a badge, meant to sit next to a search field. */
 export function FilterButton({ count, onPress, label = 'الفلاتر' }: { count: number; onPress: () => void; label?: string }) {
@@ -105,6 +119,7 @@ export function useProductChips(value: ProductFilters, onChange: (f: ProductFilt
     ...(value.minPrice != null ? [{ key: 'min', label: `من ${value.minPrice} ج`, onRemove: () => onChange({ ...value, minPrice: undefined }) }] : []),
     ...(value.maxPrice != null ? [{ key: 'max', label: `لحد ${value.maxPrice} ج`, onRemove: () => onChange({ ...value, maxPrice: undefined }) }] : []),
     ...(value.inStock ? [{ key: 'stock', label: 'المتوفر بس', onRemove: () => onChange({ ...value, inStock: undefined }) }] : []),
+    ...(value.onSale ? [{ key: 'sale', label: 'عليه خصم', onRemove: () => onChange({ ...value, onSale: undefined }) }] : []),
   ];
 }
 
@@ -118,23 +133,51 @@ export function FilterBar({ value, onChange, lockCategory }: { value: ProductFil
   // A fresh key per opening resets the sheet's draft to the applied filters.
   const [session, setSession] = useState(0);
   const count = countFilters(value, lockCategory);
-  const chips = useProductChips(value, onChange, lockCategory);
+  const hidden = QUICK_CHIPS(value);
+  const chips = useProductChips(value, onChange, lockCategory).filter((c) => !hidden.includes(c.key));
   return (
     <View style={styles.bar}>
-      <Tap
-        onPress={() => {
-          setSession((n) => n + 1);
-          setOpen(true);
-        }}
-        style={[styles.barBtn, { borderColor: count ? t.c.brand : t.c.lineStrong, backgroundColor: count ? t.c.accentSoft : t.c.surface }]}
-        accessibilityLabel={count ? `الفلاتر، ${count} مفعّلة` : 'الفلاتر'}
-      >
-        <Icon as={SlidersHorizontal} size={18} color={count ? 'accent' : 'ink'} />
-        <Text variant="ui" color={count ? 'accent' : 'ink'}>
-          {count ? `فلاتر (${count})` : 'فلترة'}
-        </Text>
-      </Tap>
-      <ActiveChips chips={chips} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow} style={styles.quickScroll}>
+        <Tap
+          onPress={() => {
+            setSession((n) => n + 1);
+            setOpen(true);
+          }}
+          style={[styles.barBtn, { borderColor: count ? t.c.brand : t.c.lineStrong, backgroundColor: count ? t.c.accentSoft : t.c.surface }]}
+          accessibilityLabel={count ? `الفلاتر، ${count} مفعّلة` : 'الفلاتر'}
+        >
+          <Icon as={SlidersHorizontal} size={18} color={count ? 'accent' : 'ink'} />
+          <Text variant="ui" color={count ? 'accent' : 'ink'}>
+            {count ? `فلاتر (${count})` : 'فلترة'}
+          </Text>
+        </Tap>
+        {QUICK.map((q) => {
+          const on = q.on(value);
+          return (
+            <Tap
+              key={q.key}
+              onPress={() => {
+                haptic.tap();
+                onChange(q.toggle(value));
+              }}
+              pressScale={0.96}
+              accessibilityRole="togglebutton"
+              accessibilityState={{ checked: on }}
+              accessibilityLabel={q.label}
+              style={[styles.barBtn, { borderColor: on ? t.c.accent : t.c.lineStrong, backgroundColor: on ? t.c.accent : t.c.surface }]}
+            >
+              <Text variant="ui" weight={on ? 'semibold' : 'regular'} color={on ? 'onAccent' : 'ink'}>
+                {q.label}
+              </Text>
+            </Tap>
+          );
+        })}
+      </ScrollView>
+      {chips.length > 0 && (
+        <View style={styles.chipsPad}>
+          <ActiveChips chips={chips} />
+        </View>
+      )}
       <ProductFilterSheet key={session} open={open} onClose={() => setOpen(false)} value={value} onApply={onChange} lockCategory={lockCategory} />
     </View>
   );
@@ -248,10 +291,13 @@ export function ProductFilterSheet({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   filterBtn: { borderWidth: 1, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  bar: { paddingHorizontal: 16, gap: 8, paddingVertical: 4 },
-  barBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' },
+  bar: { gap: 8, paddingVertical: 4 },
+  quickScroll: { flexGrow: 0 },
+  quickRow: { paddingHorizontal: 16, gap: 8 },
+  chipsPad: { paddingHorizontal: 16 },
+  barBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 30, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1 },
   row: { flexDirection: 'row', gap: 12 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
   footer: { flexDirection: 'row', gap: 10 },

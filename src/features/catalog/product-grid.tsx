@@ -14,10 +14,10 @@ export function useCardWidth(columns = 2) {
   return Math.floor((Math.min(width, 640) - PAD * 2 - GAP * (columns - 1)) / columns);
 }
 
-export function ProductSkeleton({ width }: { width: number }) {
+export function ProductSkeleton({ width, aspect = CARD_ASPECT }: { width: number; aspect?: number }) {
   return (
     <View style={{ width, gap: 6 }}>
-      <Skeleton width={width} height={width * CARD_ASPECT} radius={16} />
+      <Skeleton width={width} height={width * aspect} radius={16} />
       <Skeleton width="50%" height={12} />
       <Skeleton width="90%" height={14} />
       <Skeleton width="40%" height={14} />

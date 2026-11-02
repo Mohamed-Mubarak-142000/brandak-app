@@ -7,16 +7,16 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flatPages, useBrands, useCampaigns, useCategories, useFeatured, useFollowingFeed, useProducts, useUnreadCount } from '@/api/queries';
-import type { ProductCard as ProductCardData } from '@/api/types';
 import { Countdown } from '@/features/catalog/countdown';
 import { useMe } from '@/auth/use-auth';
 import { BrandBubble } from '@/features/catalog/brand-card';
-import { ProductCard } from '@/features/catalog/product-card';
 import { CategoryTiles } from '@/features/home/category-tiles';
 import { HeroSlider } from '@/features/home/hero-slider';
 import { InlineEmpty } from '@/features/home/inline-empty';
 import { STORE_TYPES } from '@/features/catalog/store-types';
-import { ProductSkeleton, useCardWidth } from '@/features/catalog/product-grid';
+import { useCardWidth } from '@/features/catalog/product-grid';
+import { AdRail, ProductRail } from '@/features/catalog/product-rail';
+import { useRecentlyViewed } from '@/features/catalog/recently-viewed';
 import { PREF, prefs } from '@/lib/storage';
 import { useTheme } from '@/theme';
 import { BrandMark } from '@/ui/brand-mark';
@@ -33,7 +33,11 @@ export default function Home() {
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const cardW = useCardWidth();
+  const cardW = useCardWidth(1);
+  // Compact cards for history, so a few show at once.
+  const smallW = Math.round(useCardWidth(2) * 0.8);
+  const recent = useRecentlyViewed((s) => s.items);
+  const clearRecent = useRecentlyViewed((s) => s.clear);
   const me = useMe();
   const unread = useUnreadCount();
   const categories = useCategories();
@@ -175,17 +179,19 @@ export default function Home() {
             <CategoryTiles categories={roots} loading={categories.isLoading} />
           </View>
 
+          {recent.length > 0 && <ProductRail title="شوفتها مؤخراً" items={recent} width={smallW} action="مسح" onMore={clearRecent} />}
+
           {interests.length > 0 && (
-            <ProductRail title="مختارات على ذوقك" query={forYou} width={cardW} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
+            <QueryRail title="مختارات على ذوقك" query={forYou} width={cardW} onMore={() => router.push({ pathname: '/category/[id]', params: { id: interests[0] } })} />
           )}
 
           {flatPages(following.data).length > 0 && (
-            <ProductRail title="من متاجر بتتابعها" query={following} width={cardW} onMore={() => router.push('/following')} />
+            <QueryRail title="من متاجر بتتابعها" query={following} width={cardW} onMore={() => router.push('/following')} />
           )}
-          {!!sponsored.data?.length && <FeaturedRail items={sponsored.data} width={cardW} />}
-          {flatPages(deals.data).length > 0 && <ProductRail title="عروض النهارده" query={deals} width={cardW} onMore={() => router.push('/offers')} />}
+          <AdRail title="مميز" items={sponsored.data ?? []} width={cardW} />
+          {flatPages(deals.data).length > 0 && <QueryRail title="عروض النهارده" query={deals} width={cardW} onMore={() => router.push('/offers')} />}
 
-          <ProductRail title="الأكثر مبيعاً" query={popular} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
+          <QueryRail title="الأكثر مبيعاً" query={popular} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })} />
 
           {/* New brands */}
           <View style={styles.gap}>
@@ -215,57 +221,18 @@ export default function Home() {
             />
           </View>
 
-          <ProductRail title="وصل حديثاً" query={latest} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'newest' } })} />
+          <QueryRail title="وصل حديثاً" query={latest} width={cardW} onMore={() => router.push({ pathname: '/explore', params: { sort: 'newest' } })} />
         </ScrollView>
       )}
     </View>
   );
 }
 
-/** Paid home placements, labelled «مُموَّل» on each card. */
-function FeaturedRail({ items, width }: { items: ProductCardData[]; width: number }) {
-  return (
-    <View style={styles.gap}>
-      <View style={styles.mx}>
-        <SectionHeader title="مميز" />
-      </View>
-      <FlatList
-        horizontal
-        data={items}
-        keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <ProductCard product={item} width={width} />}
-        contentContainerStyle={styles.rail}
-        showsHorizontalScrollIndicator={false}
-      />
-    </View>
-  );
-}
+/** Home rails show one card per view, so the image is squarer than in the two-column grid. */
+const RAIL_ASPECT = 1;
 
-function ProductRail({ title, query, width, onMore }: { title: string; query: ReturnType<typeof useProducts>; width: number; onMore: () => void }) {
-  const items = flatPages(query.data);
-  if (!query.isLoading && !items.length) return null;
-  return (
-    <View style={styles.gap}>
-      <View style={styles.mx}>
-        <SectionHeader title={title} action="عرض الكل" onAction={onMore} />
-      </View>
-      <FlatList
-        horizontal
-        data={items}
-        keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <ProductCard product={item} width={width} />}
-        contentContainerStyle={styles.rail}
-        showsHorizontalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.row}>
-            {[0, 1, 2].map((i) => (
-              <ProductSkeleton key={i} width={width} />
-            ))}
-          </View>
-        }
-      />
-    </View>
-  );
+function QueryRail({ title, query, width, onMore }: { title: string; query: ReturnType<typeof useProducts>; width: number; onMore: () => void }) {
+  return <ProductRail title={title} items={flatPages(query.data)} loading={query.isLoading} width={width} aspect={RAIL_ASPECT} snap onMore={onMore} />;
 }
 
 const styles = StyleSheet.create({

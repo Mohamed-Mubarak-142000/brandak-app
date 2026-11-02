@@ -56,7 +56,7 @@ export function WishlistHeart({ productId, size = 36, floating = true }: { produ
   );
 }
 
-export const ProductCard = memo(function ProductCard({ product, width }: { product: Product; width: number }) {
+export const ProductCard = memo(function ProductCard({ product, width, aspect = CARD_ASPECT }: { product: Product; width: number; aspect?: number }) {
   const t = useTheme();
   const router = useRouter();
   const off = product.compareAtPrice && product.compareAtPrice > product.price;
@@ -71,7 +71,7 @@ export const ProductCard = memo(function ProductCard({ product, width }: { produ
       pressScale={0.98}
       accessibilityLabel={`${product.title}، ${product.brand.name ?? ''}`}
     >
-      <View style={[styles.imageWrap, { width, height: width * CARD_ASPECT, backgroundColor: t.c.sunken, borderRadius: t.radius.lg }]}>
+      <View style={[styles.imageWrap, { width, height: width * aspect, backgroundColor: t.c.sunken, borderRadius: t.radius.lg }]}>
         {!product.imageUrl && (
           <View style={styles.noImage} pointerEvents="none">
             <ImageOff size={28} color={t.c.lineStrong} />

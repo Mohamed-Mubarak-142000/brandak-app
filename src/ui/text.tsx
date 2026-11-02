@@ -17,7 +17,8 @@ export function Text({ variant = 'body', color = 'ink', align, weight, style, ..
     <RNText
       textBreakStrategy="simple"
       {...rest}
-      maxFontSizeMultiplier={1.6}
+      // Small labels mostly sit in fixed-height chips and badges, so they grow less with the system font size.
+      maxFontSizeMultiplier={rest.maxFontSizeMultiplier ?? (variant === 'meta' ? 1.3 : 1.6)}
       style={[
         base,
         { color: t.c[color] }, align && { textAlign: align },

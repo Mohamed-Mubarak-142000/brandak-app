@@ -6,7 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flatPages, useBrands, useCategories, useProducts } from '@/api/queries';
 import { BrandBubble } from '@/features/catalog/brand-card';
-import { ProductGrid } from '@/features/catalog/product-grid';
+import { FilterBar, productQuery, type ProductFilters } from '@/features/catalog/filters';
+import { ProductGrid, useCardWidth } from '@/features/catalog/product-grid';
+import { ProductRail } from '@/features/catalog/product-rail';
+import { useRecentlyViewed } from '@/features/catalog/recently-viewed';
 import { PREF, prefs } from '@/lib/storage';
 import { useTheme } from '@/theme';
 import { Chip, EmptyState, IconButton, SectionHeader, Tap, Text } from '@/ui';
@@ -28,9 +31,13 @@ export default function SearchScreen() {
   const q = useDebounced(text.trim());
   const [recent, setRecent] = useState<string[]>(() => prefs.get<string[]>(PREF.recentSearches, []));
   const categories = useCategories();
-  const products = useProducts({ q }, 20, !!q);
+  const [filters, setFilters] = useState<ProductFilters>({});
+  const products = useProducts({ ...productQuery(filters), q }, 20, !!q);
   const brands = useBrands({ q }, 10, !!q);
   const brandHits = useMemo(() => (q ? flatPages(brands.data) : []), [q, brands.data]);
+  const viewed = useRecentlyViewed((s) => s.items);
+  const popular = useProducts({ sort: 'popular' }, 10);
+  const railW = Math.round(useCardWidth(2) * 0.8);
 
   useEffect(() => {
     if (q.length < 2) return;
@@ -75,9 +82,9 @@ export default function SearchScreen() {
       </View>
 
       {!q ? (
-        <ScrollView contentContainerStyle={styles.idle} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.idle} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           {recent.length > 0 && (
-            <View style={styles.gap}>
+            <View style={[styles.gap, styles.px]}>
               <SectionHeader title="عمليات بحث سابقة" action="مسح" onAction={clearRecent} />
               <View style={styles.wrap}>
                 {recent.map((r) => (
@@ -86,7 +93,8 @@ export default function SearchScreen() {
               </View>
             </View>
           )}
-          <View style={styles.gap}>
+          <ProductRail title="شوفتها مؤخراً" items={viewed} width={railW} />
+          <View style={[styles.gap, styles.px]}>
             <SectionHeader title="تصفّح الأقسام" />
             <View style={styles.wrap}>
               {(categories.data ?? [])
@@ -96,6 +104,13 @@ export default function SearchScreen() {
                 ))}
             </View>
           </View>
+          <ProductRail
+            title="الأكثر مبيعاً"
+            items={flatPages(popular.data)}
+            loading={popular.isLoading}
+            width={railW}
+            onMore={() => router.push({ pathname: '/explore', params: { sort: 'popular' } })}
+          />
         </ScrollView>
       ) : (
         <ProductGrid
@@ -106,19 +121,22 @@ export default function SearchScreen() {
           onEndReached={() => products.hasNextPage && !products.isFetchingNextPage && products.fetchNextPage()}
           loadingMore={products.isFetchingNextPage}
           header={
-            brandHits.length ? (
-              <View style={styles.brandHits}>
-                <Text variant="bodyStrong">متاجر</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bubbles}>
-                  {brandHits.map((b) => (
-                    <BrandBubble key={b.id} brand={b} />
-                  ))}
-                </ScrollView>
-                <Text variant="bodyStrong">منتجات</Text>
+            <View style={styles.brandHits}>
+              {brandHits.length > 0 && (
+                <>
+                  <Text variant="bodyStrong">متاجر</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bubbles}>
+                    {brandHits.map((b) => (
+                      <BrandBubble key={b.id} brand={b} />
+                    ))}
+                  </ScrollView>
+                  <Text variant="bodyStrong">منتجات</Text>
+                </>
+              )}
+              <View style={styles.bleed}>
+                <FilterBar value={filters} onChange={setFilters} />
               </View>
-            ) : (
-              <View style={{ height: 12 }} />
-            )
+            </View>
           }
           empty={<EmptyState art="search" title={`مفيش نتايج لـ "${q}"`} body="جرّب كلمة تانية أو اكتبها بشكل مختلف." />}
         />
@@ -132,9 +150,12 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingBottom: 10 },
   field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 12, borderWidth: 1.5, marginEnd: 8 },
   input: { flex: 1, height: 46 },
-  idle: { padding: 16, gap: 24 },
+  idle: { paddingVertical: 16, gap: 24 },
+  px: { paddingHorizontal: 16 },
   gap: { gap: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   brandHits: { gap: 10, paddingTop: 8, paddingBottom: 12 },
   bubbles: { gap: 8 },
+  // The grid pads its content by 16; the filter row scrolls edge to edge.
+  bleed: { marginHorizontal: -16 },
 });

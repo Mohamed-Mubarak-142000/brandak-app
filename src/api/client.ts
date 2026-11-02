@@ -10,6 +10,8 @@ import { useSession, type Tokens } from '@/auth/session';
 import { arabicError } from './errors';
 
 export const API_BASE = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1').replace(/\/+$/, '');
+/** The API host's public web pages (store and product pages that open in any browser). */
+export const WEB_BASE = API_BASE.replace(/\/api\/v1$/, '');
 
 export interface ErrorDetail {
   field?: string;

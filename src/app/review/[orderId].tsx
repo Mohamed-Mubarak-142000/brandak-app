@@ -10,6 +10,7 @@ import { qk, useOrder } from '@/api/queries';
 import type { OrderItem } from '@/api/types';
 import { PhotoRow } from '@/features/media/photo-row';
 import type { UploadedImage } from '@/features/seller/image-slot';
+import { maybeAskForAppReview } from '@/lib/app-review';
 import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 import { AppBar, Button, Card, ErrorState, Icon, Screen, Skeleton, StarInput, Text, TextField, toast } from '@/ui';
@@ -47,6 +48,7 @@ function ReviewCard({ item, orderId }: { item: OrderItem; orderId: string }) {
     onSuccess: () => {
       haptic.success();
       setDone(true);
+      void maybeAskForAppReview(rating);
       qc.invalidateQueries({ queryKey: qk.reviews(item.productId) });
       qc.invalidateQueries({ queryKey: qk.myReviews });
     },

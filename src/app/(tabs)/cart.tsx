@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, CircleAlert, Trash2, Truck } from 'lucide-react-native';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, LinearTransition, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { FadeIn, FadeInUp, LinearTransition, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { errorMessage } from '@/api/client';
@@ -131,7 +132,14 @@ function BrandCart({ summary }: { summary: CartSummary }) {
                 onQty={(q) => m.setQty.mutate({ itemId: line.itemId, quantity: q }, { onError: onErr })}
                 onRemove={() => {
                   haptic.light();
-                  m.remove.mutate(line.itemId, { onError: onErr, onSuccess: () => toast.info('اتشال من السلة') });
+                  m.remove.mutate(line.itemId, {
+                    onError: onErr,
+                    onSuccess: () =>
+                      toast.info('اتشال من السلة', {
+                        label: 'تراجع',
+                        onPress: () => m.add.mutate({ productId: line.productId, variantId: line.variantId, quantity: line.quantity }, { onError: onErr }),
+                      }),
+                  });
                 }}
               />
             </View>
@@ -148,7 +156,10 @@ function BrandCart({ summary }: { summary: CartSummary }) {
               <Text variant="ui" color="ink2">
                 المجموع الفرعي
               </Text>
-              <Text variant="bodyStrong">{formatMoney(subtotal)}</Text>
+              {/* Re-mounts on each change so a new total slides in instead of jumping */}
+              <Animated.View key={subtotal} entering={FadeInUp.duration(200)}>
+                <Text variant="bodyStrong">{formatMoney(subtotal)}</Text>
+              </Animated.View>
             </View>
             <Button
               label={`إتمام طلب ${summary.brand.name}`}
@@ -167,7 +178,28 @@ function CartLine({ line, busy, onQty, onRemove }: { line: PricedLine; busy: boo
   const t = useTheme();
   const router = useRouter();
   const opts = [line.size, line.color].filter(Boolean).join(' · ');
+  // Swiping the line either way reveals delete; letting go past it removes the line (undo is in the toast).
+  const deleteAction = () => (
+    <View style={[styles.swipeDelete, { backgroundColor: t.c.danger }]}>
+      <Trash2 size={22} color="#fff" />
+      <Text variant="meta" weight="bold" style={styles.onColor}>
+        حذف
+      </Text>
+    </View>
+  );
   return (
+    <ReanimatedSwipeable
+      friction={1.6}
+      leftThreshold={72}
+      rightThreshold={72}
+      overshootLeft={false}
+      overshootRight={false}
+      renderLeftActions={deleteAction}
+      renderRightActions={deleteAction}
+      onSwipeableOpen={onRemove}
+      enabled={!busy}
+      childrenContainerStyle={{ backgroundColor: t.c.surface }}
+    >
     <View style={[styles.line, line.issue && { opacity: 0.85 }]}>
       <Tap onPress={() => router.push({ pathname: '/product/[id]', params: { id: line.productId } })} pressScale={0.97} accessibilityLabel={line.title}>
         <Image source={line.imageUrl} style={[styles.thumb, { backgroundColor: t.c.sunken }]} contentFit="cover" transition={150} />
@@ -199,6 +231,7 @@ function CartLine({ line, busy, onQty, onRemove }: { line: PricedLine; busy: boo
         </View>
       </View>
     </View>
+    </ReanimatedSwipeable>
   );
 }
 
@@ -240,4 +273,6 @@ const styles = StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
+  swipeDelete: { width: 88, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  onColor: { color: '#fff' },
 });

@@ -1,17 +1,22 @@
 import { useRouter } from 'expo-router';
 import { EyeOff } from 'lucide-react-native';
-import { View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 
 import { flatPages, useMyReviews } from '@/api/queries';
 import { ReviewItem } from '@/features/catalog/review-item';
+import { useTheme } from '@/theme';
 import { AppBar, Banner, Button, EmptyState, ErrorState, Screen, Skeleton, Tap } from '@/ui';
 
 export default function MyReviews() {
   const router = useRouter();
   const q = useMyReviews();
+  const t = useTheme();
   const items = flatPages(q.data);
   return (
-    <Screen header={<AppBar title="تقييماتي" />}>
+    <Screen
+      header={<AppBar title="تقييماتي" />}
+      refreshControl={<RefreshControl refreshing={q.isRefetching && !q.isFetchingNextPage} onRefresh={() => void q.refetch()} tintColor={t.c.brand} colors={[t.c.brand]} />}
+    >
       {q.isLoading ? (
         <Skeleton height={100} />
       ) : q.error ? (
