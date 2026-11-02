@@ -10,6 +10,7 @@ import { qk, useCategories, usePlatformTerms } from '@/api/queries';
 import type { OwnerBrand, StoreType } from '@/api/types';
 import { formatMoney } from '@/lib/format';
 import { meKey, useMe } from '@/auth/use-auth';
+import { sectionOptions } from '@/features/catalog/category-tree';
 import { StoreTypePicker } from '@/features/catalog/store-type-ui';
 import { storeTypeInfo } from '@/features/catalog/store-types';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
@@ -175,6 +176,18 @@ export default function Apply() {
               }}
               error={errors.storeType}
             />
+            {storeType && (
+              <Card style={styles.system}>
+                <Text variant="ui" weight="semibold">
+                  إزاي ال{info.label} بيضيف منتجاته
+                </Text>
+                {info.system.map((line) => (
+                  <Text key={line} variant="meta" color="ink2">
+                    • {line}
+                  </Text>
+                ))}
+              </Card>
+            )}
           </>
         )}
         {step === 1 && (
@@ -205,8 +218,8 @@ export default function Apply() {
               onChange={setCats}
               loading={categories.isLoading}
               error={errors.cats}
-              hint="بتظهر هنا الأقسام المناسبة لنوع نشاطك بس"
-              options={(categories.data ?? []).filter((c) => c.isActive).map((c) => ({ value: c._id, label: c.nameAr }))}
+              hint="الأقسام الرئيسية المناسبة لنوع نشاطك. هتقدر تضيف منتجات في كل الأقسام الفرعية تحتها"
+              options={sectionOptions(categories.data ?? [])}
             />
           </>
         )}
@@ -323,6 +336,7 @@ function Progress({ step }: { step: number }) {
 }
 
 const styles = StyleSheet.create({
+  system: { gap: 6 },
   flex: { flex: 1 },
   gap: { gap: 14 },
   gapSm: { gap: 8 },

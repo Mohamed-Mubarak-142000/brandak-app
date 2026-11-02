@@ -1,15 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Archive, Check, CircleAlert, ImagePlus, Plus, Sparkles, Star, Trash2, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { Archive, Check, CircleAlert, ImagePlus, Plus, Ruler, Sparkles, Star, Trash2, X } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { api, ApiError, errorMessage } from '@/api/client';
-import { qk, useAiStatus, useCampaigns, useCategories, useMyBrand, useSellerProduct } from '@/api/queries';
-import type { BrandProduct, ProductDraft } from '@/api/types';
+import { qk, useAiStatus, useCampaigns, useCategories, useCategoryTemplate, useMyBrand, useSellerProduct } from '@/api/queries';
+import type { BrandProduct, CategoryTemplate, ProductDraft, SpecValue, StoreType } from '@/api/types';
 import { pickImages, uploadFile } from '@/api/upload';
+import { CategoryPicker } from '@/features/catalog/category-picker';
+import { categoryTree } from '@/features/catalog/category-tree';
 import { swatchFor } from '@/features/catalog/variant-picker';
+import { SpecsFields, type SpecDraft } from '@/features/seller/product-form/specs-fields';
+import { cellKey, type Cells, combos, emptyCell, VariantBuilder } from '@/features/seller/product-form/variant-builder';
 import { haptic } from '@/lib/haptics';
 import { latinDigits } from '@/lib/validation';
 import { useTheme } from '@/theme';
@@ -22,21 +26,21 @@ interface Img {
   /** The variant colour this photo shows; null = every colour. */
   color?: string | null;
 }
-interface VariantDraft {
-  key: string;
-  id?: string;
-  size: string;
-  color: string;
-  sku: string;
-  price: string;
-  stock: string;
-}
-
 const num = (s: string) => {
   const n = Number(latinDigits(s).trim());
   return s.trim() !== '' && Number.isFinite(n) ? n : undefined;
 };
-const newVariant = (): VariantDraft => ({ key: Math.random().toString(36).slice(2), size: '', color: '', sku: '', price: '', stock: '' });
+const uniq = (xs: (string | undefined)[]) => [...new Set(xs.map((x) => x?.trim() ?? '').filter(Boolean))];
+
+/** Until a category is picked (or while its template loads): free sizes and colours, sold by the piece. */
+const fallbackTemplate = (storeType?: StoreType): CategoryTemplate => ({
+  size: { label: 'المقاس', values: [], allowCustom: true },
+  color: { label: 'اللون', allowCustom: true },
+  specs: [],
+  units: ['قطعة'],
+  sizeGuide: null,
+  wholesale: storeType === 'WAREHOUSE' ? 'required' : 'optional',
+});
 interface TierDraft {
   key: string;
   qty: string;
@@ -68,31 +72,58 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const router = useRouter();
   const qc = useQueryClient();
   const brand = useMyBrand();
-  const categories = useCategories(brand.data?.storeType);
+  const storeType = brand.data?.storeType;
+  const categories = useCategories(storeType);
 
-  // The store already chose its categories; a product picks only from those (and their subcategories).
+  // The store chose its sections; a product goes in a sub-category under one of them.
   const brandCats = brand.data?.categoryIds ?? [];
-  const active = (categories.data ?? []).filter((c) => c.isActive);
-  const ofBrand = active.filter((c) => brandCats.includes(c._id) || (!!c.parentId && brandCats.includes(c.parentId)));
-  const options = ofBrand.length ? ofBrand : active;
+  const tree = useMemo(() => categoryTree(categories.data ?? []), [categories.data]);
+  const ownLeaves = tree.leavesUnder(brandCats);
+  const roots = brandCats.length && ownLeaves.length ? brandCats : [];
+  const leaves = roots.length ? ownLeaves : tree.leavesUnder([]);
 
   const [images, setImages] = useState<Img[]>(() => p?.images.map((i) => ({ fileId: i.fileId, url: i.url, color: i.color ?? null })) ?? []);
   const [title, setTitle] = useState(p?.title ?? '');
   const [description, setDescription] = useState(p?.description ?? '');
+  const initialCategory = p?.categoryId;
   const [pickedCategory, setCategoryId] = useState(p?.categoryId ?? '');
-  // A store with one category doesn't pick it again for every product.
-  const onlyOption = options.length === 1 ? options[0] : undefined;
-  const categoryId = pickedCategory || onlyOption?._id || (brandCats.length === 1 ? brandCats[0] : '');
-  const categoryName = categories.data?.find((c) => c._id === categoryId)?.nameAr;
+  // A store with a single sub-category to choose from doesn't pick it for every product.
+  const categoryId = pickedCategory || (leaves.length === 1 ? leaves[0]._id : '');
+  const tplQuery = useCategoryTemplate(categoryId || null, storeType);
+  const loaded = tplQuery.data ?? fallbackTemplate(storeType);
+  // A product filed before its category had a template keeps the sizes/colours it already has.
+  const same = !!p && categoryId === initialCategory;
+  const had = { sizes: uniq(p?.variants.map((v) => v.size) ?? []), colors: uniq(p?.variants.map((v) => v.color) ?? []) };
+  const tpl: CategoryTemplate = {
+    ...loaded,
+    size: loaded.size ?? (same && had.sizes.length ? { label: 'المقاس', values: [], allowCustom: true } : null),
+    color: loaded.color ?? (same && had.colors.length ? { label: 'اللون', allowCustom: true } : null),
+  };
   const [price, setPrice] = useState(p ? String(p.price) : '');
   const [compareAt, setCompareAt] = useState(p?.compareAtPrice != null ? String(p.compareAtPrice) : '');
-  const [variants, setVariants] = useState<VariantDraft[]>(() =>
-    p
-      ? p.variants.map((v) => ({ key: v._id, id: v._id, size: v.size ?? '', color: v.color ?? '', sku: v.sku ?? '', price: v.price != null ? String(v.price) : '', stock: String(v.stock) }))
-      : [newVariant()],
+  // Variants are picked as sizes × colours, with one quantity per combination.
+  const [sizes, setSizes] = useState<string[]>(() => uniq(p?.variants.map((v) => v.size) ?? []));
+  const [colors, setColors] = useState<string[]>(() => uniq(p?.variants.map((v) => v.color) ?? []));
+  const [cells, setCells] = useState<Cells>(() => {
+    const out: Cells = {};
+    for (const v of p?.variants ?? []) {
+      out[cellKey(v.size?.trim() ?? '', v.color?.trim() ?? '')] = { id: v._id, stock: String(v.stock), price: v.price != null ? String(v.price) : '', sku: v.sku ?? '' };
+    }
+    // Combinations the product never had start sold out rather than blank.
+    if (p) for (const c of combos(uniq(p.variants.map((v) => v.size)), uniq(p.variants.map((v) => v.color)))) out[c.key] ??= { ...emptyCell(), stock: '0' };
+    return out;
+  });
+  // A category without sizes or colours drops them from the product.
+  const activeSizes = tpl.size ? sizes : [];
+  const activeColors = tpl.color ? colors : [];
+  const variantList = combos(activeSizes, activeColors);
+  const [specs, setSpecs] = useState<SpecDraft>(() =>
+    Object.fromEntries((p?.specs ?? []).map((x) => [x.key, typeof x.value === 'boolean' ? x.value : String(x.value)])),
   );
+  const [pickedUnit, setUnit] = useState(p?.unit ?? '');
+  const unit = pickedUnit && tpl.units.includes(pickedUnit) ? pickedUnit : tpl.units[0];
   const [colorFor, setColorFor] = useState<number | null>(null);
-  const colorOptions = [...new Set(variants.map((v) => v.color.trim()).filter(Boolean))];
+  const colorOptions = activeColors;
   const maxImages = 10;
   const [tags, setTags] = useState(p?.tags.join('، ') ?? '');
   const [publish, setPublish] = useState(p ? p.status === 'ACTIVE' : true);
@@ -108,8 +139,13 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const campaigns = useCampaigns();
   const seasons = (campaigns.data ?? []).filter((c) => new Date(c.endsAt).getTime() > mountedAt);
   const season = seasons.find((c) => c._id === seasonId);
-  // Wholesale: a minimum per order and cheaper prices by quantity (warehouses, mostly).
-  const [wsOn, setWsOn] = useState(!!p?.wholesale);
+  // Wholesale: a minimum per order and cheaper prices by quantity. Always on for warehouses.
+  const wsRequired = tpl.wholesale === 'required';
+  const [wsToggle, setWsOn] = useState(!!p?.wholesale);
+  const wsOn = wsRequired || wsToggle;
+  const [packUnit, setPackUnit] = useState(p?.wholesale?.pack?.unit ?? '');
+  const [packQty, setPackQty] = useState(p?.wholesale?.pack ? String(p.wholesale.pack.qty) : '');
+  const packUnits = ['كرتونة', 'دستة', 'سيري', 'باكو', 'شوال', 'شيكارة', 'علبة'].filter((u) => u !== unit);
   const [wsMin, setWsMin] = useState(p?.wholesale ? String(p.wholesale.minQty) : '');
   const [tiers, setTiers] = useState<TierDraft[]>(() =>
     p?.wholesale?.tiers.length ? p.wholesale.tiers.map((x) => ({ key: String(x.minQty), qty: String(x.minQty), price: String(x.price) })) : [newTier()],
@@ -117,7 +153,6 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
   const [errors, setErrors] = useState<Record<string, string>>({});
   const ai = useAiStatus(!id);
 
-  /** Fills the form from the model's suggestion; the seller reviews before saving. */
   /** Fills every field from the model's suggestion; the seller reviews before saving. */
   const applyDraft = (d: ProductDraft) => {
     if (d.title) setTitle(d.title);
@@ -126,14 +161,15 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     if (d.tags.length) setTags(d.tags.join('، '));
     // A suggested market price only fills an empty price; the seller's own price wins.
     if (d.suggestedPrice && !num(price)) setPrice(String(d.suggestedPrice));
-    const sizes = d.sizes.length ? d.sizes : [''];
-    const colors = d.colors.length ? d.colors : [''];
-    setVariants((current) => {
-      // Keep stock the seller already typed for the same size/colour; start new ones at 10.
-      const known = new Map(current.map((v) => [`${v.size.trim()}|${v.color.trim()}`, v]));
-      return sizes
-        .flatMap((size) => colors.map((color) => known.get(`${size}|${color}`) ?? { ...newVariant(), size, color, stock: '10' }))
-        .slice(0, 30);
+    const nextSizes = uniq(d.sizes).slice(0, 12);
+    const nextColors = uniq(d.colors).slice(0, 8);
+    setSizes(nextSizes);
+    setColors(nextColors);
+    // Keep stock the seller already typed for the same size/colour; start new ones at 10.
+    setCells((current) => {
+      const next = { ...current };
+      for (const c of combos(nextSizes, nextColors)) next[c.key] ??= { ...emptyCell(), stock: '10' };
+      return next;
     });
   };
   const draft = useMutation({
@@ -193,6 +229,13 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
     const e: Record<string, string> = {};
     if (title.trim().length < 2) e.title = 'اسم المنتج حرفين على الأقل';
     if (!categoryId) e.category = 'اختار القسم';
+    else if (categoryId !== initialCategory && !tree.isLeaf(categoryId)) e.category = 'اختار قسم فرعي أدق';
+    for (const s of tpl.specs) {
+      const v = specs[s.key];
+      const filled = typeof v === 'boolean' || (typeof v === 'string' && v.trim() !== '');
+      if (publish && s.required && !filled) e[`spec:${s.key}`] = `اكتب ${s.labelAr}`;
+      else if (s.type === 'number' && typeof v === 'string' && v.trim() && num(v) == null) e[`spec:${s.key}`] = 'اكتب رقم';
+    }
     // A published product with no photo shows an empty box everywhere in the app.
     if (publish && !images.length) e.images = 'ضيف صورة واحدة على الأقل عشان المنتج يتنشر، أو احفظه كمسودة';
     const p = num(price);
@@ -204,11 +247,18 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       if (!pct || pct < 1 || pct > 90) e.sale = 'نسبة الخصم من 1 لـ 90%';
       else if (season && pct < season.minPercent) e.sale = `الموسم ده محتاج خصم ${season.minPercent}% على الأقل`;
     }
-    if (variants.some((v) => num(v.stock) == null || num(v.stock)! < 0)) e.variants = 'اكتب المخزون لكل اختيار';
+    if (variantList.length > 100) e.variants = 'لحد 100 اختيار للمنتج، قلل المقاسات أو الألوان';
+    else if (variantList.some((c) => num(cells[c.key]?.stock ?? '') == null || num(cells[c.key]!.stock)! < 0)) e.variants = 'اكتب الكمية لكل اختيار (0 لو خلص)';
     if (wsOn) {
       const filled = tiers.filter((x) => x.qty.trim() || x.price.trim());
+      const pack = num(packQty);
+      if (packUnit && (!pack || pack < 2)) e.wholesale = `اكتب عدد ${unit === 'قطعة' ? 'القطع' : unit} في الـ${packUnit}`;
+      // A warehouse sells retail too, but has to say what buying in quantity gets you.
+      if (wsRequired && publish && !filled.length && !packUnit && (num(wsMin) ?? 1) <= 1) e.wholesale = 'المخازن لازم تحدد سعر جملة أو وحدة جملة (كرتونة مثلاً) قبل النشر';
       const sorted = filled.map((x) => ({ q: num(x.qty) ?? 0, pr: num(x.price) ?? 0 })).sort((a, b) => a.q - b.q);
-      if (num(wsMin) == null || num(wsMin)! < 1) e.wholesale = 'اكتب أقل كمية للطلب';
+      if (e.wholesale) {
+        // Already explained above.
+      } else if (num(wsMin) == null || num(wsMin)! < 1) e.wholesale = 'اكتب أقل كمية للطلب';
       else if (sorted.some((x) => x.q < 2 || x.pr < 1)) e.wholesale = 'كل سعر جملة محتاج كمية (2 أو أكتر) وسعر';
       else if (sorted.some((x, i) => x.pr >= (num(price) ?? 0) || (i > 0 && (x.q === sorted[i - 1].q || x.pr >= sorted[i - 1].pr)))) {
         e.wholesale = 'كل ما الكمية تزيد السعر يقل، وكله أقل من السعر العادي';
@@ -238,19 +288,30 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       ? {
           minQty: Math.round(num(wsMin) ?? 1),
           tiers: tiers.filter((x) => num(x.qty) && num(x.price)).map((x) => ({ minQty: Math.round(num(x.qty)!), price: num(x.price)! })),
+          pack: packUnit && num(packQty) ? { unit: packUnit, qty: Math.round(num(packQty)!) } : null,
         }
       : null,
+    unit,
+    specs: tpl.specs.flatMap((s): { key: string; value: SpecValue }[] => {
+      const v = specs[s.key];
+      if (typeof v === 'boolean') return s.type === 'boolean' ? [{ key: s.key, value: v }] : [];
+      if (!v?.trim()) return [];
+      return [{ key: s.key, value: s.type === 'number' ? num(v)! : v.trim() }];
+    }),
     imageFileIds: images.filter((i) => i.fileId).map((i) => i.fileId!),
     // A colour that was renamed or removed from the variants falls back to "every colour".
     imageColors: images.filter((i) => i.fileId).map((i) => (i.color && colorOptions.includes(i.color) ? i.color : '')),
-    variants: variants.map((v) => ({
-      id: v.id,
-      size: v.size.trim() || undefined,
-      color: v.color.trim() || undefined,
-      sku: v.sku.trim() || undefined,
-      price: num(v.price) ?? null,
-      stock: Math.round(num(v.stock) ?? 0),
-    })),
+    variants: variantList.map((c) => {
+      const cell = cells[c.key] ?? emptyCell();
+      return {
+        id: cell.id,
+        size: c.size || undefined,
+        color: c.color || undefined,
+        sku: cell.sku.trim() || undefined,
+        price: num(cell.price) ?? null,
+        stock: Math.round(num(cell.stock) ?? 0),
+      };
+    }),
     tags: tags
       .split(/[,،]/)
       .map((x) => x.trim().slice(0, 30))
@@ -404,35 +465,59 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
       <TextField label="اسم المنتج" placeholder="مثال: تيشيرت قطن أوفرسايز" value={title} onChangeText={setTitle} maxLength={120} error={errors.title} />
       <TextField label="الوصف" optional multiline value={description} onChangeText={setDescription} maxLength={5000} placeholder="الخامة، المقاسات، طريقة الغسيل..." />
 
-      {onlyOption && (!pickedCategory || pickedCategory === onlyOption._id) ? (
+      {categories.isLoading || brand.isLoading ? (
+        <Skeleton height={52} />
+      ) : leaves.length === 1 && categoryId === leaves[0]._id ? (
         <View style={[styles.fixedCat, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]}>
-          <Text variant="ui" color="ink2">
-            القسم: <Text variant="ui" weight="bold">{categoryName ?? onlyOption.nameAr}</Text>
+          <Text variant="ui" color="ink2" style={styles.flex}>
+            القسم: <Text variant="ui" weight="bold">{tree.path(categoryId)}</Text>
           </Text>
           <Text variant="meta" color="ink3">
             من إعدادات المتجر
           </Text>
         </View>
       ) : (
+        <CategoryPicker
+          label="القسم"
+          categories={categories.data ?? []}
+          roots={roots}
+          leafOnly
+          value={categoryId}
+          onChange={setCategoryId}
+          error={errors.category}
+          hint="القسم بيحدد المقاسات والمواصفات اللي هتكتبها، وبيساعد العميل يلاقي المنتج"
+        />
+      )}
+
+      {categoryId ? (
+        tplQuery.isLoading ? (
+          <Skeleton height={120} />
+        ) : (
+          <SpecsFields
+            specs={tpl.specs}
+            values={specs}
+            onChange={setSpecs}
+            errors={Object.fromEntries(Object.entries(errors).flatMap(([k, v]) => (k.startsWith('spec:') ? [[k.slice(5), v]] : [])))}
+          />
+        )
+      ) : null}
+
+      {tpl.units.length > 1 && (
         <View style={styles.gap}>
-          <Text variant="ui" color={errors.category ? 'danger' : 'ink2'}>
-            {errors.category ?? 'القسم'}
+          <Text variant="ui" color="ink2">
+            بيتباع بـ
           </Text>
-          {categories.isLoading || brand.isLoading ? (
-            <Skeleton height={40} />
-          ) : (
-            <View style={styles.wrap}>
-              {options.map((c) => (
-                <Chip key={c._id} label={c.nameAr} selected={categoryId === c._id} onPress={() => setCategoryId(c._id)} />
-              ))}
-            </View>
-          )}
+          <View style={styles.wrap}>
+            {tpl.units.map((u) => (
+              <Chip key={u} label={u} selected={unit === u} onPress={() => setUnit(u)} />
+            ))}
+          </View>
         </View>
       )}
 
       <View style={styles.row}>
         <View style={styles.flex}>
-          <TextField label="السعر (ج.م)" placeholder="مثال: 350" value={price} onChangeText={setPrice} keyboardType="decimal-pad" ltr error={errors.price} />
+          <TextField label={unit === 'قطعة' ? 'السعر (ج.م)' : `سعر الـ${unit} (ج.م)`} placeholder="مثال: 350" value={price} onChangeText={setPrice} keyboardType="decimal-pad" ltr error={errors.price} />
         </View>
         <View style={styles.flex}>
           <TextField label="السعر قبل الخصم" placeholder="مثال: 450" optional value={compareAt} onChangeText={setCompareAt} keyboardType="decimal-pad" ltr error={errors.compareAt} />
@@ -505,38 +590,34 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
 
       {/* Variants */}
       <View style={styles.gap}>
-        <Text variant="bodyStrong">المقاسات والألوان والمخزون</Text>
-        <Text variant="meta" color={errors.variants ? 'danger' : 'ink3'}>
-          {errors.variants ?? 'كل سطر = اختيار للعميل. سيب المقاس/اللون فاضي لو المنتج مقاس واحد.'}
-        </Text>
-        {variants.map((v, i) => (
-          <Card key={v.key} style={styles.gapSm}>
+        <Text variant="bodyStrong">{[tpl.size?.label, tpl.color?.label].filter(Boolean).join(' و') || 'الكمية'}{tpl.size || tpl.color ? ' والكميات' : ''}</Text>
+        <VariantBuilder
+          template={tpl}
+          sizes={activeSizes}
+          colors={activeColors}
+          cells={cells}
+          onSizes={setSizes}
+          onColors={setColors}
+          onCells={setCells}
+          unit={unit}
+          error={errors.variants}
+        />
+        {tpl.sizeGuide ? (
+          <View style={[styles.guide, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]}>
             <View style={styles.between}>
               <Text variant="ui" weight="semibold">
-                اختيار {i + 1}
+                دليل المقاسات
               </Text>
-              {variants.length > 1 && <IconButton icon={Trash2} label="حذف الاختيار" size={36} color="danger" onPress={() => setVariants((xs) => xs.filter((x) => x.key !== v.key))} />}
+              <Ruler size={18} color={t.c.ink3} />
             </View>
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <TextField label="المقاس" optional value={v.size} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, size: s } : x)))} placeholder="M" maxLength={30} />
-              </View>
-              <View style={styles.flex}>
-                <TextField label="اللون" optional value={v.color} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, color: s } : x)))} placeholder="أسود" maxLength={30} />
-              </View>
-            </View>
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <TextField label="المخزون" placeholder="مثال: 10" value={v.stock} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, stock: s } : x)))} keyboardType="number-pad" ltr />
-              </View>
-              <View style={styles.flex}>
-                <TextField label="سعر مختلف" placeholder="نفس سعر المنتج" optional value={v.price} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, price: s } : x)))} keyboardType="decimal-pad" ltr />
-              </View>
-            </View>
-            <TextField label="SKU" placeholder="مثال: TS-BLK-M" optional value={v.sku} onChangeText={(s) => setVariants((xs) => xs.map((x) => (x.key === v.key ? { ...x, sku: s } : x)))} autoCapitalize="characters" ltr maxLength={60} />
-          </Card>
-        ))}
-        {variants.length < 100 && <Button label="إضافة اختيار" icon={Plus} variant="soft" onPress={() => setVariants((xs) => [...xs, newVariant()])} />}
+            <Text variant="meta" color="ink2">
+              {tpl.sizeGuide}
+            </Text>
+            <Text variant="meta" color="ink3">
+              بيظهر للعميل في صفحة المنتج
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Wholesale */}
@@ -544,21 +625,53 @@ function ProductForm({ id, product: p }: { id?: string; product?: BrandProduct }
         <View style={styles.flex}>
           <Text variant="bodyStrong">أسعار الجملة</Text>
           <Text variant="meta" color="ink3">
-            أقل كمية للطلب، وسعر أقل كل ما الكمية تزيد (كل المقاسات بتتحسب مع بعض)
+            {wsRequired
+              ? 'أساسية للمخازن: العميل يشتري قطاعي بالسعر العادي، وكل ما الكمية تزيد السعر يقل'
+              : 'أقل كمية للطلب، وسعر أقل كل ما الكمية تزيد (كل المقاسات بتتحسب مع بعض)'}
           </Text>
         </View>
-        <Switch value={wsOn} onValueChange={setWsOn} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="أسعار الجملة" />
+        {!wsRequired && (
+          <Switch value={wsOn} onValueChange={setWsOn} trackColor={{ true: t.c.accent, false: t.c.lineStrong }} thumbColor="#fff" accessibilityLabel="أسعار الجملة" />
+        )}
       </View>
       {wsOn && (
         <Card style={styles.gap}>
-          <TextField label="أقل كمية للطلب" placeholder="مثال: 6" value={wsMin} onChangeText={setWsMin} keyboardType="number-pad" ltr hint="اكتب 1 لو مفيش حد أدنى" />
+          <TextField
+            label={`أقل كمية للطلب (${unit})`}
+            placeholder={wsRequired ? '1' : 'مثال: 6'}
+            value={wsMin}
+            onChangeText={setWsMin}
+            keyboardType="number-pad"
+            ltr
+            hint={wsRequired ? 'اكتب 1 لو بتبيع قطاعي كمان' : 'اكتب 1 لو مفيش حد أدنى'}
+          />
+          <Text variant="ui" color="ink2">
+            وحدة الجملة
+          </Text>
+          <View style={styles.wrap}>
+            <Chip label="من غير" selected={!packUnit} onPress={() => setPackUnit('')} />
+            {packUnits.map((u) => (
+              <Chip key={u} label={u} selected={packUnit === u} onPress={() => setPackUnit(u)} />
+            ))}
+          </View>
+          {packUnit ? (
+            <TextField
+              label={`كام ${unit} في الـ${packUnit}؟`}
+              placeholder="مثال: 24"
+              value={packQty}
+              onChangeText={setPackQty}
+              keyboardType="number-pad"
+              ltr
+              hint={num(packQty) && num(price) ? `سعر الـ${packUnit} بالسعر العادي: ${Math.round(num(packQty)! * num(price)!)} ج.م` : undefined}
+            />
+          ) : null}
           {tiers.map((x, i) => (
             <View key={x.key} style={[styles.row, styles.center]}>
               <View style={styles.flex}>
                 <TextField label={i === 0 ? 'من كمية' : ' '} placeholder="12" value={x.qty} onChangeText={(s) => setTiers((xs) => xs.map((y) => (y.key === x.key ? { ...y, qty: s } : y)))} keyboardType="number-pad" ltr />
               </View>
               <View style={styles.flex}>
-                <TextField label={i === 0 ? 'سعر القطعة' : ' '} placeholder="80" value={x.price} onChangeText={(s) => setTiers((xs) => xs.map((y) => (y.key === x.key ? { ...y, price: s } : y)))} keyboardType="decimal-pad" ltr />
+                <TextField label={i === 0 ? `سعر الـ${unit}` : ' '} placeholder="80" value={x.price} onChangeText={(s) => setTiers((xs) => xs.map((y) => (y.key === x.key ? { ...y, price: s } : y)))} keyboardType="decimal-pad" ltr />
               </View>
               {tiers.length > 1 && <IconButton icon={Trash2} label="حذف السعر" size={36} color="danger" onPress={() => setTiers((xs) => xs.filter((y) => y.key !== x.key))} />}
             </View>
@@ -631,5 +744,6 @@ const styles = StyleSheet.create({
   imgActions: { flexDirection: 'row', justifyContent: 'space-between', padding: 4 },
   coverTag: { position: 'absolute', bottom: 0, start: 0, end: 0, alignItems: 'center', paddingVertical: 2 },
   publish: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1 },
+  guide: { gap: 6, padding: 12 },
   fixedCat: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
 });

@@ -135,9 +135,16 @@ export function MultiSelect<T extends string>({
               ]}
             >
               {o.icon && <Icon as={o.icon} size={20} color={on ? 'accent' : 'ink2'} />}
-              <Text variant="body" color={on ? 'accent' : 'ink'} weight={on ? 'semibold' : 'regular'} style={styles.flex}>
-                {o.label}
-              </Text>
+              <View style={styles.flex}>
+                <Text variant="body" color={on ? 'accent' : 'ink'} weight={on ? 'semibold' : 'regular'}>
+                  {o.label}
+                </Text>
+                {o.description ? (
+                  <Text variant="meta" color="ink3" numberOfLines={2}>
+                    {o.description}
+                  </Text>
+                ) : null}
+              </View>
               <View style={[styles.box2, { borderColor: on ? t.c.brand : t.c.lineStrong, backgroundColor: on ? t.c.brand : 'transparent' }]}>
                 {on && <Check size={14} color="#fff" strokeWidth={3} />}
               </View>
@@ -154,7 +161,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 6 },
   box: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 30, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 12, borderWidth: 1 },
   box2: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

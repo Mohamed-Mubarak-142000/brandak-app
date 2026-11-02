@@ -7,6 +7,7 @@ import { StyleSheet, Switch, View } from 'react-native';
 import { api, errorMessage } from '@/api/client';
 import { qk, useCategories, useGovernorates, useMyBrand } from '@/api/queries';
 import type { OwnerBrand, ShippingZone, StoreType } from '@/api/types';
+import { sectionOptions } from '@/features/catalog/category-tree';
 import { STORE_TYPES, storeTypeInfo } from '@/features/catalog/store-types';
 import { ImageSlot, type UploadedImage } from '@/features/seller/image-slot';
 import { displaySocial, normalizeSocial } from '@/features/seller/links';
@@ -181,7 +182,7 @@ function StoreForm({ b }: { b: OwnerBrand }) {
             value={cats}
             onChange={setCats}
             loading={categories.isLoading}
-            options={(categories.data ?? []).filter((c) => c.isActive).map((c) => ({ value: c._id, label: c.nameAr }))}
+            options={sectionOptions(categories.data ?? [])}
           />
         </Section>
 

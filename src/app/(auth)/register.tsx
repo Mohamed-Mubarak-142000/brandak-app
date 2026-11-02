@@ -14,6 +14,7 @@ import type { AuthResult, OwnerBrand, StoreType } from '@/api/types';
 import { completeSignIn, meKey } from '@/auth/use-auth';
 import { AuthHeader } from '@/features/auth/auth-header';
 import { PasswordMeter } from '@/features/auth/password-meter';
+import { sectionOptions } from '@/features/catalog/category-tree';
 import { STORE_TYPES, storeTypeInfo } from '@/features/catalog/store-types';
 import { haptic } from '@/lib/haptics';
 import { emailField, latinDigits, passwordField, phoneField } from '@/lib/validation';
@@ -295,7 +296,7 @@ export default function Register() {
                 }}
                 loading={categories.isLoading}
                 error={bizErrors.cats || undefined}
-                options={(categories.data ?? []).map((c) => ({ value: c._id, label: c.nameAr }))}
+                options={sectionOptions(categories.data ?? [])}
               />
             </>
           )}

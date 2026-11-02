@@ -69,8 +69,9 @@ export function ProductAlerts({ productId, variantId, soldOut }: { productId: st
 }
 
 /** Quantity price table for wholesale products. */
-export function WholesaleTable({ wholesale, price }: { wholesale: Wholesale; price: number }) {
+export function WholesaleTable({ wholesale, price, unit = 'قطعة' }: { wholesale: Wholesale; price: number; unit?: string }) {
   const t = useTheme();
+  const pack = wholesale.pack;
   const rows = [{ minQty: wholesale.minQty, price }, ...wholesale.tiers].filter((r, i, all) => i === 0 || r.minQty > all[0].minQty);
   return (
     <View style={[styles.table, { borderColor: t.c.line, borderRadius: t.radius.md, backgroundColor: t.c.sunken }]}>
@@ -80,13 +81,23 @@ export function WholesaleTable({ wholesale, price }: { wholesale: Wholesale; pri
       {rows.map((r, i) => (
         <View key={r.minQty} style={styles.between}>
           <Text variant="ui" color="ink2">
-            {i === 0 ? (wholesale.minQty > 1 ? `من ${r.minQty} قطع` : 'القطعة') : `من ${r.minQty} قطعة`}
+            {i === 0 ? (wholesale.minQty > 1 ? `من ${r.minQty} ${unit}` : `الـ${unit}`) : `من ${r.minQty} ${unit}`}
           </Text>
           <Text variant="ui" weight="semibold" color={i ? 'success' : 'ink'}>
-            {formatMoney(r.price)} للقطعة
+            {formatMoney(r.price)} للـ{unit}
           </Text>
         </View>
       ))}
+      {pack && (
+        <View style={styles.between}>
+          <Text variant="ui" color="ink2">
+            الـ{pack.unit} ({pack.qty} {unit})
+          </Text>
+          <Text variant="ui" weight="semibold">
+            {formatMoney(([...wholesale.tiers].reverse().find((x) => pack.qty >= x.minQty)?.price ?? price) * pack.qty)}
+          </Text>
+        </View>
+      )}
       <Text variant="meta" color="ink3">
         كل المقاسات والألوان بتتحسب مع بعض في الكمية.
       </Text>

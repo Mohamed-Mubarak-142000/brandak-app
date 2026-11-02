@@ -45,9 +45,37 @@ export interface Category {
   nameEn: string;
   slug: string;
   parentId: string | null;
+  /** 0 = section, 1 = category, 2 = sub-category. Missing on old API versions. */
+  level?: number;
+  /** Parent ids from the top down. */
+  ancestors?: string[];
   icon?: string;
   sortOrder: number;
   isActive: boolean;
+  storeTypes?: StoreType[];
+}
+/** A field a category asks for on its products (brand, warranty, material...). */
+export interface SpecDef {
+  key: string;
+  labelAr: string;
+  type: 'text' | 'number' | 'select' | 'boolean';
+  options?: string[];
+  unit?: string;
+  required?: boolean;
+  filterable?: boolean;
+}
+export type SpecValue = string | number | boolean;
+/** What a product in a category asks for, as the store's type sees it (inherited down the tree). */
+export interface CategoryTemplate {
+  /** The variant "size" field: called المقاس, السعة, المساحة... null = this category has no sizes. */
+  size: { label: string; preset?: string; values: string[]; allowCustom: boolean } | null;
+  color: { label: string; allowCustom: boolean } | null;
+  specs: SpecDef[];
+  /** Selling units; the first is the default. */
+  units: string[];
+  sizeGuide: string | null;
+  /** Warehouses always offer quantity prices. */
+  wholesale: 'optional' | 'required';
 }
 export interface Governorate {
   code: string;
@@ -112,6 +140,8 @@ export interface ProductCard {
   ratingCount: number;
   brand: BrandMini;
   wholesale?: Wholesale | null;
+  /** What one unit is (قطعة, كيلو, كرتونة...). Missing on old API versions. */
+  unit?: string;
   /** Paid placement (shown with a "مُموَّل" tag). */
   sponsored?: boolean;
   adId?: string;
@@ -130,8 +160,15 @@ export interface ProductDetail extends ProductCard {
   /** Same order as images: the colour each photo shows; null = every colour. Missing on old API versions. */
   imageColors?: (string | null)[];
   categoryId: string;
+  /** "ملابس › رجالي › تيشيرتات". Missing on old API versions. */
+  categoryPath?: string;
   tags: string[];
   variants: Variant[];
+  /** What the variant fields are called in this category ("المساحة" for phones). */
+  sizeLabel?: string;
+  colorLabel?: string;
+  sizeGuide?: string | null;
+  specs?: { key: string; label: string; value: SpecValue; unit: string | null }[];
 }
 export interface Review {
   id: string;
@@ -480,6 +517,8 @@ export interface OwnerBrand {
 export interface Wholesale {
   minQty: number;
   tiers: { minQty: number; price: number }[];
+  /** The wholesale unit, e.g. a carton (كرتونة) of 24 pieces; quantities stay in pieces. */
+  pack?: { unit: string; qty: number } | null;
 }
 export interface ProductDraft {
   title: string;
@@ -502,6 +541,8 @@ export interface BrandProduct {
   compareAtPrice: number | null;
   sale?: { percent: number; startsAt: ISODate; endsAt: ISODate; campaignId: string | null } | null;
   variants: { _id: string; sku?: string; size?: string; color?: string; price: number | null; stock: number }[];
+  unit?: string;
+  specs?: { key: string; value: SpecValue }[];
   status: ProductStatus;
   tags: string[];
   totalStock: number;

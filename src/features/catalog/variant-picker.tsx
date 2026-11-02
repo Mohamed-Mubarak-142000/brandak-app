@@ -63,6 +63,8 @@ export function VariantPicker({
   sizeAvailable,
   colorAvailable,
   missing,
+  sizeLabel = 'المقاس',
+  colorLabel = 'اللون',
 }: {
   sizes: string[];
   colors: string[];
@@ -73,6 +75,9 @@ export function VariantPicker({
   sizeAvailable: (s: string) => boolean;
   colorAvailable: (c: string) => boolean;
   missing?: boolean;
+  /** What the category calls them ("المساحة" for phones, "الدرجة" for makeup). */
+  sizeLabel?: string;
+  colorLabel?: string;
 }) {
   // Swatches only when every colour has one; a mixed row of dots and words reads badly.
   const allSwatches = colors.every((c) => !!swatchFor(c));
@@ -81,7 +86,7 @@ export function VariantPicker({
       {colors.length > 0 && (
         <View style={styles.gap}>
           <Text variant="ui" color={missing && !color ? 'danger' : 'ink2'}>
-            اللون: <Text variant="ui" weight="bold" color={missing && !color ? 'danger' : 'ink'}>{color ?? 'اختار لون'}</Text>
+            {colorLabel}: <Text variant="ui" weight="bold" color={missing && !color ? 'danger' : 'ink'}>{color ?? `اختار ${colorLabel}`}</Text>
           </Text>
           <View style={styles.wrap}>
             {colors.map((c) =>
@@ -97,7 +102,7 @@ export function VariantPicker({
       {sizes.length > 0 && (
         <View style={styles.gap}>
           <Text variant="ui" color={missing && !size ? 'danger' : 'ink2'}>
-            المقاس: <Text variant="ui" weight="bold" color={missing && !size ? 'danger' : 'ink'}>{size ?? 'اختار مقاس'}</Text>
+            {sizeLabel}: <Text variant="ui" weight="bold" color={missing && !size ? 'danger' : 'ink'}>{size ?? `اختار ${sizeLabel}`}</Text>
           </Text>
           <View style={styles.wrap}>
             {sizes.map((s) => (

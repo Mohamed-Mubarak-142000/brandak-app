@@ -11,6 +11,7 @@ import type {
   CartSummary,
   CartView,
   Category,
+  CategoryTemplate,
   Governorate,
   MyReview,
   MySubscriptions,
@@ -30,6 +31,7 @@ import type {
 
 export const qk = {
   categories: ['categories'] as const,
+  categoryTemplate: (id: string, storeType?: string | null) => ['categories', id, 'template', storeType ?? ''] as const,
   governorates: ['governorates'] as const,
   brands: (q: Query) => ['brands', q] as const,
   brand: (slug: string) => ['brand', slug] as const,
@@ -97,6 +99,14 @@ export const useCategories = (storeType?: StoreType | null) =>
   useQuery({
     queryKey: storeType ? [...qk.categories, storeType] : qk.categories,
     queryFn: () => api.get<Category[]>('/categories', storeType ? { storeType } : undefined),
+    staleTime: 60 * 60_000,
+  });
+/** What a product in this category asks for (sizes, colours, fields, units) as this kind of store sees it. */
+export const useCategoryTemplate = (id?: string | null, storeType?: StoreType | null) =>
+  useQuery({
+    queryKey: qk.categoryTemplate(id ?? '', storeType),
+    queryFn: () => api.get<CategoryTemplate>(`/categories/${id}/template`, storeType ? { storeType } : undefined),
+    enabled: !!id,
     staleTime: 60 * 60_000,
   });
 export const useGovernorates = () =>

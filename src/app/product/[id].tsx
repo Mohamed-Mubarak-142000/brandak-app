@@ -1,12 +1,21 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowRight, BadgeCheck, ChevronLeft, Flag, Share2, ShieldCheck, ShoppingBag, Truck, Undo2, Wallet, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Share, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  FadeInDown,
+  interpolate,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
-import { api, errorMessage } from '@/api/client';
-import { flatPages, useBrand, useCart, useCartMutations, useProduct, useReviews } from '@/api/queries';
+import { api, errorMessage, WEB_BASE } from '@/api/client';
+import { flatPages, useBrand, useCart, useCartMutations, useProduct, useProducts, useReviews } from '@/api/queries';
 import { useIsSeller, useRequireAuth } from '@/auth/use-auth';
 import { BrandLogo } from '@/features/catalog/brand-card';
 import { Countdown } from '@/features/catalog/countdown';
@@ -15,6 +24,9 @@ import { WishlistHeart } from '@/features/catalog/product-card';
 import { ProductAlerts, WholesaleTable } from '@/features/catalog/product-alerts';
 import { QuestionsSection } from '@/features/catalog/questions';
 import { ReportSheet } from '@/features/catalog/report-sheet';
+import { useCardWidth } from '@/features/catalog/product-grid';
+import { ProductRail } from '@/features/catalog/product-rail';
+import { useRecentlyViewed } from '@/features/catalog/recently-viewed';
 import { ReviewItem } from '@/features/catalog/review-item';
 import { imagesForColor, useVariantSelection, VariantPicker } from '@/features/catalog/variant-picker';
 import { formatMoney } from '@/lib/format';
@@ -34,6 +46,19 @@ export default function ProductScreen() {
     if (id) api.post(`/products/${id}/view`).catch(() => undefined);
   }, [id]);
   const p = product.data;
+  const addRecent = useRecentlyViewed((s) => s.add);
+  useEffect(() => {
+    if (p) addRecent(p);
+  }, [p, addRecent]);
+  const sameStore = useProducts({ brandId: p?.brand.id, sort: 'popular' }, 11, !!p);
+  const similar = useProducts({ categoryId: p?.categoryId, sort: 'popular' }, 11, !!p?.categoryId);
+  const railW = useCardWidth(2);
+  // The compact header fades in once the gallery has scrolled away.
+  const scrollY = useSharedValue(0);
+  const [headerOn, setHeaderOn] = useState(false);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.set(e.contentOffset.y);
+  });
   const brand = useBrand(p?.brand.slug ?? '');
   const reviews = useReviews(id);
   const cart = useCartMutations(p?.brand.id ?? '');
@@ -54,6 +79,17 @@ export default function ProductScreen() {
   const galleryW = width - 24;
   const galleryH = Math.min(galleryW * 1.1, 520);
   const [descOpen, setDescOpen] = useState(false);
+  const headerStyle = useAnimatedStyle(() => {
+    const o = interpolate(scrollY.get(), [galleryH - 80, galleryH - 20], [0, 1], Extrapolation.CLAMP);
+    return { opacity: o, transform: [{ translateY: (1 - o) * -8 }] };
+  });
+  // While hidden, the header must not swallow taps meant for the gallery's buttons.
+  useAnimatedReaction(
+    () => scrollY.get() > galleryH - 50,
+    (now, prev) => {
+      if (now !== prev) scheduleOnRN(setHeaderOn, now);
+    },
+  );
 
   if (product.isLoading) return <ProductSkeleton width={galleryW} height={galleryH} top={insets.top + 8} />;
   if (product.error || !p)
@@ -107,12 +143,20 @@ export default function ProductScreen() {
       );
     });
 
-  const share = () =>
-    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على فاترينة\nfatrina://product/${p.id}` }).catch(() => undefined);
+  // A web link: opens in any browser (with an "open in the app" button), unlike the app scheme.
+  const share = () => {
+    const url = p.brand.slug ? `${WEB_BASE}/s/${p.brand.slug}/p/${p.id}` : `fatrina://product/${p.id}`;
+    Share.share({ message: `شوف "${p.title}" من ${p.brand.name ?? ''} على فاترينة\n${url}` }).catch(() => undefined);
+  };
 
   return (
     <View style={[styles.flex, { backgroundColor: t.c.ground }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 24 }}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 24 }}
+      >
         <Gallery key={color ?? 'all'} images={gallery} width={galleryW} height={galleryH}>
           {/* Floating controls inside the image card */}
           <View style={styles.topBar} pointerEvents="box-none">
@@ -130,6 +174,13 @@ export default function ProductScreen() {
           <View style={[styles.sheet, { backgroundColor: t.c.surface, borderColor: t.c.line, borderRadius: t.radius.xl }]}>
             <View style={styles.titleRow}>
               <View style={styles.flex}>
+                {p.categoryPath ? (
+                  <Tap onPress={() => router.push({ pathname: '/category/[id]', params: { id: p.categoryId } })} pressScale={1} hitSlop={6} accessibilityLabel={`القسم: ${p.categoryPath}`}>
+                    <Text variant="meta" color="ink3" numberOfLines={1}>
+                      {p.categoryPath}
+                    </Text>
+                  </Tap>
+                ) : null}
                 <Text variant="section" style={styles.title}>
                   {p.title}
                 </Text>
@@ -140,6 +191,11 @@ export default function ProductScreen() {
 
             <View style={styles.priceRow}>
               <PriceTag price={price} compareAt={p.compareAtPrice} size="lg" />
+              {p.unit && p.unit !== 'قطعة' ? (
+                <Text variant="ui" color="ink3">
+                  / {p.unit}
+                </Text>
+              ) : null}
               {p.sale && <Countdown endsAt={p.sale.endsAt} />}
               {!p.inStock ? (
                 <Badge label="نفدت الكمية" tone="danger" />
@@ -166,17 +222,47 @@ export default function ProductScreen() {
             sizeAvailable={sel.sizeAvailable}
             colorAvailable={sel.colorAvailable}
             missing={missing}
+            sizeLabel={p.sizeLabel}
+            colorLabel={p.colorLabel}
             />
 
-            {p.wholesale && <WholesaleTable wholesale={p.wholesale} price={regular} />}
+            {p.wholesale && <WholesaleTable wholesale={p.wholesale} price={regular} unit={p.unit} />}
             {p.wholesale && minQty > 1 && (
               <Text variant="meta" color={inCart + qty >= minQty ? 'success' : 'warning'}>
                 {inCart + qty >= minQty
-                  ? `وصلت لأقل طلب (${minQty} قطعة)`
-                  : `أقل طلب ${minQty} قطعة من كل المقاسات مع بعض${inCart ? `، في سلتك ${inCart}` : ''}. ضيف ${minQty - inCart - qty} كمان.`}
+                  ? `وصلت لأقل طلب (${minQty} ${p.unit ?? 'قطعة'})`
+                  : `أقل طلب ${minQty} ${p.unit ?? 'قطعة'} من كل الاختيارات مع بعض${inCart ? `، في سلتك ${inCart}` : ''}. ضيف ${minQty - inCart - qty} كمان.`}
               </Text>
             )}
             {!seller && <ProductAlerts productId={p.id} variantId={v?.id ?? null} soldOut={soldOut} />}
+
+            {!!p.specs?.length && (
+              <View style={styles.gapSm}>
+                <Text variant="bodyStrong">المواصفات</Text>
+                <View style={[styles.specs, { borderColor: t.c.line, borderRadius: t.radius.md }]}>
+                  {p.specs.map((s, i) => (
+                    <View key={s.key} style={[styles.specRow, { backgroundColor: i % 2 ? t.c.surface : t.c.sunken }]}>
+                      <Text variant="ui" color="ink2" style={styles.specLabel}>
+                        {s.label}
+                      </Text>
+                      <Text variant="ui" weight="semibold" style={styles.flex}>
+                        {typeof s.value === 'boolean' ? (s.value ? 'أيوه' : 'لأ') : `${s.value}${s.unit ? ` ${s.unit}` : ''}`}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            {!!p.sizeGuide && (
+              <View style={[styles.guide, { backgroundColor: t.c.sunken, borderRadius: t.radius.md }]}>
+                <Text variant="ui" weight="semibold">
+                  دليل {p.sizeLabel ?? 'المقاسات'}
+                </Text>
+                <Text variant="meta" color="ink2">
+                  {p.sizeGuide}
+                </Text>
+              </View>
+            )}
 
             {!!p.description && (
               <View style={styles.gapSm}>
@@ -274,15 +360,50 @@ export default function ProductScreen() {
           </View>
 
           <QuestionsSection productId={p.id} canAsk={!seller} />
-
-          <Tap onPress={() => requireAuth('سجّل عشان تبلّغ.', () => setReportOpen(true))} style={styles.report} pressScale={1}>
-            <Icon as={Flag} size={16} color="ink3" />
-            <Text variant="meta" color="ink3">
-              الإبلاغ عن المنتج
-            </Text>
-          </Tap>
         </Animated.View>
-      </ScrollView>
+
+        <View style={styles.rails}>
+          <ProductRail
+            title={`المزيد من ${p.brand.name ?? 'المتجر'}`}
+            items={flatPages(sameStore.data).filter((x) => x.id !== p.id).slice(0, 10)}
+            loading={sameStore.isLoading}
+            width={railW}
+            onMore={p.brand.slug ? () => router.push({ pathname: '/brand/[slug]', params: { slug: p.brand.slug! } }) : undefined}
+          />
+          <ProductRail
+            title="منتجات مشابهة"
+            items={flatPages(similar.data).filter((x) => x.id !== p.id && x.brand.id !== p.brand.id).slice(0, 10)}
+            loading={similar.isLoading}
+            width={railW}
+            onMore={() => router.push({ pathname: '/category/[id]', params: { id: p.categoryId } })}
+          />
+        </View>
+
+        <Tap onPress={() => requireAuth('سجّل عشان تبلّغ.', () => setReportOpen(true))} style={styles.report} pressScale={1}>
+          <Icon as={Flag} size={16} color="ink3" />
+          <Text variant="meta" color="ink3">
+            الإبلاغ عن المنتج
+          </Text>
+        </Tap>
+      </Animated.ScrollView>
+
+      {/* Compact header once the gallery (and its buttons) has scrolled away */}
+      <Animated.View
+        pointerEvents={headerOn ? 'auto' : 'none'}
+        style={[styles.stickyHeader, { paddingTop: insets.top + 6, backgroundColor: t.c.surface, borderBottomColor: t.c.line }, headerStyle]}
+      >
+        <IconButton icon={ArrowRight} label="رجوع" onPress={() => router.back()} />
+        <View style={styles.flex}>
+          <Text variant="ui" weight="semibold" numberOfLines={1}>
+            {p.title}
+          </Text>
+          <Text variant="meta" color="accent" weight="bold">
+            {formatMoney(price)}
+          </Text>
+        </View>
+        <IconButton icon={Share2} label="مشاركة" onPress={share} />
+        <WishlistHeart productId={p.id} size={40} floating={false} />
+      </Animated.View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: t.c.surface, borderTopColor: t.c.line }]}>
         <View style={styles.inlineBetween}>
@@ -352,6 +473,10 @@ function ProductSkeleton({ width, height, top }: { width: number; height: number
 }
 
 const styles = StyleSheet.create({
+  specs: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  specRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingVertical: 9 },
+  specLabel: { width: '38%' },
+  guide: { gap: 6, padding: 12 },
   flex: { flex: 1 },
   body: { padding: 12, gap: 16, alignSelf: 'stretch' },
   sheet: { padding: 16, gap: 18, borderWidth: StyleSheet.hairlineWidth },
@@ -368,6 +493,19 @@ const styles = StyleSheet.create({
   gap: { gap: 12 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   report: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', height: 44 },
+  rails: { gap: 24, paddingTop: 8 },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    start: 0,
+    end: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   topBar: { position: 'absolute', top: 12, start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between' },
   footer: { gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });
